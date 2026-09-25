@@ -2150,6 +2150,10 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
   </div>
 
   <div id="vmodal-new-task-panel" class="hidden bg-white border border-blue-200 rounded-xl p-3 space-y-3">
+    <div class="rounded-lg border border-blue-200 bg-blue-50/60 px-3 py-2">
+      <p class="text-[10px] font-bold text-blue-800">Related to this Answered Ticket</p>
+      <p id="vmodal-new-task-parent-label" class="text-[10px] text-blue-700 mt-0.5 truncate"></p>
+    </div>
     <div>
       <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Task Title *</label>
       <input id="vmodal-new-task-title" type="text" maxlength="140" class="w-full border border-slate-300 rounded-xl p-2.5 text-xs" placeholder="Follow-up: Event / Client / Talent">
@@ -2172,8 +2176,20 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
         <input id="vmodal-new-task-due" type="date" class="w-full border border-slate-300 rounded-xl p-2.5 text-xs">
       </div>
     </div>
-    <div><label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Event / Client / Talent / CR / TR</label><input id="vmodal-new-task-related-name" class="w-full border border-slate-300 rounded-xl p-2.5 text-xs"></div>
-    <div><label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Related Link</label><input id="vmodal-new-task-related-link" class="w-full border border-slate-300 rounded-xl p-2.5 text-xs"></div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+      <div>
+        <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Event / Client / Talent / CR / TR</label>
+        <input id="vmodal-new-task-related-name" oninput="syncAnsweredTaskRelationshipFields()" class="w-full border border-slate-300 rounded-xl p-2.5 text-xs">
+      </div>
+      <div id="vmodal-new-task-related-type-wrap" class="hidden">
+        <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Relationship *</label>
+        <select id="vmodal-new-task-related-type" onchange="syncAnsweredTaskRelationshipFields()" class="w-full border border-slate-300 rounded-xl p-2.5 text-xs bg-white">
+          <option value="">-- Select --</option><option>Event</option><option>Lead Photographer</option><option>Associate Photographer</option><option>Lead Videographer</option><option>Associate Videographer</option><option>Client 1</option><option>Client 2</option><option>CR</option><option>TR</option><option>Vendor</option>
+        </select>
+      </div>
+    </div>
+    <div><label id="vmodal-new-task-related-link-label" class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Related Link <span class="normal-case font-medium text-slate-400">(optional)</span></label><input id="vmodal-new-task-related-link" type="url" class="w-full border border-slate-300 rounded-xl p-2.5 text-xs" placeholder="https://..."></div>
+    <label class="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50/60 px-3 py-2.5 cursor-pointer"><input id="vmodal-new-task-attention-today" type="checkbox" class="h-4 w-4 accent-rose-600"><span><span class="block text-[11px] font-bold text-rose-700">Need Attention Today</span><span class="block text-[9px] text-rose-600/80 mt-0.5">Add this Task to today&apos;s priority work.</span></span></label>
     <div class="flex justify-end gap-2">
       <button onclick="toggleAnsweredTaskPanel(false)" class="px-3 py-1.5 text-[11px] text-slate-500 font-semibold">Cancel</button>
       <button id="vmodal-new-task-save" onclick="submitAnsweredFollowUpTask()" class="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-blue-600 text-white">Create Task</button>
@@ -6649,7 +6665,11 @@ function resetAnsweredSupportActionPanels(q) {
   clearRichEditor('vmodal-new-task-instructions');
   fillWorkCategorySelect('vmodal-new-task-category', (q && q.category) || 'General / Other');
   const relName=document.getElementById('vmodal-new-task-related-name'); if(relName) relName.value=(q&&q.eventName)||'';
+  const relType=document.getElementById('vmodal-new-task-related-type'); if(relType) relType.value=(q&&q.eventName)?'Event':'';
   const relLink=document.getElementById('vmodal-new-task-related-link'); if(relLink) relLink.value=(q&&q.caseLink)?reconstructCaseUrl(q.caseLink):'';
+  const attention=document.getElementById('vmodal-new-task-attention-today'); if(attention) attention.checked=false;
+  const parentLabel=document.getElementById('vmodal-new-task-parent-label'); if(parentLabel) parentLabel.innerText=(q&&q.ticketId ? 'Parent Ticket: '+q.ticketId : '');
+  syncAnsweredTaskRelationshipFields();
   const due = document.getElementById('vmodal-new-task-due'); if (due) due.value = nextBusinessTaskDueDate();
   const sel = document.getElementById('vmodal-new-task-assignee');
   if (sel) {
@@ -6742,32 +6762,56 @@ function submitAnsweredTicketUpdate() {
   }).postAnsweredTicketUpdate(activeViewQuestion.ticketId, text, needsAnotherLook, currentUser.email);
 }
 
+function syncAnsweredTaskRelationshipFields(){
+  const name=document.getElementById('vmodal-new-task-related-name');
+  const wrap=document.getElementById('vmodal-new-task-related-type-wrap');
+  const type=document.getElementById('vmodal-new-task-related-type');
+  const label=document.getElementById('vmodal-new-task-related-link-label');
+  const link=document.getElementById('vmodal-new-task-related-link');
+  const hasName=!!String(name&&name.value||'').trim();
+  if(wrap)wrap.classList.toggle('hidden',!hasName);
+  const relationship=String(type&&type.value||'').trim();
+  if(label)label.innerHTML=hasName?esc((relationship||'Related')+' Link')+' *':'Related Link <span class="normal-case font-medium text-slate-400">(optional)</span>';
+  if(link)link.placeholder=hasName?'https://... required for '+(relationship||'this related item'):'https://...';
+}
 function submitAnsweredFollowUpTask() {
   if (!activeViewQuestion || !isSupportUser(currentUser)) return;
   if ((Number(richImageUploadsInFlight['vmodal-new-task-instructions']) || 0) > 0) { showToast('Please wait for the image upload to finish.'); return; }
-  const payload = {
-    title: document.getElementById('vmodal-new-task-title').value.trim(),
-    instructions: getRichEditorHtml('vmodal-new-task-instructions'),
-    assignedToEmail: document.getElementById('vmodal-new-task-assignee').value,
-    category: document.getElementById('vmodal-new-task-category').value || 'General / Other',
-    relatedClientTalent: document.getElementById('vmodal-new-task-related-name').value.trim(),
-    relatedLink: document.getElementById('vmodal-new-task-related-link').value.trim(),
-    dueDate: document.getElementById('vmodal-new-task-due').value || ''
+  const title=String(document.getElementById('vmodal-new-task-title').value||'').trim();
+  const instructions=getRichEditorHtml('vmodal-new-task-instructions');
+  const instructionText=getRichEditorText('vmodal-new-task-instructions');
+  const assignedToEmail=String(document.getElementById('vmodal-new-task-assignee').value||'').trim();
+  const relatedName=String(document.getElementById('vmodal-new-task-related-name').value||'').trim();
+  const relatedType=String(document.getElementById('vmodal-new-task-related-type').value||'').trim();
+  const relatedLink=String(document.getElementById('vmodal-new-task-related-link').value||'').trim();
+  if(!title){showToast('Task title is required.');document.getElementById('vmodal-new-task-title').focus();return;}
+  if(!instructionText){showToast('Task instructions are required.');document.getElementById('vmodal-new-task-instructions').focus();return;}
+  if(!assignedToEmail){showToast('Please select who this Task is assigned to.');document.getElementById('vmodal-new-task-assignee').focus();return;}
+  if(relatedName&&!relatedType){showToast('Please choose the relationship type for the related Event / Client / Talent / CR / TR.');document.getElementById('vmodal-new-task-related-type').focus();return;}
+  if(relatedName&&!relatedLink){showToast((relatedType||'Related')+' Link is required when Event / Client / Talent / CR / TR is added.');document.getElementById('vmodal-new-task-related-link').focus();return;}
+  if(relatedLink&&!/^https?:\/\/[^\s]+$/i.test(relatedLink)){showToast('Please enter a valid Related Link starting with http:// or https://.');document.getElementById('vmodal-new-task-related-link').focus();return;}
+  const payload={
+    title:title,instructions:instructions,assignedToEmail:assignedToEmail,
+    dueDate:document.getElementById('vmodal-new-task-due').value||'',
+    category:document.getElementById('vmodal-new-task-category').value||'None',
+    relatedClientTalent:relatedName,relatedLink:relatedLink,relatedEntityType:relatedType,
+    createdByEmail:currentUser.email,parentType:'Question',parentId:activeViewQuestion.ticketId,
+    needAttentionToday:document.getElementById('vmodal-new-task-attention-today')?.checked===true
   };
-  if (!payload.title || !getRichEditorText('vmodal-new-task-instructions') || !payload.assignedToEmail) { showToast('Please complete the required task fields.'); return; }
-  const btn = document.getElementById('vmodal-new-task-save');
-  btn.disabled = true; btn.innerText = 'Creating...';
-  google.script.run.withFailureHandler(err => {
-    btn.disabled = false; btn.innerText = 'Create Task';
-    showToast('Could not create task: ' + (err && err.message ? err.message : err));
-  }).withSuccessHandler(() => {
-    btn.disabled = false; btn.innerText = 'Create Task';
-    showToast('Follow-up task created. The asker has been notified.');
+  const btn=document.getElementById('vmodal-new-task-save');
+  btn.disabled=true;btn.innerText='Creating...';
+  google.script.run.withFailureHandler(err=>{
+    btn.disabled=false;btn.innerText='Create Task';
+    showToast('Could not create task: '+(err&&err.message?err.message:err));
+  }).withSuccessHandler(res=>{
+    btn.disabled=false;btn.innerText='Create Task';
+    if(res&&res.duplicate){showToast(res.message||'This task was just created.');return;}
+    showToast('Task created and connected to this ticket.');
     toggleAnsweredTaskPanel(false);
-    currentDataVersion = null;
+    currentDataVersion=null;
     refreshTasksData(true);
     refreshData();
-  }).createFollowUpTaskFromAnswered(activeViewQuestion.ticketId, payload, currentUser.email);
+  }).createTask(payload);
 }
 
 let reopenTicketInFlight = false;
