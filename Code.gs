@@ -5101,6 +5101,9 @@ function createFollowUpTaskFromAnswered(ticketId, payload, requestingEmail) {
     const relatedLink = Object.prototype.hasOwnProperty.call(payload, 'relatedLink')
       ? String(payload.relatedLink || '').trim()
       : String(row[A_COL.LINK - 1] || '').trim();
+    const relatedEntityType = String(payload.relatedEntityType || (relatedClientTalent ? 'Event' : '')).trim();
+    const attentionToday = payload.needAttentionToday === true || payload.attentionToday === true;
+    const attentionUntil = attentionToday ? todayCSTDateString() : '';
     if (!title) throw new Error('Task title is required.');
     if (title.length > 140) throw new Error('Task title is too long. Please keep it under 140 characters.');
     if (!stripHtmlToText(instructions)) throw new Error('Task instructions are required.');
@@ -5116,7 +5119,8 @@ function createFollowUpTaskFromAnswered(ticketId, payload, requestingEmail) {
       member.name, member.email, now, dueDate, priority,
       TASK_STATUS_PENDING, '', '', 'Answer Follow-up', ticketId,
       relatedClientTalent, now, member.name, taskCategory, relatedClientTalent, relatedLink, 'Question', ticketId,
-      supportOwnerEmail, '', '', relatedEntityType
+      supportOwnerEmail, '', '', relatedEntityType,
+      attentionToday, attentionToday ? now : '', attentionToday ? member.name : '', attentionUntil
     ]);
     bumpTaskDataVersion();
     markAnsweredTicketChangedForAsker(aSheet, rowIndex, row, now);
