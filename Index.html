@@ -8676,9 +8676,9 @@ function syncTaskCreateRelationshipFields(){
   const label=document.getElementById('task-create-related-link-label');
   const link=document.getElementById('task-create-related-link');
   const hasName=!!String(name&&name.value||'').trim();
-  // Relationship is part of the standard Task form and must always be selectable.
-  // The Ticket parent is separate from Event / Client / Talent / CR / TR context.
-  if(typeWrap)typeWrap.classList.remove('hidden');
+  // Match the standard Create Task behavior: Relationship appears only after
+  // an Event / Client / Talent / CR / TR value is entered.
+  if(typeWrap)typeWrap.classList.toggle('hidden',!hasName);
   if(type)type.required=false;
   if(link)link.required=false;
   const relationship=String(type&&type.value||'').trim();
