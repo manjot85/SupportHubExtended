@@ -8819,7 +8819,10 @@ function captureCreateTaskDraftForTicket(){
     relatedEntityType:document.getElementById('task-create-related-type').value||'',
     relatedLink:(document.getElementById('task-create-related-link').value||'').trim(),
     dueDate:document.getElementById('task-create-due').value||'',
-    needAttentionToday:document.getElementById('task-create-attention-today')?.checked===true
+    needAttentionToday:document.getElementById('task-create-attention-today')?.checked===true,
+    // Server-side guard for Ticket -> + Add Task. A normal Create Task with a
+    // manually selected Related Ticket does not set this flag.
+    cleanParentTicketContext:createTaskLaunchSource==='ticket'
   };
 }
 function startNewTicketFromCreateTask(){
@@ -8863,11 +8866,13 @@ function selectCreateTaskRelatedTicket(index){
 }
 function clearCreateTaskRelatedTicket(){resetCreateTaskTicketSearch();}
 
+let createTaskLaunchSource = '';
 function openCreateTaskModal(parentType, parentId, defaults, launchOptions) {
   if (!currentUser) return;
   createTaskParentContext = (parentType && parentId) ? { parentType:String(parentType), parentId:String(parentId) } : null;
   defaults = defaults || {};
   launchOptions = launchOptions || {};
+  createTaskLaunchSource = String(launchOptions.launchSource || '').trim().toLowerCase();
   const createTaskForm=document.getElementById('create-task-form');
   if(createTaskForm)createTaskForm.reset();
   clearRichEditor('task-create-instructions');
@@ -8918,7 +8923,7 @@ function openCreateTaskModal(parentType, parentId, defaults, launchOptions) {
   syncTaskCreateRelationshipFields();
   document.getElementById('create-task-modal').classList.remove('hidden');
 }
-function closeCreateTaskModal(){ document.getElementById('create-task-modal').classList.add('hidden'); clearRichEditor('task-create-instructions'); resetCreateTaskTicketSearch(); createTaskParentContext=null; }
+function closeCreateTaskModal(){ document.getElementById('create-task-modal').classList.add('hidden'); clearRichEditor('task-create-instructions'); resetCreateTaskTicketSearch(); createTaskParentContext=null; createTaskLaunchSource=''; }
 function submitCreateTask(e){
   e.preventDefault();
   if(!currentUser)return;
