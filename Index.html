@@ -214,7 +214,8 @@ html { font-size: 16px; }
 .app-modal-minimized #task-detail-panel > *:not(:first-child),
 .app-modal-minimized #ticket-detail-panel > *:not(:first-child) { display:none !important; }
 .app-modal-minimized #answer-modal-panel > div:first-child,
-.app-modal-minimized #task-detail-panel > div:first-child { padding:10px 12px !important; border-bottom:0 !important; }
+.app-modal-minimized #task-detail-panel > div:first-child,
+.app-modal-minimized #ticket-detail-panel > div:first-child { padding:10px 12px !important; border-bottom:0 !important; }
 .app-modal-minimized .resolve-review-grid,
 .app-modal-minimized .task-top-grid,
 .app-modal-minimized #task-modal-related-ticket-top { display:none !important; }
@@ -276,6 +277,14 @@ html { font-size: 16px; }
     max-height: calc(100vh - 16px);
     margin:8px;
     resize:none;
+    border-radius:14px;
+  }
+  #ticket-detail-panel {
+    width: calc(100vw - 16px);
+    min-width:0;
+    height: calc(100vh - 16px);
+    max-height: calc(100vh - 16px);
+    margin:8px;
     border-radius:14px;
   }
   #create-task-modal { padding:0; align-items:center; }
