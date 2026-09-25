@@ -6624,19 +6624,16 @@ function toggleAnsweredUpdatePanel(force) {
 
 function openAnsweredTicketTaskCreator() {
   if (!activeViewQuestion || !isSupportUser(currentUser)) return;
-  const q = activeViewQuestion;
-  const relatedLink = q.caseLink ? reconstructCaseUrl(q.caseLink) : '';
+  const q = Object.assign({}, activeViewQuestion);
+  closeViewModal();
   openCreateTaskModal('Question', q.ticketId, {
-    title: 'Follow-up: ' + ((q.eventName) || 'Answered Ticket'),
-    assignedToEmail: q.askedByEmail || '',
     category: q.category || 'General / Other',
     relatedClientTalent: q.eventName || '',
     relatedEntityType: q.eventName ? 'Event' : '',
-    relatedLink: relatedLink,
-    parentLabel: q.ticketId || q.eventName || 'Answered Ticket'
+    relatedLink: q.caseLink ? reconstructCaseUrl(q.caseLink) : '',
+    parentLabel: q.eventName || q.ticketId
   });
 }
-
 
 function toggleAnsweredStatusPanel(force) {
   const p = document.getElementById('vmodal-status-panel');
