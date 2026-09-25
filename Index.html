@@ -1680,7 +1680,7 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
     <div><span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">New Task</span><h3 class="text-base font-bold text-slate-900 mt-1">Create Team Task</h3></div>
     <button onclick="closeCreateTaskModal()" class="text-slate-400 hover:text-slate-700 font-bold text-xl">&times;</button>
   </div>
-  <form id="create-task-form" novalidate onsubmit="submitCreateTask(event)" class="task-responsive-scroll p-5 space-y-4 flex-1">
+  <form id="create-task-form" autocomplete="off" novalidate onsubmit="submitCreateTask(event)" class="task-responsive-scroll p-5 space-y-4 flex-1">
     <div id="task-create-parent-banner" class="hidden bg-indigo-50 border border-indigo-200 rounded-xl px-3 py-2 text-[10px] text-indigo-700"><strong>Related to:</strong> <span id="task-create-parent-label"></span></div>
     <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Task Title *</label><input id="task-create-title" maxlength="140" required class="w-full border border-slate-300 p-2.5 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Short action title"></div>
     <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Instructions *</label>
@@ -7029,12 +7029,17 @@ function createRelatedTaskFromActiveTicket() {
   if (!activeTicketDetailQuestion) return;
   const q = Object.assign({}, activeTicketDetailQuestion);
   closeTicketDetailModal();
-  // The Ticket is the parent. Related Event / Client / Talent / CR / TR
-  // remains a separate, user-selectable Task field.
+
+  // Ticket -> Add Task uses the exact same Create Task model. The Ticket is
+  // only the parent connection. Do not carry Ticket Event / Client / Talent /
+  // CR / TR, Relationship, Related Link, title, instructions, or assignee
+  // values into the new Task. Category is the one intentional Ticket-derived
+  // value because it is based on the Ticket's detected category/keywords and
+  // remains editable in the Task form.
   openCreateTaskModal('Question', q.ticketId, {
     category: q.category || 'General / Other',
     parentLabel: q.ticketId || 'Ticket'
-  });
+  }, { launchSource: 'ticket' });
 }
 function openRelatedTaskFromTicketDetail(taskId) {
   if (activeTicketDetailQuestion) pushDetailNavigation({ type:'ticket', sheet:activeTicketDetailQuestion.sheet || 'Questions Tracker', id:activeTicketDetailQuestion.ticketId });
@@ -8814,7 +8819,10 @@ function captureCreateTaskDraftForTicket(){
     relatedEntityType:document.getElementById('task-create-related-type').value||'',
     relatedLink:(document.getElementById('task-create-related-link').value||'').trim(),
     dueDate:document.getElementById('task-create-due').value||'',
-    needAttentionToday:document.getElementById('task-create-attention-today')?.checked===true
+    needAttentionToday:document.getElementById('task-create-attention-today')?.checked===true,
+    // Server-side guard for Ticket -> + Add Task. A normal Create Task with a
+    // manually selected Related Ticket does not set this flag.
+    cleanParentTicketContext:createTaskLaunchSource==='ticket'
   };
 }
 function startNewTicketFromCreateTask(){
@@ -8858,11 +8866,15 @@ function selectCreateTaskRelatedTicket(index){
 }
 function clearCreateTaskRelatedTicket(){resetCreateTaskTicketSearch();}
 
-function openCreateTaskModal(parentType, parentId, defaults) {
+let createTaskLaunchSource = '';
+function openCreateTaskModal(parentType, parentId, defaults, launchOptions) {
   if (!currentUser) return;
   createTaskParentContext = (parentType && parentId) ? { parentType:String(parentType), parentId:String(parentId) } : null;
   defaults = defaults || {};
-  document.getElementById('create-task-form').reset();
+  launchOptions = launchOptions || {};
+  createTaskLaunchSource = String(launchOptions.launchSource || '').trim().toLowerCase();
+  const createTaskForm=document.getElementById('create-task-form');
+  if(createTaskForm)createTaskForm.reset();
   clearRichEditor('task-create-instructions');
   resetCreateTaskTicketSearch();
   // Always start the standard Task form with a clean related-context section.
@@ -8889,10 +8901,29 @@ function openCreateTaskModal(parentType, parentId, defaults) {
   const banner=document.getElementById('task-create-parent-banner'), label=document.getElementById('task-create-parent-label');
   if(banner&&label){ banner.classList.toggle('hidden',!createTaskParentContext); label.innerText=createTaskParentContext ? ((createTaskParentContext.parentType==='Task'?'Task: ':'Related Ticket: ')+(defaults.parentLabel||createTaskParentContext.parentId)) : ''; }
   const ticketWrap=document.getElementById('task-create-ticket-search-wrap'); if(ticketWrap)ticketWrap.classList.toggle('hidden',!!createTaskParentContext);
+  // A Ticket-launched Task must remain a clean Create Task form. Explicitly
+  // clear every user-entered Task field after browser/form reset and defaults
+  // are applied. This is intentionally scoped to Ticket -> Add Task so other
+  // legitimate Task -> Task follow-up defaults continue to work.
+  if(launchOptions.launchSource==='ticket'){
+    const titleInput=document.getElementById('task-create-title');
+    const assigneeInput=document.getElementById('task-create-assignee');
+    const relatedNameInput=document.getElementById('task-create-related-name');
+    const relatedTypeInput=document.getElementById('task-create-related-type');
+    const relatedLinkInput=document.getElementById('task-create-related-link');
+    const attentionInput=document.getElementById('task-create-attention-today');
+    if(titleInput)titleInput.value='';
+    if(assigneeInput)assigneeInput.value='';
+    if(relatedNameInput)relatedNameInput.value='';
+    if(relatedTypeInput)relatedTypeInput.value='';
+    if(relatedLinkInput)relatedLinkInput.value='';
+    if(attentionInput)attentionInput.checked=false;
+    clearRichEditor('task-create-instructions');
+  }
   syncTaskCreateRelationshipFields();
   document.getElementById('create-task-modal').classList.remove('hidden');
 }
-function closeCreateTaskModal(){ document.getElementById('create-task-modal').classList.add('hidden'); clearRichEditor('task-create-instructions'); resetCreateTaskTicketSearch(); createTaskParentContext=null; }
+function closeCreateTaskModal(){ document.getElementById('create-task-modal').classList.add('hidden'); clearRichEditor('task-create-instructions'); resetCreateTaskTicketSearch(); createTaskParentContext=null; createTaskLaunchSource=''; }
 function submitCreateTask(e){
   e.preventDefault();
   if(!currentUser)return;
