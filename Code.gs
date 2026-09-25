@@ -44,7 +44,7 @@ const SETUP_CACHE_SECONDS = 300;
 // every sheet header. Bump this value only when a future release changes the
 // spreadsheet schema, then run runManualSetup() once before deployment.
 const SCHEMA_VERSION_KEY = 'SUPPORT_HUB_SCHEMA_VERSION';
-const SCHEMA_VERSION = 'PROFESSIONAL_PERFORMANCE_RC1_TEAM_FLAG_V1';
+const SCHEMA_VERSION = 'PROFESSIONAL_PERFORMANCE_RC1_TEAM_FLAG_V1_TASK_ATTENTION_V1';
 // Team routing must never reuse a roster cached by an older release. The
 // generation suffix also prevents an in-flight read from restoring stale
 // Primary/Backup values after Admin saves a newer roster.
@@ -111,9 +111,10 @@ const T_COL = {
   RELATED_TICKET_ID: 15, RELATED_EVENT: 16, UPDATED_AT: 17, UPDATED_BY: 18,
   WORK_CATEGORY: 19, RELATED_CLIENT_TALENT: 20, RELATED_LINK: 21,
   PARENT_TYPE: 22, PARENT_ID: 23, SUPPORT_OWNER_EMAIL: 24,
-  COMPLETED_BY_EMAIL: 25, COMPLETED_BY: 26, RELATED_ENTITY_TYPE: 27
+  COMPLETED_BY_EMAIL: 25, COMPLETED_BY: 26, RELATED_ENTITY_TYPE: 27,
+  ATTENTION_TODAY: 28, ATTENTION_SET_AT: 29, ATTENTION_SET_BY: 30, ATTENTION_UNTIL: 31
 };
-const T_WIDTH = 27;
+const T_WIDTH = 31;
 const TASK_STATUS_PENDING = 'Pending';
 const TASK_STATUS_IN_PROGRESS = 'In Progress';
 const TASK_STATUS_COMPLETED = 'Completed';
@@ -1300,7 +1301,8 @@ function ensureTasksSheet(ss) {
     'Status', 'Completed At', 'Completion Note', 'Source', 'Related Ticket ID',
     'Related Event', 'Updated At', 'Updated By', 'Work Category',
     'Related Event / Client / Talent', 'Related Link', 'Parent Type', 'Parent ID',
-    'Support Owner Email', 'Completed By Email', 'Completed By', 'Related Entity Type'
+    'Support Owner Email', 'Completed By Email', 'Completed By', 'Related Entity Type',
+    'Need Attention Today', 'Attention Set At', 'Attention Set By', 'Attention Until'
   ];
 
   if (!s) {
@@ -4685,6 +4687,7 @@ function answerQuestion(ticketId, answerText, supervisorEmail, supervisorName, f
         category: normalizeWorkCategory(raw.category || selectedCategory),
         relatedClientTalent: relatedClientTalent,
         relatedLink: relatedLink,
+        needAttentionToday: raw.needAttentionToday === true || raw.attentionToday === true,
         supportOwnerEmail: resolveTaskSupportOwnerEmail(assignee)
       };
     });
@@ -4707,7 +4710,8 @@ function answerQuestion(ticketId, answerText, supervisorEmail, supervisorName, f
           TASK_STATUS_PENDING, '', '', 'Answer Follow-up', ticketId,
           t.relatedClientTalent, now, supervisor.name, t.category,
           t.relatedClientTalent, t.relatedLink, 'Question', ticketId,
-          t.supportOwnerEmail, '', ''
+          t.supportOwnerEmail, '', '', '',
+          t.needAttentionToday === true, t.needAttentionToday ? now : '', t.needAttentionToday ? supervisor.name : '', t.needAttentionToday ? todayCSTDateString() : ''
         ]);
         appendedTaskIds.push(t.taskId);
       });
@@ -4764,6 +4768,7 @@ function answerQuestion(ticketId, answerText, supervisorEmail, supervisorName, f
       category: t.category,
       relatedClientTalent: t.relatedClientTalent,
       relatedLink: t.relatedLink,
+      attentionToday: t.needAttentionToday === true,
       parentType: 'Question',
       parentId: ticketId
     }));
@@ -5096,6 +5101,9 @@ function createFollowUpTaskFromAnswered(ticketId, payload, requestingEmail) {
     const relatedLink = Object.prototype.hasOwnProperty.call(payload, 'relatedLink')
       ? String(payload.relatedLink || '').trim()
       : String(row[A_COL.LINK - 1] || '').trim();
+    const relatedEntityType = String(payload.relatedEntityType || (relatedClientTalent ? 'Event' : '')).trim();
+    const attentionToday = payload.needAttentionToday === true || payload.attentionToday === true;
+    const attentionUntil = attentionToday ? todayCSTDateString() : '';
     if (!title) throw new Error('Task title is required.');
     if (title.length > 140) throw new Error('Task title is too long. Please keep it under 140 characters.');
     if (!stripHtmlToText(instructions)) throw new Error('Task instructions are required.');
@@ -5111,7 +5119,8 @@ function createFollowUpTaskFromAnswered(ticketId, payload, requestingEmail) {
       member.name, member.email, now, dueDate, priority,
       TASK_STATUS_PENDING, '', '', 'Answer Follow-up', ticketId,
       relatedClientTalent, now, member.name, taskCategory, relatedClientTalent, relatedLink, 'Question', ticketId,
-      supportOwnerEmail, '', '', relatedEntityType
+      supportOwnerEmail, '', '', relatedEntityType,
+      attentionToday, attentionToday ? now : '', attentionToday ? member.name : '', attentionUntil
     ]);
     bumpTaskDataVersion();
     markAnsweredTicketChangedForAsker(aSheet, rowIndex, row, now);
@@ -5832,7 +5841,11 @@ function taskRowToObject(row) {
     parentId: String(row[T_COL.PARENT_ID - 1] || '').trim(),
     supportOwnerEmail: normalizeEmail(row[T_COL.SUPPORT_OWNER_EMAIL - 1]),
     completedByEmail: normalizeEmail(row[T_COL.COMPLETED_BY_EMAIL - 1]),
-    completedBy: stripNoraPrefix(String(row[T_COL.COMPLETED_BY - 1] || '').trim())
+    completedBy: stripNoraPrefix(String(row[T_COL.COMPLETED_BY - 1] || '').trim()),
+    attentionToday: isAttentionActive(row[T_COL.ATTENTION_TODAY - 1] === true, row[T_COL.ATTENTION_UNTIL - 1]),
+    attentionSetAt: row[T_COL.ATTENTION_SET_AT - 1] ? safeIsoDate(row[T_COL.ATTENTION_SET_AT - 1]) : '',
+    attentionSetBy: stripNoraPrefix(String(row[T_COL.ATTENTION_SET_BY - 1] || '').trim()),
+    attentionUntil: normalizeEventDate(row[T_COL.ATTENTION_UNTIL - 1])
   };
 }
 
@@ -6036,12 +6049,15 @@ function createTask(payload) {
     const now = new Date();
     const taskId = Utilities.getUuid();
     const supportOwnerEmail = resolveTaskSupportOwnerEmail(assignee);
+    const attentionToday = payload.needAttentionToday === true || payload.attentionToday === true;
+    const attentionUntil = attentionToday ? todayCSTDateString() : '';
     sheet.appendRow([
       taskId, title, instructions, assignee.name, assignee.email,
       creator.name, creator.email, now, dueDate, priority,
       TASK_STATUS_PENDING, '', '', parent.parentType ? 'Related Task' : 'Manual', parent.relatedTicketId || '', relatedClientTalent,
       now, creator.name, taskCategory, relatedClientTalent, relatedLink, parent.parentType, parent.parentId,
-      supportOwnerEmail, '', '', relatedEntityType
+      supportOwnerEmail, '', '', relatedEntityType,
+      attentionToday, attentionToday ? now : '', attentionToday ? creator.name : '', attentionUntil
     ]);
     bumpTaskDataVersion();
     const task = taskRowToObject(sheet.getRange(sheet.getLastRow(), 1, 1, T_WIDTH).getValues()[0]);
@@ -6100,6 +6116,30 @@ function createTask(payload) {
   return result;
 }
 
+
+function setTaskAttentionToday(taskId, enabled, requestingEmail) {
+  return withLock(() => {
+    const actor = requireAuthenticatedMember(requestingEmail);
+    const target = requireTaskRow(taskId);
+    const row = target.sheet.getRange(target.rowIndex, 1, 1, T_WIDTH).getValues()[0];
+    const task = taskRowToObject(row);
+    const actorEmail = normalizeEmail(actor.email);
+    const canChange = isAdminMember(actor) || isSupportMember(actor) || task.createdByEmail === actorEmail || task.assignedToEmail === actorEmail;
+    if (!canChange) throw new Error('Only the task creator, assignee, Support, or Admin can change Task attention.');
+    if (task.status === TASK_STATUS_COMPLETED || task.status === TASK_STATUS_CANCELLED) throw new Error('Completed or cancelled tasks cannot be marked Need Attention Today.');
+    const active = enabled === true || String(enabled).toLowerCase() === 'true';
+    const now = new Date();
+    target.sheet.getRange(target.rowIndex, T_COL.ATTENTION_TODAY).setValue(active);
+    target.sheet.getRange(target.rowIndex, T_COL.ATTENTION_SET_AT).setValue(active ? now : '');
+    target.sheet.getRange(target.rowIndex, T_COL.ATTENTION_SET_BY).setValue(active ? actor.name : '');
+    target.sheet.getRange(target.rowIndex, T_COL.ATTENTION_UNTIL).setValue(active ? todayCSTDateString() : '');
+    target.sheet.getRange(target.rowIndex, T_COL.UPDATED_AT).setValue(now);
+    target.sheet.getRange(target.rowIndex, T_COL.UPDATED_BY).setValue(actor.name);
+    bumpTaskDataVersion();
+    logAudit(active ? 'TASK_ATTENTION_TODAY_SET' : 'TASK_ATTENTION_TODAY_CLEARED', actor.email, actor.name, taskId, { attentionToday: active, entity: 'Task' });
+    return { success: true, task: taskRowToObject(target.sheet.getRange(target.rowIndex, 1, 1, T_WIDTH).getValues()[0]) };
+  }, { operation: 'setTaskAttentionToday' });
+}
 
 function setTaskRelatedTicket(taskId, ticketId, requestingEmail, expected) {
   const result = withLock(() => {
