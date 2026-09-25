@@ -1834,7 +1834,7 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
     </div>
     <div id="task-modal-parent-task-row" class="hidden bg-indigo-50/50 border border-indigo-200 rounded-xl p-3 flex items-center justify-between gap-3"><div class="min-w-0"><p class="text-[10px] font-bold uppercase tracking-wider text-indigo-700">Parent Task</p><p id="task-modal-parent-task-label" class="text-[10px] text-slate-600 mt-0.5 truncate"></p></div><button onclick="openParentTaskFromActiveTask()" class="text-[11px] font-bold text-indigo-700 hover:text-indigo-900 underline shrink-0">View Parent &rarr;</button></div>
     <div id="task-modal-completed-block" class="hidden bg-emerald-50/60 border border-emerald-200 rounded-xl p-3"><p class="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Completion Note</p><div id="task-modal-completion-note" class="preserve-lines text-xs text-slate-800 mt-1"></div><p id="task-modal-completed-at" class="text-[10px] text-slate-500 mt-2"></p></div>
-    <div class="border border-emerald-200 rounded-xl overflow-hidden">
+    <div id="task-modal-progress-composer" class="border border-emerald-200 rounded-xl overflow-hidden">
       <div class="px-3.5 py-3 bg-emerald-50/50"><p id="task-update-heading" class="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Add Progress Update</p><p id="task-update-subtitle" class="text-[10px] text-slate-500 mt-0.5">Post a note, link, screenshot, or @mention. It will appear above in Progress Updates.</p></div>
       <div class="p-3 bg-white relative">
         <div class="border border-slate-300 rounded-t-xl bg-slate-50 p-1.5 flex items-center gap-1 border-b-0 text-xs text-slate-600">
@@ -2114,7 +2114,7 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
   </div>
   <div class="flex flex-wrap items-center gap-2">
     <button onclick="toggleAnsweredUpdatePanel()" class="px-3 py-2 rounded-lg text-[11px] font-bold bg-emerald-600 text-white hover:bg-emerald-700">Add Update</button>
-    <button onclick="toggleAnsweredTaskPanel()" class="px-3 py-2 rounded-lg text-[11px] font-bold bg-white text-blue-700 border border-blue-200 hover:bg-blue-50">Add Task</button>
+    <button onclick="openAnsweredTicketTaskCreator()" class="px-3 py-2 rounded-lg text-[11px] font-bold bg-white text-blue-700 border border-blue-200 hover:bg-blue-50">Add Task</button>
     <button onclick="toggleAnsweredStatusPanel()" class="px-3 py-2 rounded-lg text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100">Reopen Ticket</button>
   </div>
 
@@ -6689,6 +6689,21 @@ function toggleAnsweredUpdatePanel(force) {
   if (show) setTimeout(() => document.getElementById('vmodal-update-text')?.focus(), 0);
 }
 
+function openAnsweredTicketTaskCreator() {
+  if (!activeViewQuestion || !isSupportUser(currentUser)) return;
+  const q = activeViewQuestion;
+  const relatedLink = q.caseLink ? reconstructCaseUrl(q.caseLink) : '';
+  openCreateTaskModal('Question', q.ticketId, {
+    title: 'Follow-up: ' + ((q.eventName) || 'Answered Ticket'),
+    assignedToEmail: q.askedByEmail || '',
+    category: q.category || 'General / Other',
+    relatedClientTalent: q.eventName || '',
+    relatedEntityType: q.eventName ? 'Event' : '',
+    relatedLink: relatedLink,
+    parentLabel: q.ticketId || q.eventName || 'Answered Ticket'
+  });
+}
+
 function toggleAnsweredTaskPanel(force) {
   const p = document.getElementById('vmodal-new-task-panel');
   if (!p) return;
@@ -9360,7 +9375,7 @@ function openRelatedTaskFromActiveTask(taskId){
   openTaskDetail(taskId);
 }
 function createRelatedTaskFromActiveTask(){
-  if(!activeTask)return; const p=Object.assign({},activeTask); if(taskJourneySessionOpen)exitTaskJourneySession(); closeTaskDetailModal(); openCreateTaskModal('Task',p.taskId,{title:p.status==='Completed'?'Follow-up: '+(p.title||'Task'):'',assignedToEmail:p.assignedToEmail||'',category:p.category||'General / Other',relatedClientTalent:p.relatedClientTalent||p.relatedEvent||'',relatedLink:p.relatedLink||'',parentLabel:p.title||'Parent task'});
+  if(!activeTask)return; const p=Object.assign({},activeTask); if(taskJourneySessionOpen)exitTaskJourneySession(); closeTaskDetailModal(); openCreateTaskModal('Task',p.taskId,{title:p.status==='Completed'?'Follow-up: '+(p.title||'Task'):'',assignedToEmail:p.assignedToEmail||'',category:p.category||'General / Other',relatedClientTalent:p.relatedClientTalent||p.relatedEvent||'',relatedEntityType:p.relatedEntityType||'',relatedLink:p.relatedLink||'',parentLabel:p.title||'Parent task'});
 }
 function openTaskDetail(taskId) {
   const t = allTasks.find(x => String(x.taskId) === String(taskId));
@@ -9427,6 +9442,8 @@ function openTaskDetail(taskId) {
   const completedBlock = document.getElementById('task-modal-completed-block');
   const terminal = t.status === 'Completed' || t.status === 'Cancelled';
   completedBlock.classList.toggle('hidden', t.status !== 'Completed');
+  const progressComposer = document.getElementById('task-modal-progress-composer');
+  if (progressComposer) progressComposer.classList.toggle('hidden', t.status === 'Completed');
   document.getElementById('task-modal-completion-note').innerText = t.completionNote || 'No separate completion note was added. Review Progress Updates below for posted notes.';
   document.getElementById('task-modal-completed-at').innerText = t.completedAt ? 'Completed ' + formatCSTDateTime(t.completedAt, { month:'short', day:'numeric', year:'numeric', hour:'numeric', minute:'2-digit' }) + (t.completedBy ? ' by ' + t.completedBy : '') : '';
 
