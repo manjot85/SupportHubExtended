@@ -189,7 +189,8 @@ html { font-size: 16px; }
 .app-modal-tool:hover { color:#334155; background:#f8fafc; border-color:#e2e8f0; }
 .app-modal-tool-close { font-size:19px; }
 #answer-modal-panel > div:first-child,
-#task-detail-panel > div:first-child { padding:14px 16px; }
+#task-detail-panel > div:first-child,
+#ticket-detail-panel > div:first-child { padding:14px 16px; }
 #answer-modal-panel .resolve-review-grid { margin-top:10px; gap:8px 18px; }
 #answer-modal-panel .resolve-review-label,
 #task-detail-panel .task-top-label { font-size:9px; margin-bottom:2px; }
@@ -203,12 +204,15 @@ html { font-size: 16px; }
 /* Maximize / minimize / reset states. Minimize leaves the app usable behind a compact floating header. */
 .app-modal-maximized { padding:12px !important; }
 .app-modal-maximized #answer-modal-panel,
-.app-modal-maximized #task-detail-panel { width:calc(100vw - 24px) !important; height:calc(100vh - 24px) !important; min-width:0 !important; min-height:0 !important; max-width:calc(100vw - 24px) !important; max-height:calc(100vh - 24px) !important; resize:none !important; margin:0 !important; }
+.app-modal-maximized #task-detail-panel,
+.app-modal-maximized #ticket-detail-panel { width:calc(100vw - 24px) !important; height:calc(100vh - 24px) !important; min-width:0 !important; min-height:0 !important; max-width:calc(100vw - 24px) !important; max-height:calc(100vh - 24px) !important; resize:none !important; margin:0 !important; }
 .app-modal-minimized { pointer-events:none; background:transparent !important; backdrop-filter:none !important; align-items:flex-end !important; justify-content:flex-end !important; padding:16px !important; overflow:visible !important; }
 .app-modal-minimized #answer-modal-panel,
-.app-modal-minimized #task-detail-panel { pointer-events:auto; width:min(460px,calc(100vw - 32px)) !important; height:auto !important; min-width:0 !important; min-height:0 !important; max-width:calc(100vw - 32px) !important; max-height:none !important; resize:none !important; margin:0 !important; border-radius:14px !important; box-shadow:0 18px 45px rgba(15,23,42,.28); }
+.app-modal-minimized #task-detail-panel,
+.app-modal-minimized #ticket-detail-panel { pointer-events:auto; width:min(460px,calc(100vw - 32px)) !important; height:auto !important; min-width:0 !important; min-height:0 !important; max-width:calc(100vw - 32px) !important; max-height:none !important; resize:none !important; margin:0 !important; border-radius:14px !important; box-shadow:0 18px 45px rgba(15,23,42,.28); }
 .app-modal-minimized #answer-modal-panel > *:not(:first-child),
-.app-modal-minimized #task-detail-panel > *:not(:first-child) { display:none !important; }
+.app-modal-minimized #task-detail-panel > *:not(:first-child),
+.app-modal-minimized #ticket-detail-panel > *:not(:first-child) { display:none !important; }
 .app-modal-minimized #answer-modal-panel > div:first-child,
 .app-modal-minimized #task-detail-panel > div:first-child { padding:10px 12px !important; border-bottom:0 !important; }
 .app-modal-minimized .resolve-review-grid,
@@ -231,6 +235,14 @@ html { font-size: 16px; }
   min-height: 360px;
   resize: both;
   overflow: hidden;
+}
+#ticket-detail-panel {
+  width:min(760px,calc(100vw - 32px));
+  height:min(82vh,820px);
+  max-width:calc(100vw - 32px);
+  max-height:calc(100vh - 32px);
+  min-width:min(560px,calc(100vw - 32px));
+  min-height:420px;
 }
 #task-detail-panel {
   width:min(760px,calc(100vw - 32px)); height:min(88vh,820px); max-width:calc(100vw - 32px); max-height:calc(100vh - 32px); min-width:min(560px,calc(100vw - 32px)); min-height:520px;
@@ -2226,8 +2238,9 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 
 <!-- TICKET DETAIL MODAL -->
 <div id="ticket-detail-modal" class="fixed inset-0 bg-slate-950/70 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm overflow-y-auto">
-<div class="bg-white rounded-2xl shadow-2xl max-w-xl w-full my-8 border border-slate-200 max-h-[85vh] flex flex-col">
-<div class="flex justify-between items-start gap-3 p-6 pb-3 border-b shrink-0">
+<div id="ticket-detail-panel" class="bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col">
+<div class="flex justify-between items-start gap-3 p-4 border-b shrink-0">
+<div class="min-w-0 flex-1">
 <div class="min-w-0 flex-1">
 <div class="flex flex-wrap items-center gap-1.5"><span class="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-slate-900 text-white">Ticket</span><span id="tdmodal-status-badge" class="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200/60">Open</span></div>
 <h3 id="tdmodal-event" class="text-lg font-bold text-slate-900 mt-1 break-all">Event Name</h3>
@@ -2235,7 +2248,12 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 <p class="text-[11px] text-slate-400">Submitted: <span id="tdmodal-created" class="font-semibold text-slate-700"></span></p>
 <p id="tdmodal-context" class="text-[11px] font-semibold text-blue-700 mt-1"></p>
 </div>
-<button onclick="closeTicketDetailModal()" class="shrink-0 text-slate-400 hover:text-slate-600 font-bold text-xl leading-none">&times;</button>
+<div class="app-modal-tools" aria-label="Ticket window controls">
+<button type="button" onclick="minimizeWorkModal('ticket-detail-modal')" class="app-modal-tool" title="Minimize" aria-label="Minimize ticket window">—</button>
+<button type="button" onclick="resetWorkModal('ticket-detail-modal')" class="app-modal-tool" title="Reset size" aria-label="Reset ticket window size">↺</button>
+<button type="button" onclick="maximizeWorkModal('ticket-detail-modal')" class="app-modal-tool" title="Maximize" aria-label="Maximize ticket window">□</button>
+<button type="button" onclick="closeTicketDetailModal()" class="app-modal-tool app-modal-tool-close" title="Close" aria-label="Close ticket window">&times;</button>
+</div>-slate-600 font-bold text-xl leading-none">&times;</button>
 </div>
 
 <div class="space-y-4 text-xs p-6 overflow-y-auto flex-1 min-h-0">
@@ -7061,6 +7079,7 @@ async function openTicketDetail(sheet, ticketId) {
   if (q.sheet === 'Questions Tracker') recordAttentionFirstReview(q);
 
   activeTicketDetailQuestion = q.sheet === 'Answered' ? null : q;
+  resetWorkModal('ticket-detail-modal');
 
   // One answered-ticket experience everywhere in Support Hub. This ensures
   // Support/Admin see the same update/task/status actions whether the record
@@ -7131,6 +7150,7 @@ async function openTicketDetail(sheet, ticketId) {
 
 function closeTicketDetailModal(preserveNavigation) {
   activeTicketDetailQuestion = null;
+  resetWorkModal('ticket-detail-modal');
   document.getElementById('ticket-detail-modal').classList.add('hidden');
   if (!preserveNavigation) clearDetailNavigation();
 }
@@ -8837,6 +8857,15 @@ function openCreateTaskModal(parentType, parentId, defaults) {
   document.getElementById('create-task-form').reset();
   clearRichEditor('task-create-instructions');
   resetCreateTaskTicketSearch();
+  // Always start the standard Task form with a clean related-context section.
+  // This prevents a previous Task/Ticket value from being carried into a new
+  // Ticket -> Add Task window, while still allowing explicit defaults below.
+  const relatedNameInput=document.getElementById('task-create-related-name');
+  const relatedTypeInput=document.getElementById('task-create-related-type');
+  const relatedLinkInput=document.getElementById('task-create-related-link');
+  if(relatedNameInput) relatedNameInput.value='';
+  if(relatedTypeInput) relatedTypeInput.value='';
+  if(relatedLinkInput) relatedLinkInput.value='';
   setCreateTaskCategory(defaults.category && defaults.category!=='General / Other' ? defaults.category : 'None');
   populateTaskAssigneeDropdown();
   if(defaults.instructions) setRichEditorContent('task-create-instructions', defaults.instructions);
@@ -11786,7 +11815,9 @@ document.addEventListener('click', function(e) {
 // SHARED TASK / TICKET WINDOW CONTROLS
 // ============================================================================
 function workModalPanelId(modalId) {
-  return modalId === 'answer-modal' ? 'answer-modal-panel' : modalId === 'task-detail-modal' ? 'task-detail-panel' : '';
+  return modalId === 'answer-modal' ? 'answer-modal-panel' :
+    modalId === 'task-detail-modal' ? 'task-detail-panel' :
+    modalId === 'ticket-detail-modal' ? 'ticket-detail-panel' : '';
 }
 function clearWorkModalSizing(modalId) {
   const panelId = workModalPanelId(modalId);
