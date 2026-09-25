@@ -2049,7 +2049,7 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 <div class="border-t border-slate-100 pt-4">
   <div class="flex items-center justify-between gap-3">
     <div><p class="text-xs font-bold text-slate-800">Related Tasks <span id="modal-answer-task-count" class="text-slate-400"></span></p><p class="text-[10px] text-slate-500 mt-0.5">Optional. Add one or more tasks before resolving this question.</p></div>
-    <button type="button" onclick="toggleAnswerFollowUpTask(true)" class="px-3 py-1.5 rounded-lg text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100">+ Add Task</button>
+    <button type="button" onclick="openAnswerModalTaskCreator()" class="px-3 py-1.5 rounded-lg text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100">+ Add Task</button>
   </div>
   <div id="modal-answer-task-drafts" class="mt-2 space-y-2"></div>
   <div id="modal-followup-task-section" class="hidden mt-3 bg-blue-50/40 border border-blue-200/70 rounded-xl p-4 space-y-3">
@@ -6652,12 +6652,31 @@ function openAnsweredTicketTaskCreator() {
   if (!activeViewQuestion || !isSupportUser(currentUser)) return;
   const q = Object.assign({}, activeViewQuestion);
   closeViewModal();
-  // Keep the Ticket as the parent only. Do not pre-fill the separate
-  // Event / Client / Talent / CR / TR relationship fields.
+  // Answered tickets use the exact same clean Create Task workflow as active
+  // tickets. The Ticket is the parent only. Do not invoke the legacy
+  // answered-ticket/task prefill path.
   openCreateTaskModal('Question', q.ticketId, {
     category: q.category || 'General / Other',
     parentLabel: q.ticketId || 'Ticket'
-  });
+  }, { launchSource: 'ticket' });
+}
+
+// The Answer modal used to contain a separate legacy "follow-up task" form.
+// Keep the old backend compatibility code, but route the visible + Add Task
+// action through the single current Create Task model.
+function openAnswerModalTaskCreator() {
+  if (!activeModalTicketId || !isSupportUser(currentUser)) return;
+  const ticketId = String(activeModalTicketId);
+  const q = allQuestions.find(row =>
+    row.sheet === 'Questions Tracker' && String(row.ticketId) === ticketId
+  );
+  const categoryEl = document.getElementById('modal-question-category');
+  const category = (q && q.category) || (categoryEl && categoryEl.value) || 'General / Other';
+
+  openCreateTaskModal('Question', ticketId, {
+    category: category,
+    parentLabel: ticketId || 'Ticket'
+  }, { launchSource: 'ticket' });
 }
 function toggleAnsweredStatusPanel(force) {
   const p = document.getElementById('vmodal-status-panel');
