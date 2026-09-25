@@ -6014,18 +6014,34 @@ function createTask(payload) {
     const priority = ''; // Legacy priority column retained only for sheet compatibility.
     const parent = resolveTaskParentContext(payload.parentType, payload.parentId, creator);
     const requestedTaskCategory = Object.prototype.hasOwnProperty.call(payload, 'category') ? String(payload.category || '').trim() : 'None';
-    const relatedClientTalent = Object.prototype.hasOwnProperty.call(payload, 'relatedClientTalent')
-      ? String(payload.relatedClientTalent || '').trim()
-      : String(parent.event || '').trim();
-    const relatedLink = Object.prototype.hasOwnProperty.call(payload, 'relatedLink')
-      ? String(payload.relatedLink || '').trim()
-      : String(parent.link || '').trim();
+
+    // Ticket -> + Add Task is a clean Create Task workflow. The server must
+    // enforce that rule too, because the browser is not the source of truth.
+    // The Ticket remains the parent connection, but its Event / Client /
+    // Talent / CR / TR and Related Link must not be inherited. A separately
+    // selected Related Ticket continues to use the normal inheritance behavior.
+    const cleanParentTicketContext = payload.cleanParentTicketContext === true && parent.parentType === 'Question';
+    const relatedClientTalent = cleanParentTicketContext
+      ? ''
+      : (Object.prototype.hasOwnProperty.call(payload, 'relatedClientTalent')
+        ? String(payload.relatedClientTalent || '').trim()
+        : String(parent.event || '').trim());
+    const relatedLink = cleanParentTicketContext
+      ? ''
+      : (Object.prototype.hasOwnProperty.call(payload, 'relatedLink')
+        ? String(payload.relatedLink || '').trim()
+        : String(parent.link || '').trim());
+
     // Backward compatibility: older deployed Create Task forms did not send
     // relatedEntityType. Keep those clients working while the newer UI can
     // explicitly choose Event / Client / Talent / CR / TR relationship types.
     const hasRelatedEntityType = Object.prototype.hasOwnProperty.call(payload, 'relatedEntityType');
-    const inheritedType = (!hasRelatedEntityType && parent.parentType === 'Question' && relatedClientTalent) ? 'Event' : '';
-    const legacyType = (!hasRelatedEntityType && relatedClientTalent && relatedLink && !inheritedType) ? 'Event' : inheritedType;
+    const inheritedType = cleanParentTicketContext
+      ? ''
+      : ((!hasRelatedEntityType && parent.parentType === 'Question' && relatedClientTalent) ? 'Event' : '');
+    const legacyType = cleanParentTicketContext
+      ? ''
+      : ((!hasRelatedEntityType && relatedClientTalent && relatedLink && !inheritedType) ? 'Event' : inheritedType);
     const relatedContext = validateTaskRelatedContext_(relatedClientTalent, hasRelatedEntityType ? payload.relatedEntityType : legacyType, relatedLink);
     const relatedEntityType = relatedContext.type;
     // Category behaves like ticket intake: an explicit category wins. If the
