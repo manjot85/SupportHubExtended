@@ -6624,20 +6624,15 @@ function toggleAnsweredUpdatePanel(force) {
 
 function openAnsweredTicketTaskCreator() {
   if (!activeViewQuestion || !isSupportUser(currentUser)) return;
-  const q = activeViewQuestion;
-  const relatedLink = q.caseLink ? reconstructCaseUrl(q.caseLink) : '';
+  const q = Object.assign({}, activeViewQuestion);
+  closeViewModal();
+  // Keep the Ticket as the parent only. Do not pre-fill the separate
+  // Event / Client / Talent / CR / TR relationship fields.
   openCreateTaskModal('Question', q.ticketId, {
-    title: 'Follow-up: ' + ((q.eventName) || 'Answered Ticket'),
-    assignedToEmail: q.askedByEmail || '',
     category: q.category || 'General / Other',
-    relatedClientTalent: q.eventName || '',
-    relatedEntityType: q.eventName ? 'Event' : '',
-    relatedLink: relatedLink,
-    parentLabel: q.ticketId || q.eventName || 'Answered Ticket'
+    parentLabel: q.ticketId || 'Ticket'
   });
 }
-
-
 function toggleAnsweredStatusPanel(force) {
   const p = document.getElementById('vmodal-status-panel');
   if (!p) return;
@@ -7008,15 +7003,13 @@ function createRelatedTaskFromActiveTicket() {
   if (!activeTicketDetailQuestion) return;
   const q = Object.assign({}, activeTicketDetailQuestion);
   closeTicketDetailModal();
+  // The Ticket is the parent. Related Event / Client / Talent / CR / TR
+  // remains a separate, user-selectable Task field.
   openCreateTaskModal('Question', q.ticketId, {
     category: q.category || 'General / Other',
-    relatedClientTalent: q.eventName || '',
-    relatedEntityType: q.eventName ? 'Event' : '',
-    relatedLink: q.caseLink ? reconstructCaseUrl(q.caseLink) : '',
-    parentLabel: q.eventName || q.ticketId
+    parentLabel: q.ticketId || 'Ticket'
   });
 }
-
 function openRelatedTaskFromTicketDetail(taskId) {
   if (activeTicketDetailQuestion) pushDetailNavigation({ type:'ticket', sheet:activeTicketDetailQuestion.sheet || 'Questions Tracker', id:activeTicketDetailQuestion.ticketId });
   closeTicketDetailModal(true);
@@ -8683,7 +8676,9 @@ function syncTaskCreateRelationshipFields(){
   const label=document.getElementById('task-create-related-link-label');
   const link=document.getElementById('task-create-related-link');
   const hasName=!!String(name&&name.value||'').trim();
-  if(typeWrap)typeWrap.classList.toggle('hidden',!hasName);
+  // Relationship is part of the standard Task form and must always be selectable.
+  // The Ticket parent is separate from Event / Client / Talent / CR / TR context.
+  if(typeWrap)typeWrap.classList.remove('hidden');
   if(type)type.required=false;
   if(link)link.required=false;
   const relationship=String(type&&type.value||'').trim();
