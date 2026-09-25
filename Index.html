@@ -7012,6 +7012,7 @@ function createRelatedTaskFromActiveTicket() {
   openCreateTaskModal('Question', q.ticketId, {
     category: q.category || 'General / Other',
     relatedClientTalent: q.eventName || '',
+    relatedEntityType: q.eventName ? 'Event' : '',
     relatedLink: q.caseLink ? reconstructCaseUrl(q.caseLink) : '',
     parentLabel: q.eventName || q.ticketId
   });
