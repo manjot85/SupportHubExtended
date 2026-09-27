@@ -45,7 +45,7 @@ const SETUP_CACHE_SECONDS = 300;
 // every sheet header. Bump this value only when a future release changes the
 // spreadsheet schema, then run runManualSetup() once before deployment.
 const SCHEMA_VERSION_KEY = 'SUPPORT_HUB_SCHEMA_VERSION';
-const SCHEMA_VERSION = 'PROFESSIONAL_PERFORMANCE_RC1_TEAM_FLAG_V1_TASK_ATTENTION_V1_FEEDBACK_V1';
+const SCHEMA_VERSION = 'PROFESSIONAL_PERFORMANCE_RC1_TEAM_FLAG_V1_TASK_ATTENTION_V1_FEEDBACK_V2';
 // Team routing must never reuse a roster cached by an older release. The
 // generation suffix also prevents an in-flight read from restoring stale
 // Primary/Backup values after Admin saves a newer roster.
@@ -1290,6 +1290,7 @@ function ensureSheetsExist(force) {
   ensureTasksSheet(ss);
   ensurePeerQuestionsSheet(ss);
   ensureFeedbackSheet(ss);
+  ensureFeedbackUpdatesSheet(ss);
 
   // All required sheets/columns now exist. Cache this short-lived fact so
   // high-frequency polling does not re-read every header on every request.
@@ -1472,6 +1473,16 @@ function ensureFeedbackSheet(ss) {
   }
   s.setFrozenRows(1);
   return s;
+}
+
+function ensureFeedbackUpdatesSheet(ss) {
+  let sheet = ss.getSheetByName('Feedback Updates');
+  if (!sheet) sheet = ss.insertSheet('Feedback Updates');
+  const headers = ['Feedback ID','Update ID','Update Type','Message','By','By Email','Created At'];
+  if (sheet.getMaxColumns() < headers.length) sheet.insertColumnsAfter(sheet.getMaxColumns(), headers.length - sheet.getMaxColumns());
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+  sheet.setFrozenRows(1);
+  return sheet;
 }
 
 function ensureNotificationPreferencesSheet(ss) {
@@ -7560,4 +7571,181 @@ function getFeedbackCreateOptions(requestingEmail) {
     teamReasons: FEEDBACK_TEAM_REASONS,
     itCategories: FEEDBACK_IT_CATEGORIES
   };
+}
+
+
+// ============================================================================
+// FEEDBACK - PHASE 1C: INBOX, DETAIL, ACKNOWLEDGEMENT, QUESTIONS
+// ============================================================================
+
+function feedbackRowToObject_(row) {
+  return {
+    feedbackId: String(row[F_COL.FEEDBACK_ID - 1] || ''),
+    feedbackType: String(row[F_COL.FEEDBACK_TYPE - 1] || ''),
+    category: String(row[F_COL.CATEGORY - 1] || ''),
+    reason: String(row[F_COL.REASON - 1] || ''),
+    submittedBy: String(row[F_COL.SUBMITTED_BY - 1] || ''),
+    submittedByEmail: normalizeEmail(row[F_COL.SUBMITTED_BY_EMAIL - 1]),
+    createdAt: row[F_COL.CREATED_AT - 1] || '',
+    feedbackFor: String(row[F_COL.FEEDBACK_FOR - 1] || ''),
+    feedbackForEmail: normalizeEmail(row[F_COL.FEEDBACK_FOR_EMAIL - 1]),
+    reviewer: String(row[F_COL.REVIEWER - 1] || ''),
+    reviewerEmail: normalizeEmail(row[F_COL.REVIEWER_EMAIL - 1]),
+    relatedType: String(row[F_COL.RELATED_TYPE - 1] || ''),
+    relatedId: String(row[F_COL.RELATED_ID - 1] || ''),
+    relatedLink: String(row[F_COL.RELATED_LINK - 1] || ''),
+    details: String(row[F_COL.DETAILS - 1] || ''),
+    expectedProcess: String(row[F_COL.EXPECTED_PROCESS - 1] || ''),
+    impact: String(row[F_COL.IMPACT - 1] || ''),
+    suggestedAction: String(row[F_COL.SUGGESTED_ACTION - 1] || ''),
+    status: String(row[F_COL.STATUS - 1] || ''),
+    acknowledgedBy: String(row[F_COL.ACKNOWLEDGED_BY - 1] || ''),
+    acknowledgedByEmail: normalizeEmail(row[F_COL.ACKNOWLEDGED_BY_EMAIL - 1]),
+    acknowledgedAt: row[F_COL.ACKNOWLEDGED_AT - 1] || '',
+    coached: row[F_COL.COACHED - 1] === true || String(row[F_COL.COACHED - 1] || '').toLowerCase() === 'true',
+    coachedBy: String(row[F_COL.COACHED_BY - 1] || ''),
+    coachedByEmail: normalizeEmail(row[F_COL.COACHED_BY_EMAIL - 1]),
+    coachedAt: row[F_COL.COACHED_AT - 1] || '',
+    coachingNote: String(row[F_COL.COACHING_NOTE - 1] || ''),
+    actionedBy: String(row[F_COL.ACTIONED_BY - 1] || ''),
+    actionedAt: row[F_COL.ACTIONED_AT - 1] || '',
+    closedBy: String(row[F_COL.CLOSED_BY - 1] || ''),
+    closedAt: row[F_COL.CLOSED_AT - 1] || '',
+    updatedAt: row[F_COL.UPDATED_AT - 1] || '',
+    updatedBy: String(row[F_COL.UPDATED_BY - 1] || '')
+  };
+}
+
+function getFeedbackUpdates_(feedbackId) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ensureFeedbackUpdatesSheet(ss);
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
+  const rows = sheet.getRange(2, 1, lastRow - 1, 7).getValues();
+  return rows.filter(r => String(r[0] || '') === String(feedbackId || '')).map(r => ({
+    feedbackId: String(r[0] || ''),
+    updateId: String(r[1] || ''),
+    updateType: String(r[2] || ''),
+    message: String(r[3] || ''),
+    by: String(r[4] || ''),
+    byEmail: normalizeEmail(r[5]),
+    createdAt: r[6] || ''
+  }));
+}
+
+function feedbackUserCanView_(feedback, member) {
+  if (!feedback || !member) return false;
+  const email = normalizeEmail(member.email);
+  return isAdminMember(member)
+    || feedback.submittedByEmail === email
+    || feedback.feedbackForEmail === email
+    || feedback.reviewerEmail === email;
+}
+
+function getFeedbackData(requestingEmail) {
+  const member = requireAuthenticatedMember(requestingEmail);
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ensureFeedbackSheet(ss);
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return { data: [], pendingAcknowledgement: [], submitted: [], version: String(lastRow) };
+  const rows = sheet.getRange(2, 1, lastRow - 1, F_WIDTH).getValues();
+  const data = rows.map(feedbackRowToObject_).filter(f => feedbackUserCanView_(f, member));
+  data.sort((a,b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+  const me = normalizeEmail(member.email);
+  const pendingAcknowledgement = data.filter(f =>
+    f.feedbackForEmail === me && f.status === FEEDBACK_STATUS_PENDING_ACKNOWLEDGEMENT
+  );
+  const submitted = data.filter(f => f.submittedByEmail === me);
+  return {
+    data: data,
+    pendingAcknowledgement: pendingAcknowledgement,
+    submitted: submitted,
+    version: String(lastRow) + ':' + String(sheet.getLastColumn())
+  };
+}
+
+function getFeedbackDetail(feedbackId, requestingEmail) {
+  const member = requireAuthenticatedMember(requestingEmail);
+  const id = String(feedbackId || '').trim();
+  if (!id) throw new Error('Feedback ID is required.');
+  const sheet = ensureFeedbackSheet(SpreadsheetApp.getActiveSpreadsheet());
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) throw new Error('Feedback not found.');
+  const rows = sheet.getRange(2, 1, lastRow - 1, F_WIDTH).getValues();
+  let feedback = null;
+  let rowIndex = -1;
+  rows.some((row, index) => {
+    if (String(row[F_COL.FEEDBACK_ID - 1] || '') !== id) return false;
+    feedback = feedbackRowToObject_(row);
+    rowIndex = index + 2;
+    return true;
+  });
+  if (!feedback) throw new Error('Feedback not found.');
+  if (!feedbackUserCanView_(feedback, member)) throw new Error('Access denied.');
+  feedback.updates = getFeedbackUpdates_(id);
+  return feedback;
+}
+
+function acknowledgeFeedback(feedbackId, requestingEmail) {
+  const member = requireAuthenticatedMember(requestingEmail);
+  const id = String(feedbackId || '').trim();
+  if (!id) throw new Error('Feedback ID is required.');
+  const sheet = ensureFeedbackSheet(SpreadsheetApp.getActiveSpreadsheet());
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) throw new Error('Feedback not found.');
+  const rows = sheet.getRange(2, 1, lastRow - 1, F_WIDTH).getValues();
+  let rowIndex = -1, feedback = null;
+  rows.some((row, index) => {
+    if (String(row[F_COL.FEEDBACK_ID - 1] || '') !== id) return false;
+    feedback = feedbackRowToObject_(row);
+    rowIndex = index + 2;
+    return true;
+  });
+  if (!feedback) throw new Error('Feedback not found.');
+  const me = normalizeEmail(member.email);
+  if (feedback.feedbackForEmail !== me) throw new Error('Only the person the feedback is for can acknowledge it.');
+  if (feedback.status !== FEEDBACK_STATUS_PENDING_ACKNOWLEDGEMENT) {
+    return { success: true, feedback: feedback, alreadyAcknowledged: true };
+  }
+
+  const now = new Date();
+  sheet.getRange(rowIndex, F_COL.STATUS).setValue(FEEDBACK_STATUS_ACKNOWLEDGED);
+  sheet.getRange(rowIndex, F_COL.ACKNOWLEDGED_BY).setValue(member.name || '');
+  sheet.getRange(rowIndex, F_COL.ACKNOWLEDGED_BY_EMAIL).setValue(me);
+  sheet.getRange(rowIndex, F_COL.ACKNOWLEDGED_AT).setValue(now);
+  sheet.getRange(rowIndex, F_COL.UPDATED_AT).setValue(now);
+  sheet.getRange(rowIndex, F_COL.UPDATED_BY).setValue(member.name || '');
+  logAudit('FEEDBACK_ACKNOWLEDGED', me, member.name || '', id, { feedbackId: id });
+
+  const updated = feedbackRowToObject_(sheet.getRange(rowIndex, 1, 1, F_WIDTH).getValues()[0]);
+  updated.updates = getFeedbackUpdates_(id);
+  return { success: true, feedback: updated, alreadyAcknowledged: false };
+}
+
+function askFeedbackQuestion(feedbackId, message, requestingEmail) {
+  const member = requireAuthenticatedMember(requestingEmail);
+  const id = String(feedbackId || '').trim();
+  const text = String(message || '').trim();
+  if (!id) throw new Error('Feedback ID is required.');
+  if (!text) throw new Error('Enter a question first.');
+  requireSheetCellLength(text, 'Feedback question');
+
+  const feedback = getFeedbackDetail(id, member.email);
+  if (!feedbackUserCanView_(feedback, member)) throw new Error('Access denied.');
+
+  const updatesSheet = ensureFeedbackUpdatesSheet(SpreadsheetApp.getActiveSpreadsheet());
+  const updateId = 'FBU-' + Utilities.getUuid().replace(/-/g, '').slice(0, 10).toUpperCase();
+  const now = new Date();
+  updatesSheet.appendRow([id, updateId, 'Question', text, member.name || '', normalizeEmail(member.email), now]);
+
+  const feedbackSheet = ensureFeedbackSheet(SpreadsheetApp.getActiveSpreadsheet());
+  const feedbackRows = feedbackSheet.getRange(2, 1, Math.max(1, feedbackSheet.getLastRow() - 1), F_WIDTH).getValues();
+  const rowIndex = feedbackRows.findIndex(r => String(r[F_COL.FEEDBACK_ID - 1] || '') === id);
+  if (rowIndex >= 0) {
+    const sheetRow = rowIndex + 2;
+    feedbackSheet.getRange(sheetRow, F_COL.UPDATED_AT).setValue(now);
+    feedbackSheet.getRange(sheetRow, F_COL.UPDATED_BY).setValue(member.name || '');
+  }
+  logAudit('FEEDBACK_QUESTION', member.email, member.name || '', id, { feedbackId: id, updateId: updateId });
+  return { success: true, updateId: updateId };
 }
