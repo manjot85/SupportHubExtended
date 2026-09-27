@@ -7466,7 +7466,7 @@ function createFeedback(payload) {
     const suggestedAction = String(payload.suggestedAction || '').trim();
     const relatedType = String(payload.relatedType || '').trim();
     const relatedId = String(payload.relatedId || '').trim();
-    const relatedLink = requireFeedbackRelatedLink(payload.relatedLink, !!(relatedType || relatedId));
+    const relatedLink = requireFeedbackRelatedLink(payload.relatedLink, !!relatedId);
 
     if (type !== 'Team Feedback' && type !== 'IT / Bug Feedback') {
       throw new Error('Choose a valid Feedback type.');
@@ -7489,10 +7489,15 @@ function createFeedback(payload) {
     let recipient = null;
     if (type === 'Team Feedback') {
       recipient = feedbackRecipientMember(payload.feedbackForEmail);
+      if (normalizeEmail(recipient.email) === normalizeEmail(actor.email)) throw new Error('Choose a team member other than yourself for Team Feedback.');
+      if (relatedId && !relatedType) throw new Error('Choose a Related To type for the related record.');
+      if (relatedType && !relatedId) throw new Error('Enter the Related Name / ID or clear Related To.');
       if (!FEEDBACK_TEAM_CATEGORIES.includes(category)) throw new Error('Choose a valid Team Feedback category.');
       const allowedReasons = FEEDBACK_TEAM_REASONS[category] || [];
       if (reason && allowedReasons.length && !allowedReasons.includes(reason)) throw new Error('Choose a valid Feedback reason.');
     } else {
+      if (relatedId && !relatedType) throw new Error('Choose a Related To type for the related record.');
+      if (relatedType && !relatedId) throw new Error('Enter the Related Name / ID or clear Related To.');
       if (!FEEDBACK_IT_CATEGORIES.includes(category)) throw new Error('Choose a valid IT / Bug Feedback category.');
     }
 
