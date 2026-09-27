@@ -4089,6 +4089,11 @@ function finishLogin(member) {
 
   configureAdminWorkspaceAccess();
 
+  // Load the lightweight Feedback feed as soon as the selected profile is ready.
+  // This keeps Pending Acknowledgement and submitted feedback visible without
+  // waiting for the normal polling cycle.
+  refreshFeedbackData(true);
+
   const internalOpt = document.getElementById('answered-scope-internal-opt');
   if (internalOpt) {
     internalOpt.classList.toggle('hidden', !support);
