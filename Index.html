@@ -5048,6 +5048,7 @@ function switchTab(name) {
 
 function renderCurrentTab() {
   if (currentTab === 'coordinator') renderCoordinatorQuestions();
+  else if (currentTab === 'feedback') renderFeedbackTab();
   else if (currentTab === 'peer') renderPeerQuestions();
   else if (currentTab === 'answered') renderAnsweredTab();
   else if (currentTab === 'all-tickets') renderAllTickets();
