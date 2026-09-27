@@ -22,7 +22,8 @@ const SHEET_PEER_QUESTIONS = "Peer Questions";
 const SHEET_WORK_CATEGORIES = "Work Categories";
 const SHEET_CATEGORY_SUGGESTIONS = "Category Suggestions";
 const SHEET_PERFORMANCE = "Performance Log";
-const APP_RELEASE = "13H.6.8-PEER";
+const SHEET_FEEDBACK = "Feedback";
+const APP_RELEASE = "13H.6.9-FEEDBACK-SCHEMA";
 const PERFORMANCE_SLOW_MS = 5000;
 
 // Question duplicates are checked by normalized Question + Event + Case Link
@@ -44,7 +45,7 @@ const SETUP_CACHE_SECONDS = 300;
 // every sheet header. Bump this value only when a future release changes the
 // spreadsheet schema, then run runManualSetup() once before deployment.
 const SCHEMA_VERSION_KEY = 'SUPPORT_HUB_SCHEMA_VERSION';
-const SCHEMA_VERSION = 'PROFESSIONAL_PERFORMANCE_RC1_TEAM_FLAG_V1_TASK_ATTENTION_V1';
+const SCHEMA_VERSION = 'PROFESSIONAL_PERFORMANCE_RC1_TEAM_FLAG_V1_TASK_ATTENTION_V1_FEEDBACK_V1';
 // Team routing must never reuse a roster cached by an older release. The
 // generation suffix also prevents an in-flight read from restoring stale
 // Primary/Backup values after Admin saves a newer roster.
@@ -115,6 +116,29 @@ const T_COL = {
   ATTENTION_TODAY: 28, ATTENTION_SET_AT: 29, ATTENTION_SET_BY: 30, ATTENTION_UNTIL: 31
 };
 const T_WIDTH = 31;
+const F_COL = {
+  FEEDBACK_ID: 1, FEEDBACK_TYPE: 2, CATEGORY: 3, REASON: 4,
+  SUBMITTED_BY: 5, SUBMITTED_BY_EMAIL: 6, CREATED_AT: 7,
+  FEEDBACK_FOR: 8, FEEDBACK_FOR_EMAIL: 9,
+  REVIEWER: 10, REVIEWER_EMAIL: 11,
+  RELATED_TYPE: 12, RELATED_ID: 13, RELATED_LINK: 14,
+  DETAILS: 15, EXPECTED_PROCESS: 16, IMPACT: 17, SUGGESTED_ACTION: 18,
+  STATUS: 19,
+  ACKNOWLEDGED_BY: 20, ACKNOWLEDGED_BY_EMAIL: 21, ACKNOWLEDGED_AT: 22,
+  COACHED: 23, COACHED_BY: 24, COACHED_BY_EMAIL: 25, COACHED_AT: 26,
+  COACHING_NOTE: 27,
+  ACTIONED_BY: 28, ACTIONED_AT: 29,
+  CLOSED_BY: 30, CLOSED_AT: 31,
+  UPDATED_AT: 32, UPDATED_BY: 33
+};
+const F_WIDTH = 33;
+const FEEDBACK_STATUS_NEW = 'New';
+const FEEDBACK_STATUS_PENDING_ACKNOWLEDGEMENT = 'Pending Acknowledgement';
+const FEEDBACK_STATUS_ACKNOWLEDGED = 'Acknowledged';
+const FEEDBACK_STATUS_ACTIONED = 'Actioned';
+const FEEDBACK_STATUS_NO_ACTION_NEEDED = 'No Action Needed';
+const FEEDBACK_STATUS_CLOSED = 'Closed';
+
 const TASK_STATUS_PENDING = 'Pending';
 const TASK_STATUS_IN_PROGRESS = 'In Progress';
 const TASK_STATUS_COMPLETED = 'Completed';
@@ -1227,6 +1251,7 @@ function ensureSheetsExist(force) {
   ensureTaskNotificationsSheet(ss);
   ensureTasksSheet(ss);
   ensurePeerQuestionsSheet(ss);
+  ensureFeedbackSheet(ss);
 
   // All required sheets/columns now exist. Cache this short-lived fact so
   // high-frequency polling does not re-read every header on every request.
@@ -1372,6 +1397,42 @@ function ensureTasksSheet(ss) {
     }));
   }
 
+  return s;
+}
+
+function ensureFeedbackSheet(ss) {
+  ss = ss || SpreadsheetApp.getActiveSpreadsheet();
+  let s = ss.getSheetByName(SHEET_FEEDBACK);
+  const expected = [
+    'Feedback ID', 'Feedback Type', 'Category', 'Reason',
+    'Submitted By', 'Submitted By Email', 'Created At',
+    'Feedback For', 'Feedback For Email',
+    'Reviewer', 'Reviewer Email',
+    'Related Type', 'Related ID', 'Related Link',
+    'Details', 'Expected Process / Behavior', 'Impact', 'Suggested Action / Guidance',
+    'Status',
+    'Acknowledged By', 'Acknowledged By Email', 'Acknowledged At',
+    'Coached', 'Coached By', 'Coached By Email', 'Coached At', 'Coaching Note',
+    'Actioned By', 'Actioned At',
+    'Closed By', 'Closed At',
+    'Updated At', 'Updated By'
+  ];
+
+  if (!s) {
+    s = ss.insertSheet(SHEET_FEEDBACK);
+    s.appendRow(expected);
+    s.setFrozenRows(1);
+    return s;
+  }
+
+  const width = Math.max(s.getLastColumn(), expected.length);
+  const headers = s.getRange(1, 1, 1, width).getValues()[0];
+  for (let i = 0; i < expected.length; i++) {
+    if (String(headers[i] || '').trim() !== expected[i]) {
+      s.getRange(1, i + 1).setValue(expected[i]);
+    }
+  }
+  s.setFrozenRows(1);
   return s;
 }
 
