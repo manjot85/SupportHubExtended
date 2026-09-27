@@ -138,6 +138,44 @@ const FEEDBACK_STATUS_ACKNOWLEDGED = 'Acknowledged';
 const FEEDBACK_STATUS_ACTIONED = 'Actioned';
 const FEEDBACK_STATUS_NO_ACTION_NEEDED = 'No Action Needed';
 const FEEDBACK_STATUS_CLOSED = 'Closed';
+const FEEDBACK_TEAM_CATEGORIES = [
+  'Client Miscommunication',
+  'Talent Miscommunication',
+  'Internal Communication',
+  'SOP - Missed / Incorrect Steps',
+  'Did Not Understand the Issue',
+  'Incorrect Process',
+  'Knowledge Gap',
+  'Training Needed',
+  'Incorrect Information',
+  'Incomplete Work',
+  'Follow-up Needed',
+  'Other'
+];
+const FEEDBACK_TEAM_REASONS = {
+  'Client Miscommunication': ['Incorrect Information Given','Expectation Not Set Clearly','Response / Tone','Other'],
+  'Talent Miscommunication': ['Incorrect Information Given','Expectation Not Set Clearly','Response / Tone','Other'],
+  'Internal Communication': ['Information Not Shared','Expectation Not Clear','Response / Tone','Other'],
+  'SOP - Missed / Incorrect Steps': ['Missed Step','Incorrect Step','Process Not Followed','Other'],
+  'Did Not Understand the Issue': ['Issue Was Not Understood','Wrong Resolution Path','Needed Clarification','Other'],
+  'Incorrect Process': ['Wrong Process Used','Process Not Followed','Other'],
+  'Knowledge Gap': ['Missing Knowledge','Needed Guidance','Other'],
+  'Training Needed': ['New Process','Refresher Needed','Other'],
+  'Incorrect Information': ['Wrong Information','Outdated Information','Other'],
+  'Incomplete Work': ['Missing Information','Missing Action','Other'],
+  'Follow-up Needed': ['Follow-up Missed','Follow-up Delayed','Other'],
+  'Other': ['Other']
+};
+const FEEDBACK_IT_CATEGORIES = [
+  'Bug',
+  'UI Issue',
+  'Login / Access',
+  'Performance',
+  'Data Issue',
+  'Feature Not Working',
+  'Improvement Request',
+  'Other'
+];
 
 const TASK_STATUS_PENDING = 'Pending';
 const TASK_STATUS_IN_PROGRESS = 'In Progress';
@@ -7374,4 +7412,147 @@ function escalatePeerQuestion(id,supportEmail,requestingEmail){
     bumpPeerDataVersion(); logAudit('PEER_QUESTION_ESCALATE',actor.email,actor.name,id,{support:support.email,ticketId:ticketId});
     return {success:true,ticketId:ticketId};
   });
+}
+
+
+// ============================================================================
+// FEEDBACK - PHASE 1B: CREATE FEEDBACK
+// ============================================================================
+
+function isValidFeedbackRelatedLink(value) {
+  const link = String(value || '').trim();
+  return !link || /^https?:\/\/[^\s]+$/i.test(link);
+}
+
+function requireFeedbackRelatedLink(value, required) {
+  const link = String(value || '').trim();
+  if (!required && !link) return '';
+  if (!link) throw new Error('Related Link is required when a related item is provided.');
+  if (!isValidFeedbackRelatedLink(link)) {
+    throw new Error('Enter a valid Related Link starting with http:// or https://.');
+  }
+  return link;
+}
+
+function feedbackRecipientMember(email) {
+  const wanted = normalizeEmail(email);
+  if (!wanted) throw new Error('Please select who the Team Feedback is for.');
+  const matches = _getTeamMembersInternal()
+    .filter(m => String(m.status || '').trim().toLowerCase() === 'active')
+    .filter(m => normalizeEmail(m.email) === wanted)
+    .filter(m => String(m.category || '').trim().toLowerCase() !== 'admin');
+  if (!matches.length) throw new Error('Feedback can only be given to an active non-Admin team member.');
+  return matches[0];
+}
+
+function feedbackReviewerMember(email) {
+  const wanted = normalizeEmail(email);
+  const matches = _getTeamMembersInternal()
+    .filter(m => String(m.status || '').trim().toLowerCase() === 'active')
+    .filter(m => normalizeEmail(m.email) === wanted);
+  return matches[0] || null;
+}
+
+function createFeedback(payload) {
+  return withLock(() => {
+    payload = payload || {};
+    const actor = requireAuthenticatedMember(payload.submittedByEmail);
+    const type = String(payload.feedbackType || 'Team Feedback').trim();
+    const category = String(payload.category || '').trim();
+    const reason = String(payload.reason || '').trim();
+    const details = String(payload.details || '').trim();
+    const expected = String(payload.expectedProcess || '').trim();
+    const impact = String(payload.impact || '').trim();
+    const suggestedAction = String(payload.suggestedAction || '').trim();
+    const relatedType = String(payload.relatedType || '').trim();
+    const relatedId = String(payload.relatedId || '').trim();
+    const relatedLink = requireFeedbackRelatedLink(payload.relatedLink, !!(relatedType || relatedId));
+
+    if (type !== 'Team Feedback' && type !== 'IT / Bug Feedback') {
+      throw new Error('Choose a valid Feedback type.');
+    }
+    if (type === 'IT / Bug Feedback' && !isAdminMember(actor)) {
+      throw new Error('IT / Bug Feedback can only be submitted by an active Admin profile.');
+    }
+    if (!category) throw new Error('Please choose a Feedback category.');
+    if (!details) throw new Error('Feedback details are required.');
+    if (!stripHtmlToText(details)) throw new Error('Feedback details are required.');
+    requireSheetCellLength(details, 'Feedback details');
+    requireSheetCellLength(expected, 'Expected process / behavior');
+    requireSheetCellLength(impact, 'Feedback impact');
+    requireSheetCellLength(suggestedAction, 'Suggested action / guidance');
+    rejectEmbeddedBase64Image(details, 'Feedback details');
+    rejectEmbeddedBase64Image(expected, 'Expected process / behavior');
+    rejectEmbeddedBase64Image(impact, 'Feedback impact');
+    rejectEmbeddedBase64Image(suggestedAction, 'Suggested action / guidance');
+
+    let recipient = null;
+    if (type === 'Team Feedback') {
+      recipient = feedbackRecipientMember(payload.feedbackForEmail);
+      if (!FEEDBACK_TEAM_CATEGORIES.includes(category)) throw new Error('Choose a valid Team Feedback category.');
+      const allowedReasons = FEEDBACK_TEAM_REASONS[category] || [];
+      if (reason && allowedReasons.length && !allowedReasons.includes(reason)) throw new Error('Choose a valid Feedback reason.');
+    } else {
+      if (!FEEDBACK_IT_CATEGORIES.includes(category)) throw new Error('Choose a valid IT / Bug Feedback category.');
+    }
+
+    const reviewer = feedbackReviewerMember(actor.email) || actor;
+    const now = new Date();
+    const id = 'FB-' + Utilities.getUuid().replace(/-/g, '').slice(0, 10).toUpperCase();
+    const status = type === 'Team Feedback' ? FEEDBACK_STATUS_PENDING_ACKNOWLEDGEMENT : FEEDBACK_STATUS_NEW;
+    const sheet = ensureFeedbackSheet(SpreadsheetApp.getActiveSpreadsheet());
+
+    sheet.appendRow([
+      id, type, category, reason,
+      actor.name, actor.email, now,
+      recipient ? recipient.name : '', recipient ? recipient.email : '',
+      reviewer.name, reviewer.email,
+      relatedType, relatedId, relatedLink,
+      details, expected, impact, suggestedAction,
+      status,
+      '', '', '',
+      false, '', '', '', '',
+      '', '',
+      '', '',
+      now, actor.name
+    ]);
+
+    logAudit('FEEDBACK_CREATE', actor.email, actor.name, id, {
+      feedbackType: type,
+      category: category,
+      reason: reason,
+      feedbackFor: recipient ? recipient.email : '',
+      reviewer: reviewer.email,
+      relatedType: relatedType,
+      relatedId: relatedId,
+      status: status
+    });
+
+    return {
+      success: true,
+      feedbackId: id,
+      status: status,
+      feedbackType: type,
+      feedbackFor: recipient ? { name: recipient.name, email: recipient.email } : null
+    };
+  }, { bumpDataVersion: false, operation: 'createFeedback' });
+}
+
+function getFeedbackCreateOptions(requestingEmail) {
+  const actor = requireAuthenticatedMember(requestingEmail);
+  const roster = _getTeamMembersInternal()
+    .filter(m => String(m.status || '').trim().toLowerCase() === 'active')
+    .filter(m => !isAdminMember(m))
+    .map(m => ({ name: m.name, email: normalizeEmail(m.email), title: String(m.title || '') }))
+    .sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
+
+  return {
+    success: true,
+    canSubmitTeamFeedback: true,
+    canSubmitItFeedback: isAdminMember(actor),
+    recipients: roster,
+    teamCategories: FEEDBACK_TEAM_CATEGORIES,
+    teamReasons: FEEDBACK_TEAM_REASONS,
+    itCategories: FEEDBACK_IT_CATEGORIES
+  };
 }
