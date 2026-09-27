@@ -12292,7 +12292,17 @@ function submitCreateFeedback(event) {
     document.getElementById('feedback-create-category').focus();
     return;
   }
-  if (relatedType && relatedId && !relatedLink) {
+  if (relatedId && !relatedType) {
+    if (error) { error.innerText = 'Choose a Related To type for the related record.'; error.classList.remove('hidden'); }
+    document.getElementById('feedback-create-related-type').focus();
+    return;
+  }
+  if (relatedType && !relatedId) {
+    if (error) { error.innerText = 'Enter the Related Name / ID or clear Related To.'; error.classList.remove('hidden'); }
+    document.getElementById('feedback-create-related-id').focus();
+    return;
+  }
+  if (relatedId && !relatedLink) {
     if (error) { error.innerText = 'Please add the Related Link when a related record is provided.'; error.classList.remove('hidden'); }
     document.getElementById('feedback-create-related-link').focus();
     return;
