@@ -12265,6 +12265,14 @@ function refreshFeedbackData(force) {
       }
       allFeedback = result.data || [];
       feedbackDataVersion = result.version || null;
+
+      if (result.diagnostics &&
+          Number(result.diagnostics.dataRowCount || 0) > 0 &&
+          Number(result.diagnostics.visibleCount || 0) === 0) {
+        console.error('Feedback rows exist but none are visible to this profile:', result.diagnostics);
+        showToast('Feedback exists in the sheet but is not visible to this profile. Check the Feedback visibility mapping.');
+      }
+
       const pendingCount = (result.pendingAcknowledgement || []).length;
       const ticker = document.getElementById('feedback-ticker');
       if (ticker) {
@@ -12698,9 +12706,17 @@ function submitCreateFeedback(event) {
         return;
       }
       closeCreateFeedbackModal();
+
+      if (result && result.feedback) {
+        const created = result.feedback;
+        allFeedback = [created].concat((allFeedback || []).filter(f => f.feedbackId !== created.feedbackId));
+        renderHomeFeedbackPanel();
+        if (currentTab === 'feedback') renderFeedbackTab();
+      }
+
       showToast('Feedback ' + result.feedbackId + ' submitted.');
-      // Re-read immediately so the new item appears in Home/Feedback without
-      // requiring a page refresh or a new login session.
+      // Re-read from the server as well so the submitting user's local
+      // confirmation is reconciled with the stored row.
       refreshFeedbackData(true);
     })
     .createFeedback({
