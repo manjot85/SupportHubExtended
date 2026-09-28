@@ -4334,6 +4334,16 @@ function resetUserSessionDataForIdentitySwitch() {
   persistentTaskNotificationBaselineReady = false;
   knownPersistentTaskNotificationIds = new Set();
   persistentNotificationRefreshInFlight = false;
+
+  // Feedback is identity-scoped too. Clear the previous user's private
+  // feedback immediately and invalidate any in-flight read before the new
+  // profile calls refreshFeedbackData().
+  allFeedback = [];
+  feedbackDataVersion = null;
+  feedbackRefreshQueued = false;
+  feedbackRefreshInFlight = false;
+  feedbackRefreshRequestId++;
+  activeFeedback = null;
 }
 
 function loadLoginAccessMonitor() {
@@ -5919,6 +5929,8 @@ let feedbackDataVersion = null;
 let feedbackFilter = 'ALL';
 let activeFeedback = null;
 let feedbackRefreshInFlight = false;
+let feedbackRefreshQueued = false;
+let feedbackRefreshRequestId = 0;
 
 function closeHomeCreateMenu() {
   const menu = document.getElementById('home-create-menu');
@@ -12216,17 +12228,39 @@ async function openPeerEscalate(){
 
 
 function refreshFeedbackData(force) {
-  if (!currentUser || feedbackRefreshInFlight) return;
+  if (!currentUser) return;
+  if (feedbackRefreshInFlight) {
+    feedbackRefreshQueued = feedbackRefreshQueued || !!force;
+    return;
+  }
+
   const requestingUser = currentUser;
+  const requestId = ++feedbackRefreshRequestId;
   feedbackRefreshInFlight = true;
+
+  const finish = () => {
+    // Ignore callbacks from an older profile/session request. This matters
+    // when Admin Test Mode switches from one effective user to another while
+    // the previous Feedback read is still in flight.
+    if (requestId !== feedbackRefreshRequestId) return;
+    feedbackRefreshInFlight = false;
+    if (feedbackRefreshQueued && currentUser === requestingUser) {
+      feedbackRefreshQueued = false;
+      setTimeout(() => refreshFeedbackData(true), 0);
+    }
+  };
+
   google.script.run
     .withFailureHandler(err => {
-      feedbackRefreshInFlight = false;
+      if (requestId !== feedbackRefreshRequestId) return;
+      finish();
       console.error('Feedback refresh failed:', err);
     })
     .withSuccessHandler(result => {
-      feedbackRefreshInFlight = false;
-      if (currentUser !== requestingUser || !result) return;
+      if (requestId !== feedbackRefreshRequestId || currentUser !== requestingUser || !result) {
+        if (requestId === feedbackRefreshRequestId) finish();
+        return;
+      }
       allFeedback = result.data || [];
       feedbackDataVersion = result.version || null;
       const pendingCount = (result.pendingAcknowledgement || []).length;
@@ -12238,6 +12272,7 @@ function refreshFeedbackData(force) {
       }
       renderHomeFeedbackPanel();
       if (currentTab === 'feedback') renderFeedbackTab();
+      finish();
     })
     .getFeedbackData(currentUser.email);
 }
