@@ -7545,12 +7545,16 @@ function createFeedback(payload) {
       status: status
     });
 
+    const createdRow = sheet.getRange(sheet.getLastRow(), 1, 1, F_WIDTH).getValues()[0];
+    const createdFeedback = feedbackRowToObject_(createdRow);
+
     return {
       success: true,
       feedbackId: id,
       status: status,
       feedbackType: type,
-      feedbackFor: recipient ? { name: recipient.name, email: recipient.email } : null
+      feedbackFor: recipient ? { name: recipient.name, email: recipient.email } : null,
+      feedback: createdFeedback
     };
   }, { bumpDataVersion: false, operation: 'createFeedback' });
 }
@@ -7648,21 +7652,51 @@ function getFeedbackData(requestingEmail) {
   const member = requireAuthenticatedMember(requestingEmail);
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ensureFeedbackSheet(ss);
+  SpreadsheetApp.flush();
+
   const lastRow = sheet.getLastRow();
-  if (lastRow < 2) return { data: [], pendingAcknowledgement: [], submitted: [], version: String(lastRow) };
-  const rows = sheet.getRange(2, 1, lastRow - 1, F_WIDTH).getValues();
-  const data = rows.map(feedbackRowToObject_).filter(f => feedbackUserCanView_(f, member));
-  data.sort((a,b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
   const me = normalizeEmail(member.email);
+  if (lastRow < 2) {
+    return {
+      data: [],
+      pendingAcknowledgement: [],
+      submitted: [],
+      version: String(lastRow),
+      diagnostics: {
+        sheetName: SHEET_FEEDBACK,
+        lastRow: lastRow,
+        requestingEmail: me,
+        visibleCount: 0
+      }
+    };
+  }
+
+  const rows = sheet.getRange(2, 1, lastRow - 1, F_WIDTH).getValues();
+  const parsed = rows.map(feedbackRowToObject_);
+  const data = parsed.filter(f => feedbackUserCanView_(f, member));
+  data.sort((a,b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+
   const pendingAcknowledgement = data.filter(f =>
-    f.feedbackForEmail === me && f.status === FEEDBACK_STATUS_PENDING_ACKNOWLEDGEMENT
+    emailsRepresentSameWorkspaceIdentity(f.feedbackForEmail, me) &&
+    f.status === FEEDBACK_STATUS_PENDING_ACKNOWLEDGEMENT
   );
-  const submitted = data.filter(f => f.submittedByEmail === me);
+  const submitted = data.filter(f =>
+    emailsRepresentSameWorkspaceIdentity(f.submittedByEmail, me)
+  );
+
   return {
     data: data,
     pendingAcknowledgement: pendingAcknowledgement,
     submitted: submitted,
-    version: String(lastRow) + ':' + String(sheet.getLastColumn())
+    version: String(lastRow) + ':' + String(sheet.getLastColumn()),
+    diagnostics: {
+      sheetName: SHEET_FEEDBACK,
+      lastRow: lastRow,
+      dataRowCount: parsed.filter(f => !!f.feedbackId).length,
+      visibleCount: data.length,
+      requestingEmail: me,
+      latestFeedbackId: parsed.length ? parsed[parsed.length - 1].feedbackId : ''
+    }
   };
 }
 
