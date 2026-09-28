@@ -12254,7 +12254,9 @@ function refreshFeedbackData(force) {
     .withFailureHandler(err => {
       if (requestId !== feedbackRefreshRequestId) return;
       finish();
+      const message = err && err.message ? err.message : String(err || 'Unknown error');
       console.error('Feedback refresh failed:', err);
+      showToast('Feedback could not be loaded: ' + message);
     })
     .withSuccessHandler(result => {
       if (requestId !== feedbackRefreshRequestId || currentUser !== requestingUser || !result) {
@@ -12697,6 +12699,9 @@ function submitCreateFeedback(event) {
       }
       closeCreateFeedbackModal();
       showToast('Feedback ' + result.feedbackId + ' submitted.');
+      // Re-read immediately so the new item appears in Home/Feedback without
+      // requiring a page refresh or a new login session.
+      refreshFeedbackData(true);
     })
     .createFeedback({
       submittedByEmail: currentUser.email,
