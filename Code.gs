@@ -7532,6 +7532,7 @@ function createFeedback(payload) {
       '', '',
       now, actor.name
     ]);
+    SpreadsheetApp.flush();
 
     logAudit('FEEDBACK_CREATE', actor.email, actor.name, id, {
       feedbackType: type,
@@ -7636,10 +7637,11 @@ function getFeedbackUpdates_(feedbackId) {
 function feedbackUserCanView_(feedback, member) {
   if (!feedback || !member) return false;
   const email = normalizeEmail(member.email);
+  const sameIdentity = (storedEmail) => emailsRepresentSameWorkspaceIdentity(storedEmail, email);
   return isAdminMember(member)
-    || feedback.submittedByEmail === email
-    || feedback.feedbackForEmail === email
-    || feedback.reviewerEmail === email;
+    || sameIdentity(feedback.submittedByEmail)
+    || sameIdentity(feedback.feedbackForEmail)
+    || sameIdentity(feedback.reviewerEmail);
 }
 
 function getFeedbackData(requestingEmail) {
