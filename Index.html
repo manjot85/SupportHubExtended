@@ -12265,6 +12265,7 @@ function refreshFeedbackData(force) {
       }
       allFeedback = result.data || [];
       feedbackDataVersion = result.version || null;
+      window.feedbackLastDiagnostics = result.diagnostics || null;
 
       if (result.diagnostics &&
           Number(result.diagnostics.dataRowCount || 0) > 0 &&
@@ -12381,7 +12382,20 @@ function renderFeedbackTab() {
   set('feedback-stat-total',allFeedback.length);
   list.innerHTML = '';
   if (!visible.length) {
-    list.innerHTML = '<div class="p-8 text-center text-xs text-slate-400">No feedback matches this view.</div>';
+    let diagnostic = '';
+    if (window.feedbackLastDiagnostics) {
+      const d = window.feedbackLastDiagnostics;
+      diagnostic =
+        '<div class="mt-2 text-[10px] text-slate-400">' +
+        'Server rows: ' + esc(String(d.dataRowCount || 0)) +
+        ' · Visible: ' + esc(String(d.visibleCount || 0)) +
+        ' · Last ID: ' + esc(String(d.latestFeedbackId || 'none')) +
+        '</div>';
+    }
+    list.innerHTML =
+      '<div class="p-8 text-center text-xs text-slate-400">No feedback matches this view.' +
+      diagnostic +
+      '</div>';
     return;
   }
   visible.forEach(f => list.appendChild(feedbackListItem(f)));
