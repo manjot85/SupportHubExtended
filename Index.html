@@ -783,7 +783,7 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 <th id="all-admin-select-th" class="hidden p-3 w-10 text-center"><input id="all-admin-select-visible" type="checkbox" onclick="event.stopPropagation();toggleAdminSelectVisibleTickets(this.checked)" aria-label="Select all visible tickets"></th>
 <th class="p-3 w-36 cursor-pointer select-none hover:text-slate-700" onclick="onSortHeaderClick('all','eventName')">EVENT<span id="sort-arrow-all-eventName"></span></th>
 <th class="p-3">QUESTION</th>
-<th class="p-3 w-36 cursor-pointer select-none hover:text-slate-700" onclick="onSortHeaderClick('all','askedBy')">ASKED BY<span id="sort-arrow-all-askedBy"></span></th>
+<th class="p-3 w-36 cursor-pointer select-none hover:text-slate-700" onclick="onSortHeaderClick('all','askedBy')">CREATED BY<span id="sort-arrow-all-askedBy"></span></th>
 <th class="p-3 w-16 text-center">LINK</th>
 <th class="p-3 w-36">CREATED BY</th>
 <th class="p-3 w-36">CREATED</th>
@@ -2191,7 +2191,6 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 </div>
 
 <div class="grid grid-cols-2 gap-3 text-[11px] bg-slate-50 p-3 rounded-xl border border-slate-200/80">
-<div><span class="text-slate-400">Answered By:</span> <strong id="vmodal-by" class="text-slate-800"></strong></div>
 <div><span class="text-slate-400">Resolution Speed:</span> <strong id="vmodal-speed" class="text-slate-800"></strong></div>
 <div class="col-span-2 min-w-0"><span class="text-slate-400">Case Link:</span> <a id="vmodal-link" href="#" target="_blank" class="text-blue-600 font-bold underline break-all">Open Case Link &rarr;</a></div>
 </div>
