@@ -263,6 +263,22 @@ html { font-size: 16px; }
 .task-detail-category-editor { display:flex; align-items:center; gap:6px; flex-wrap:wrap; min-width:0; }
 .task-detail-category-editor select { min-width:120px; max-width:210px; }
 
+/* Right-click navigation fan around the shared Create control. */
+.create-radial-menu { display:none; position:absolute; z-index:90; top:calc(100% + 10px); left:50%; width:264px; height:264px; transform:translateX(-50%); border-radius:50%; pointer-events:none; }
+.create-radial-menu.is-open { display:block; pointer-events:auto; animation:createRadialIn .16s ease-out; }
+.create-radial-menu::before { content:""; position:absolute; inset:15px; border:1px solid rgba(148,163,184,.3); border-radius:50%; background:radial-gradient(circle,rgba(255,255,255,.97) 0%,rgba(248,250,252,.96) 68%,rgba(226,232,240,.9) 100%); box-shadow:0 16px 38px rgba(15,23,42,.28), inset 0 0 0 7px rgba(255,255,255,.62); }
+.create-radial-center { position:absolute; z-index:1; left:50%; top:50%; width:60px; height:60px; transform:translate(-50%,-50%); border-radius:50%; display:flex; align-items:center; justify-content:center; text-align:center; background:#0f172a; color:white; font-size:9px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; box-shadow:0 4px 12px rgba(15,23,42,.24); }
+.create-radial-item { position:absolute; z-index:2; width:76px; height:76px; padding:6px; border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; border:1px solid #cbd5e1; background:#fff; color:#1e293b; box-shadow:0 5px 13px rgba(15,23,42,.13); font-size:9px; line-height:1.05; font-weight:800; text-align:center; transition:transform .14s ease,box-shadow .14s ease,border-color .14s ease; }
+.create-radial-item.hidden { display:none; }
+.create-radial-item:hover,.create-radial-item:focus-visible { transform:scale(1.08); border-color:#34d399; box-shadow:0 8px 18px rgba(5,150,105,.2); outline:none; }
+.create-radial-item span:first-child { font-size:18px; line-height:1; color:#059669; }
+.create-radial-item[data-create-nav="coordinator"] { left:94px; top:0; }
+.create-radial-item[data-create-nav="tasks"] { right:0; top:94px; }
+.create-radial-item[data-create-nav="reporting"] { left:94px; bottom:0; }
+.create-radial-item[data-create-nav="supervisor"] { left:0; top:94px; }
+@keyframes createRadialIn { from { opacity:0; transform:translateX(-50%) scale(.86); } to { opacity:1; transform:translateX(-50%) scale(1); } }
+@media (prefers-reduced-motion:reduce) { .create-radial-menu.is-open { animation:none; } .create-radial-item { transition:none; } }
+
 #create-task-modal input,
 #create-task-modal select,
 #create-task-modal textarea,
@@ -433,11 +449,18 @@ html { font-size: 16px; }
 <span id="user-role-tag" class="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-emerald-400 text-slate-950">Coordinator</span>
 </div>
 <details id="home-create-menu" class="relative shrink-0">
-  <summary class="list-none cursor-pointer bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 rounded-md text-[10px] font-bold shadow transition whitespace-nowrap">+ Create</summary>
+  <summary onclick="closeCreateRadialMenu()" oncontextmenu="openCreateRadialMenu(event)" title="Click to create · Right-click for quick navigation" aria-label="Create or right-click for quick navigation" class="list-none cursor-pointer bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 rounded-md text-[10px] font-bold shadow transition whitespace-nowrap">+ Create</summary>
   <div class="absolute right-0 mt-2 w-52 bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden text-xs">
     <button type="button" onclick="closeHomeCreateMenu(); openHomeQuestionComposer()" class="w-full text-left px-4 py-3 hover:bg-slate-50 font-semibold text-slate-800">Ask a Question</button>
     <button type="button" onclick="closeHomeCreateMenu(); openCreateTaskModal()" class="w-full text-left px-4 py-3 hover:bg-slate-50 font-semibold text-slate-800 border-t border-slate-100">Create a Task</button>
     <button id="home-create-peer" type="button" onclick="closeHomeCreateMenu(); openPeerCreateModal()" class="hidden w-full text-left px-4 py-3 hover:bg-slate-50 font-semibold text-slate-800 border-t border-slate-100">Ask a Peer Question</button>
+  </div>
+  <div id="create-radial-menu" class="create-radial-menu" role="menu" aria-label="Quick navigation" onclick="navigateCreateRadialMenu(event)">
+    <div class="create-radial-center" aria-hidden="true">Quick<br>Navigate</div>
+    <button type="button" role="menuitem" data-create-nav="coordinator" class="create-radial-item" aria-label="My Questions"><span aria-hidden="true">⌂</span><span>My Questions</span></button>
+    <button type="button" role="menuitem" data-create-nav="tasks" class="create-radial-item" aria-label="My Tasks"><span aria-hidden="true">✓</span><span>My Tasks</span></button>
+    <button type="button" role="menuitem" data-create-nav="reporting" class="create-radial-item" aria-label="Reports"><span aria-hidden="true">▥</span><span>Reports</span></button>
+    <button type="button" role="menuitem" data-create-nav="supervisor" class="create-radial-item" aria-label="Support Queue"><span aria-hidden="true">◎</span><span>Support Queue</span></button>
   </div>
 </details>
 <button id="admin-test-tools-btn" onclick="openAdminTestModal()" class="hidden text-[10px] bg-purple-600 hover:bg-purple-500 px-2 py-1 rounded-md text-white font-bold transition" title="Admin development tools">Admin Test</button>
@@ -5955,6 +5978,46 @@ function closeHomeCreateMenu() {
   const menu = document.getElementById('home-create-menu');
   if (menu) menu.removeAttribute('open');
 }
+
+function closeCreateRadialMenu() {
+  const panel = document.getElementById('create-radial-menu');
+  if (panel) panel.classList.remove('is-open');
+}
+
+function openCreateRadialMenu(event) {
+  if (event) { event.preventDefault(); event.stopPropagation(); }
+  closeHomeCreateMenu();
+  const panel = document.getElementById('create-radial-menu');
+  if (!panel || !currentUser) return;
+  panel.querySelectorAll('[data-create-nav]').forEach(button => {
+    const tab = button.getAttribute('data-create-nav');
+    button.classList.toggle('hidden', allowedRoleAwareTab(tab) !== tab);
+  });
+  panel.classList.add('is-open');
+}
+
+function navigateCreateRadialMenu(event) {
+  const button = event && event.target && event.target.closest('[data-create-nav]');
+  if (!button) return;
+  if (event) { event.preventDefault(); event.stopPropagation(); }
+  const requestedTab = button.getAttribute('data-create-nav');
+  const allowedTab = allowedRoleAwareTab(requestedTab);
+  closeCreateRadialMenu();
+  closeHomeCreateMenu();
+  switchTab(allowedTab);
+}
+
+document.addEventListener('click', event => {
+  const root = document.getElementById('home-create-menu');
+  if (root && !root.contains(event.target)) closeCreateRadialMenu();
+});
+document.addEventListener('contextmenu', event => {
+  const root = document.getElementById('home-create-menu');
+  if (root && !root.contains(event.target)) closeCreateRadialMenu();
+});
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape') closeCreateRadialMenu();
+});
 
 function openHomeQuestionComposer() {
   closeHomeCreateMenu();
