@@ -739,8 +739,10 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 <th class="p-3 w-20 cursor-pointer select-none hover:text-slate-700" onclick="onSortHeaderClick('answered','isRead')">STATUS<span id="sort-arrow-answered-isRead"></span></th>
 <th class="p-3 w-36 cursor-pointer select-none hover:text-slate-700" onclick="onSortHeaderClick('answered','eventName')">EVENT<span id="sort-arrow-answered-eventName"></span></th>
 <th class="p-3">QUESTION &amp; ANSWER PREVIEW</th>
+<th class="p-3 w-36">CREATED BY</th>
+<th class="p-3 w-36">CREATED</th>
 <th class="p-3 w-36 cursor-pointer select-none hover:text-slate-700" onclick="onSortHeaderClick('answered','answeredBy')">ANSWERED BY<span id="sort-arrow-answered-answeredBy"></span></th>
-<th class="p-3 w-44">CREATED / ANSWERED</th>
+<th class="p-3 w-36">ANSWERED</th>
 <th class="p-3 w-24 text-center cursor-pointer select-none hover:text-slate-700" onclick="onSortHeaderClick('answered','turnaroundHours')">SPEED<span id="sort-arrow-answered-turnaroundHours"></span></th>
 <th class="p-3 w-28 text-right">ACTION</th>
 </tr>
@@ -783,7 +785,10 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 <th class="p-3">QUESTION</th>
 <th class="p-3 w-36 cursor-pointer select-none hover:text-slate-700" onclick="onSortHeaderClick('all','askedBy')">ASKED BY<span id="sort-arrow-all-askedBy"></span></th>
 <th class="p-3 w-16 text-center">LINK</th>
-<th class="p-3 w-44">CREATED / ANSWERED</th>
+<th class="p-3 w-36">CREATED BY</th>
+<th class="p-3 w-36">CREATED</th>
+<th class="p-3 w-36">ANSWERED BY</th>
+<th class="p-3 w-36">ANSWERED</th>
 <th class="p-3 w-28 text-center cursor-pointer select-none hover:text-slate-700" onclick="onSortHeaderClick('all','statusLabel')">STATUS<span id="sort-arrow-all-statusLabel"></span></th>
 <th id="all-admin-th" class="p-3 w-28 text-right hidden">ADMIN</th>
 </tr>
@@ -2106,12 +2111,15 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 <div class="min-w-0 flex-1">
 <div class="flex flex-wrap items-center gap-1.5"><span class="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-emerald-700 text-white">Answered Ticket</span><span id="vmodal-read-badge" class="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-rose-500 text-white">UNREAD</span></div>
 <h3 id="vmodal-event" class="text-lg font-bold text-slate-900 mt-1 break-all">Event Name</h3>
-<p class="text-[11px] text-slate-400">Asked by: <span id="vmodal-asked" class="font-semibold text-slate-700"></span></p>
-<p id="vmodal-context" class="text-[11px] font-semibold text-blue-700 mt-1"></p>
-<div class="flex flex-wrap items-center gap-x-6 gap-y-1 mt-2 text-[10px]">
-  <span class="text-slate-500"><strong class="text-slate-600">Created:</strong> <span id="vmodal-created" class="font-semibold text-slate-700"></span></span>
-  <span class="text-slate-500"><strong class="text-emerald-700">Answered:</strong> <span id="vmodal-answered" class="font-semibold text-slate-700"></span></span>
+<div class="flex items-center justify-between gap-4 text-[11px]">
+  <span class="text-slate-400">Asked by: <span id="vmodal-asked" class="font-semibold text-slate-700"></span></span>
+  <span class="text-slate-500 whitespace-nowrap"><strong class="text-slate-600">Created:</strong> <span id="vmodal-created" class="font-semibold text-slate-700"></span></span>
 </div>
+<div class="flex items-center justify-between gap-4 mt-1 text-[11px]">
+  <span class="text-slate-400">Answered by: <span id="vmodal-by-header" class="font-semibold text-slate-700"></span></span>
+  <span class="text-slate-500 whitespace-nowrap"><strong class="text-emerald-700">Answered:</strong> <span id="vmodal-answered" class="font-semibold text-slate-700"></span></span>
+</div>
+<p id="vmodal-context" class="text-[11px] font-semibold text-blue-700 mt-1"></p>
 </div>
 <button onclick="closeViewModal()" class="shrink-0 text-slate-400 hover:text-slate-600 font-bold text-xl leading-none">&times;</button>
 </div>
@@ -3097,6 +3105,23 @@ function formatCSTDateTime(isoOrDate, opts) {
   const d = (isoOrDate instanceof Date) ? isoOrDate : new Date(isoOrDate);
   if (isNaN(d.getTime())) return '—';
   return d.toLocaleString('en-US', Object.assign({ timeZone: APP_TIMEZONE }, opts || {}));
+}
+
+function formatCSTTimestamp(isoOrDate) {
+  if (!isoOrDate) return '—';
+  const d = (isoOrDate instanceof Date) ? isoOrDate : new Date(isoOrDate);
+  if (isNaN(d.getTime())) return '—';
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: APP_TIMEZONE,
+    month: '2-digit',
+    day: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true
+  }).formatToParts(d);
+  const get = type => (parts.find(p => p.type === type) || {}).value || '';
+  return get('month') + '/' + get('day') + '/' + get('year') + ' - ' + get('hour') + '/' + get('minute') + ' ' + get('dayPeriod');
 }
 
 function getCSTOffsetMinutes(date) {
@@ -6507,7 +6532,7 @@ function renderAnsweredTab() {
     if (readFilter === 'UNREAD' && personalView && myUnread === 0 && !search && !askedByFilter && !answeredByFilter && !dateFilter) {
       body.innerHTML = answeredAllReviewedEmptyState();
     } else {
-      body.innerHTML = '<tr><td colspan="7" class="p-6 text-center text-slate-400">No answered questions match current filters.</td></tr>';
+      body.innerHTML = '<tr><td colspan="9" class="p-6 text-center text-slate-400">No answered questions match current filters.</td></tr>';
     }
     return;
   }
@@ -6521,8 +6546,10 @@ function renderAnsweredTab() {
       '<td class="p-3"><span class="px-2 py-0.5 text-[9px] font-bold rounded ' + (q.isRead ? 'bg-slate-100 text-slate-500 border border-slate-200/60' : (q.hasUnreadUpdate ? 'bg-indigo-600 text-white shadow-sm' : 'bg-rose-500 text-white shadow-sm')) + '">' + (q.isRead ? 'READ' : (q.hasUnreadUpdate ? 'NEW UPDATE' : 'UNREAD')) + '</span></td>' +
       '<td class="p-3 font-semibold text-slate-800 truncate">' + esc(q.eventName) + internalTag + '</td>' +
       '<td class="p-3"><div class="text-slate-900 truncate font-semibold">' + q.question + '</div><div class="text-emerald-700 text-[11px] truncate font-medium">' + q.answer + '</div>' + linkedTaskBadgeHtml(q.ticketId) + '</td>' +
+      '<td class="p-3 text-slate-700 font-medium truncate">' + esc(getUserDisplayName(q.askedBy)) + '</td>' +
+      '<td class="p-3 text-[10px] text-slate-500 whitespace-nowrap">' + esc(formatCSTTimestamp(q.created)) + '</td>' +
       '<td class="p-3 text-slate-700 font-medium truncate">' + esc(getUserDisplayName(q.answeredBy)) + '</td>' +
-      '<td class="p-3 text-[10px] text-slate-500 leading-5"><div><span class="font-semibold text-slate-600">Created:</span> ' + esc(formatCSTDateTime(q.created, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })) + '</div><div><span class="font-semibold text-emerald-700">Answered:</span> ' + esc(formatCSTDateTime(q.answeredDate, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })) + '</div></td>' +
+      '<td class="p-3 text-[10px] text-slate-500 whitespace-nowrap">' + esc(formatCSTTimestamp(q.answeredDate)) + '</td>' +
       '<td class="p-3 text-center font-mono text-[11px] text-slate-500">' + esc(q.turnaroundHours) + ' hrs</td>' +
       '<td class="p-3 text-right"><button onclick="toggleRead(\'' + esc(q.ticketId) + '\', ' + (!q.isRead) + ')" class="text-[11px] text-blue-600 hover:text-blue-800 font-semibold underline">' + (q.isRead ? 'Unread' : 'Read') + '</button></td>';
     body.appendChild(tr);
@@ -6595,8 +6622,10 @@ async function openViewModal(q) {
   document.getElementById('vmodal-context').innerText = ticketContextText(q, isSupportUser(currentUser));
   const viewCreatedEl = document.getElementById('vmodal-created');
   const viewAnsweredEl = document.getElementById('vmodal-answered');
-  if (viewCreatedEl) viewCreatedEl.innerText = formatCSTDateTime(q.created, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
-  if (viewAnsweredEl) viewAnsweredEl.innerText = q.answeredDate ? formatCSTDateTime(q.answeredDate, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—';
+  const viewAnsweredByHeaderEl = document.getElementById('vmodal-by-header');
+  if (viewCreatedEl) viewCreatedEl.innerText = formatCSTTimestamp(q.created);
+  if (viewAnsweredEl) viewAnsweredEl.innerText = q.answeredDate ? formatCSTTimestamp(q.answeredDate) : '—';
+  if (viewAnsweredByHeaderEl) viewAnsweredByHeaderEl.innerText = getUserDisplayName(q.answeredBy);
   document.getElementById('vmodal-asked').innerText = getUserDisplayName(q.askedBy);
   document.getElementById('vmodal-question').innerHTML = ensureExternalLinks(q.question || '—');
   document.getElementById('vmodal-answer').innerHTML = ensureExternalLinks(q.answer || 'No answer recorded.');
@@ -6988,7 +7017,7 @@ function renderAllTickets() {
   updateAdminTicketBulkUi();
 
   if (sorted.length === 0) {
-    body.innerHTML = '<tr><td colspan="' + (isAdmin ? 8 : 7) + '" class="p-6 text-center text-slate-400">No ticket records found.</td></tr>';
+    body.innerHTML = '<tr><td colspan="' + (isAdmin ? 10 : 8) + '" class="p-6 text-center text-slate-400">No ticket records found.</td></tr>';
     return;
   }
 
@@ -7012,8 +7041,9 @@ function renderAllTickets() {
       '<td class="p-3 font-semibold text-slate-800 truncate">' + esc(q.eventName || '—') + internalTag + weekendTag + '</td>' +
       '<td class="p-3 text-slate-700 truncate">' + q.question + '</td>' +
       '<td class="p-3 text-slate-700 font-medium truncate">' + esc(getUserDisplayName(q.askedBy)) + '</td>' +
-      '<td class="p-3 text-center">' + (q.caseLink ? '<a href="' + esc(reconstructCaseUrl(q.caseLink)) + '" target="_blank" class="text-blue-600 font-semibold underline hover:text-blue-800">Link</a>' : '—') + '</td>' +
-      '<td class="p-3 text-[10px] text-slate-500 leading-5"><div><span class="font-semibold text-slate-600">Created:</span> ' + esc(formatCSTDateTime(q.created, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })) + '</div><div><span class="font-semibold text-emerald-700">Answered:</span> ' + (q.answeredDate ? esc(formatCSTDateTime(q.answeredDate, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })) : '<span class="text-slate-400">—</span>') + '</div></td>' +
+      '<td class="p-3 text-[10px] text-slate-500 whitespace-nowrap">' + esc(formatCSTTimestamp(q.created)) + '</td>' +
+      '<td class="p-3 text-slate-700 font-medium truncate">' + (q.answeredBy ? esc(getUserDisplayName(q.answeredBy)) : '<span class="text-slate-400">—</span>') + '</td>' +
+      '<td class="p-3 text-[10px] text-slate-500 whitespace-nowrap">' + (q.answeredDate ? esc(formatCSTTimestamp(q.answeredDate)) : '<span class="text-slate-400">—</span>') + '</td>' +
       '<td class="p-3 text-center"><span class="inline-block px-2.5 py-0.5 text-[10px] font-semibold rounded whitespace-nowrap ' + statusClass + '">' + label + '</span>' + followUpTag + '</td>' +
       '<td class="p-3 text-right ' + (isAdmin ? '' : 'hidden') + '"><div class="flex justify-end gap-2">' +
         '<button onclick="openEditModalByKey(\'' + esc(q.sheet) + '\', \'' + esc(q.ticketId) + '\')" class="text-blue-600 font-semibold underline text-[11px] hover:text-blue-800">Edit</button>' +
