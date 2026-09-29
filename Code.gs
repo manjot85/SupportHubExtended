@@ -427,10 +427,11 @@ function clearWorkCategoryCache() {
   try { CacheService.getScriptCache().remove(WORK_CATEGORY_CACHE_KEY); } catch (e) {}
 }
 
-function normalizeWorkCategory(value) {
+function normalizeWorkCategory(value, configs) {
   const raw = String(value || '').trim();
   if (!raw) return 'General / Other';
-  const found = getWorkCategoryConfigs(true).find(row => row.category.toLowerCase() === raw.toLowerCase());
+  const source = Array.isArray(configs) ? configs : getWorkCategoryConfigs(true);
+  const found = source.find(row => row.category.toLowerCase() === raw.toLowerCase());
   return found ? found.category : 'General / Other';
 }
 
@@ -505,12 +506,12 @@ function workCategoryKeywordMatches(text, keyword) {
   return new RegExp('(^|[^a-z0-9])' + needle + '(?=$|[^a-z0-9])', 'i').test(haystack);
 }
 
-function inferWorkCategory(question, eventName) {
+function inferWorkCategory(question, eventName, configs) {
   const text = (String(question || '').replace(/<[^>]*>/g, ' ') + ' ' + String(eventName || '')).toLowerCase();
-  const configs = getWorkCategoryConfigs(false);
-  for (let i = 0; i < configs.length; i++) {
-    if (configs[i].category === 'General / Other') continue;
-    if (configs[i].keywords.some(k => workCategoryKeywordMatches(text, k))) return configs[i].category;
+  const source = Array.isArray(configs) ? configs : getWorkCategoryConfigs(false);
+  for (let i = 0; i < source.length; i++) {
+    if (source[i].category === 'General / Other') continue;
+    if (source[i].keywords.some(k => workCategoryKeywordMatches(text, k))) return source[i].category;
   }
   return 'General / Other';
 }
@@ -1453,11 +1454,24 @@ function stripHtmlToText(value) {
 function compactRichContentForFeed(value) {
   const original = String(value || '');
   if (!original) return { html: '', deferred: false };
-  // Table/search feeds do not need the image itself. Removing IMG tags is
-  // especially important for historical rows that may still contain a large
-  // base64 screenshot from before Drive-backed attachments were introduced.
-  const compact = original.replace(/<img\b[^>]*>/gi, '<span>[Image attached]</span>');
-  return { html: compact, deferred: compact !== original };
+  // Ticket lists only need a short readable preview. Full rich content is
+  // fetched lazily when the user opens the ticket.
+  const hadRichMarkup = /<[^>]+>/.test(original) || /&(?:nbsp|amp|lt|gt|quot|#39);/i.test(original);
+  let compact = original
+    .replace(/<img\b[^>]*>/gi, ' [Image attached] ')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(?:p|div|li|h[1-6])\s*>/gi, '\n')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (compact.length > 320) compact = compact.slice(0, 320).replace(/\s+\S*$/, '') + '…';
+  return { html: compact, deferred: hadRichMarkup };
 }
 
 function activeMentionableMembers() {
@@ -3358,6 +3372,7 @@ function getQuestionsData(requestingEmail) {
 function getQuestionsDataForMember(requestingEmail, requestingMember) {
   const requesterIsSupport = isSupportMember(requestingMember);
   const requesterEmail = normalizeEmail(requestingEmail);
+  const feedCategoryConfigs = getWorkCategoryConfigs(true);
 
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const qSheet = ss.getSheetByName(SHEET_QUESTIONS);
@@ -3404,7 +3419,7 @@ function getQuestionsDataForMember(requestingEmail, requestingMember) {
           assignNotes: String(row[Q_COL.ASSIGN_NOTES - 1] || "").trim(),
           statusChangedAt: row[Q_COL.STATUS_CHANGED_AT - 1] ? safeIsoDate(row[Q_COL.STATUS_CHANGED_AT - 1]) : "",
           statusChangedBy: stripNoraPrefix(String(row[Q_COL.STATUS_CHANGED_BY - 1] || '').trim()),
-          category: normalizeWorkCategory(row[Q_COL.WORK_CATEGORY - 1] || inferWorkCategory(qText, row[Q_COL.EVENT - 1])),
+          category: normalizeWorkCategory(row[Q_COL.WORK_CATEGORY - 1] || inferWorkCategory(qText, row[Q_COL.EVENT - 1], feedCategoryConfigs), feedCategoryConfigs),
           eventDate: normalizeEventDate(row[Q_COL.EVENT_DATE - 1]),
           talentRole: String(row[Q_COL.TALENT_ROLE - 1] || '').trim(),
           routedSupportEmail: normalizeEmail(row[Q_COL.ROUTED_SUPPORT_EMAIL - 1]),
@@ -3482,7 +3497,7 @@ function getQuestionsDataForMember(requestingEmail, requestingMember) {
           lastUpdatedAt: lastUpdatedIso,
           hasUnreadUpdate: !requesterHasRead && !!row[A_COL.LAST_UPDATED_AT - 1] &&
             new Date(lastUpdatedIso).getTime() > new Date(answeredIso).getTime(),
-          category: normalizeWorkCategory(row[A_COL.WORK_CATEGORY - 1] || inferWorkCategory(qText, row[A_COL.EVENT - 1])),
+          category: normalizeWorkCategory(row[A_COL.WORK_CATEGORY - 1] || inferWorkCategory(qText, row[A_COL.EVENT - 1], feedCategoryConfigs), feedCategoryConfigs),
           eventDate: normalizeEventDate(row[A_COL.EVENT_DATE - 1]),
           talentRole: String(row[A_COL.TALENT_ROLE - 1] || '').trim(),
           routedSupportEmail: normalizeEmail(row[A_COL.ROUTED_SUPPORT_EMAIL - 1]),
