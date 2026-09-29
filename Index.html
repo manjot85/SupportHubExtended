@@ -6269,6 +6269,21 @@ function animateCreateRadialGuide(){
   };
   createRadialGuideFrame=requestAnimationFrame(tick);
 }
+function createRadialShortcutAtPoint(panel,target,clientX,clientY){
+  const selector='[data-create-nav],[data-submenu-action]';
+  const direct=target&&target.closest?target.closest(selector):null;
+  if(direct&&panel.contains(direct))return direct;
+  const candidates=[...panel.querySelectorAll(selector)].filter(item=>{
+    if(panel.classList.contains('submenu-open')&&item.hasAttribute('data-create-nav')&&!item.classList.contains('submenu-anchor'))return false;
+    return getComputedStyle(item).pointerEvents!=='none'&&getComputedStyle(item).display!=='none';
+  });
+  let best=null,bestDistance=Infinity;
+  candidates.forEach(item=>{
+    const rect=item.getBoundingClientRect(),dx=Math.max(rect.left-clientX,0,clientX-rect.right),dy=Math.max(rect.top-clientY,0,clientY-rect.bottom),distance=Math.hypot(dx,dy);
+    if(distance<=7&&distance<bestDistance){best=item;bestDistance=distance;}
+  });
+  return best;
+}
 function updateCreateRadialGuide(clientX,clientY,target,panel){
   createRadialLastPointer={x:clientX,y:clientY};
   const svg=panel&&panel.querySelector('.create-radial-guide'),line=svg&&svg.querySelector('[data-guide-line]'),dot=svg&&svg.querySelector('[data-guide-dot]');
@@ -6276,7 +6291,7 @@ function updateCreateRadialGuide(clientX,clientY,target,panel){
   const panelRect=panel.getBoundingClientRect(),submenu=panel.querySelector('.create-radial-submenu'),submenuRect=submenu&&submenu.getBoundingClientRect();
   const inPanel=clientX>=panelRect.left&&clientX<=panelRect.right&&clientY>=panelRect.top&&clientY<=panelRect.bottom;
   const inSubmenu=submenuRect&&clientX>=submenuRect.left&&clientX<=submenuRect.right&&clientY>=submenuRect.top&&clientY<=submenuRect.bottom;
-  const radialTarget=target&&target.closest?target.closest('[data-create-nav],[data-submenu-action]'):null;
+  const radialTarget=createRadialShortcutAtPoint(panel,target,clientX,clientY);
   if(!inPanel&&!inSubmenu&&!radialTarget){svg.style.visibility='hidden';return;}
   svg.style.visibility='visible';
   let endX=clientX-panelRect.left,endY=clientY-panelRect.top;
@@ -6294,7 +6309,8 @@ function updateCreateRadialSelection(clientX,clientY){
   const panel=document.getElementById('create-radial-menu');if(!panel||!createRadialGestureActive)return;
   const target=document.elementFromPoint(clientX,clientY);
   updateCreateRadialGuide(clientX,clientY,target,panel);
-  const child=target&&target.closest?target.closest('[data-submenu-action]'):null;
+  const radialTarget=createRadialShortcutAtPoint(panel,target,clientX,clientY);
+  const child=radialTarget&&radialTarget.matches('[data-submenu-action]')?radialTarget:null;
   if(child&&panel.contains(child)){
     panel.querySelectorAll('.create-radial-child.is-selected,.create-desk-filter-item.is-selected').forEach(item=>item.classList.remove('is-selected'));
     child.classList.add('is-selected');createRadialSelectedChild=child.dataset.submenuAction||'';
@@ -6307,7 +6323,7 @@ function updateCreateRadialSelection(clientX,clientY){
     if(anchor&&target&&anchor.contains(target)){createRadialSelectedKey=createRadialSubmenuParent;return;}
     return;
   }
-  const item=target&&target.closest?target.closest('[data-create-nav]'):null;
+  const item=radialTarget&&radialTarget.matches('[data-create-nav]')?radialTarget:null;
   const nextKey=item&&panel.contains(item)?(item.dataset.createNav||''):'';
   panel.querySelectorAll('.create-radial-item.is-selected').forEach(node=>node.classList.remove('is-selected'));
   if(item&&panel.contains(item))item.classList.add('is-selected');
