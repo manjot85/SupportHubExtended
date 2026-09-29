@@ -988,7 +988,7 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 
 <div class="grid grid-cols-2 lg:grid-cols-5 gap-3">
   <button onclick="applyTaskQuickFilter('ACTIVE')" id="task-card-active" class="bg-white border border-slate-200 rounded-xl p-3 text-left hover:border-blue-300 hover:shadow-sm transition">
-    <p class="text-[10px] font-bold uppercase tracking-wider text-slate-500">My Active</p><p id="task-stat-active" class="text-2xl font-bold text-slate-900 mt-1">0</p>
+    <p class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Active</p><p id="task-stat-active" class="text-2xl font-bold text-slate-900 mt-1">0</p>
   </button>
   <button onclick="applyTaskQuickFilter('PENDING')" id="task-card-pending" class="bg-amber-50/60 border border-amber-200 rounded-xl p-3 text-left hover:border-amber-400 hover:shadow-sm transition">
     <p class="text-[10px] font-bold uppercase tracking-wider text-amber-700">Pending</p><p id="task-stat-pending" class="text-2xl font-bold text-slate-900 mt-1">0</p>
@@ -1024,13 +1024,18 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
         <option value="OVERDUE">Overdue</option>
       </select>
       <select id="task-category-filter" onchange="renderTasks()" class="border border-slate-300 px-3 py-1.5 rounded-lg text-xs outline-none"><option value="ALL">All Categories</option></select>
+      <details id="task-people-filter" class="relative">
+        <summary id="task-people-filter-label" class="list-none cursor-pointer border border-slate-300 px-3 py-1.5 rounded-lg text-xs outline-none font-semibold hover:bg-slate-50">Assigned to: Everyone</summary>
+        <div id="task-people-filter-options" class="absolute z-30 top-full left-0 mt-1 min-w-56 max-h-64 overflow-y-auto rounded-xl border border-slate-200 bg-white p-2 shadow-xl"></div>
+      </details>
     </div>
     <div class="flex flex-wrap items-center justify-end gap-2 w-full xl:w-auto">
       <div id="task-admin-bulk-controls" class="hidden items-center gap-2">
         <span id="task-admin-selected-count" class="text-[10px] font-semibold text-slate-500 whitespace-nowrap">0 selected</span>
         <button type="button" onclick="deleteSelectedAdminTasks()" class="px-3 py-1.5 rounded-lg border border-rose-300 bg-rose-50 text-rose-700 text-[11px] font-bold hover:bg-rose-100">Delete Selected</button>
       </div>
-      <input id="task-search" type="text" oninput="renderTasks()" placeholder="Search tasks..." class="w-full xl:w-72 border border-slate-300 px-3 py-1.5 rounded-lg text-xs outline-none focus:ring-1 focus:ring-emerald-500">
+      <span id="task-result-count" class="text-[10px] text-slate-500 whitespace-nowrap">0 tasks</span>
+      <input id="task-search" type="text" oninput="renderTasks()" placeholder="Search task, people, or date..." class="w-full xl:w-72 border border-slate-300 px-3 py-1.5 rounded-lg text-xs outline-none focus:ring-1 focus:ring-emerald-500">
     </div>
   </div>
 
@@ -2391,6 +2396,7 @@ let answerTaskDrafts = [];
 let taskActivityLoadedForId = null;
 let taskActivityLoading = false;
 let taskQuickFilter = 'ACTIVE';
+let taskSelectedAssignees = new Set();
 let taskTableSort = { key: 'createdAt', dir: 'desc' };
 let adminSelectedTaskIds = new Set();
 let adminVisibleTaskIds = [];
@@ -9333,6 +9339,43 @@ function taskStatusBadge(status) {
   return '<span class="inline-flex whitespace-nowrap px-2 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold">Pending</span>';
 }
 
+function taskAssigneeFilterKey(task) {
+  const email = String(task && task.assignedToEmail || '').trim().toLowerCase();
+  return email || ('name:' + String(task && task.assignedTo || '').trim().toLowerCase());
+}
+
+function toggleTaskAssigneeFilter(key, checked) {
+  if (checked) taskSelectedAssignees.add(String(key));
+  else taskSelectedAssignees.delete(String(key));
+  renderTasks();
+}
+
+function renderTaskAssigneeFilterOptions() {
+  const details = document.getElementById('task-people-filter');
+  const label = document.getElementById('task-people-filter-label');
+  const options = document.getElementById('task-people-filter-options');
+  if (!details || !label || !options) return;
+  const people = new Map();
+  allTasks.forEach(task => {
+    const key = taskAssigneeFilterKey(task);
+    if (key === 'name:') return;
+    if (!people.has(key)) people.set(key, {name:String(task.assignedTo || task.assignedToEmail || 'Unknown').trim(), count:0});
+    people.get(key).count++;
+  });
+  Array.from(taskSelectedAssignees).forEach(key => { if (!people.has(key)) taskSelectedAssignees.delete(key); });
+  const selected = taskSelectedAssignees.size;
+  label.innerText = selected ? 'Assigned to: ' + selected + ' selected' : 'Assigned to: Everyone';
+  const entries = Array.from(people.entries()).sort((a,b) => a[1].name.localeCompare(b[1].name, undefined, {sensitivity:'base'}));
+  options.innerHTML = '<div class="flex items-center justify-between px-2 pb-2 border-b border-slate-100 mb-1"><span class="text-[10px] font-bold text-slate-500">Filter assignees</span>' +
+    (selected ? '<button type="button" onclick="event.preventDefault();event.stopPropagation();clearTaskAssigneeFilter()" class="text-[10px] text-blue-600 hover:underline">Clear</button>' : '') +
+    '</div>' + (entries.length ? entries.map(([key,person]) => '<label class="flex items-center justify-between gap-3 rounded-lg px-2 py-1.5 text-xs text-slate-700 hover:bg-slate-50 cursor-pointer"><span class="flex items-center gap-2 min-w-0"><input type="checkbox" class="h-3.5 w-3.5 accent-blue-600 shrink-0" value="' + esc(key) + '" onchange="toggleTaskAssigneeFilter(this.value,this.checked)"' + (taskSelectedAssignees.has(key) ? ' checked' : '') + '><span class="truncate">' + esc(person.name) + '</span></span><span class="text-[10px] tabular-nums text-slate-400">' + person.count + '</span></label>').join('') : '<p class="px-2 py-2 text-[10px] text-slate-400">No task assignees available.</p>');
+}
+
+function clearTaskAssigneeFilter() {
+  taskSelectedAssignees.clear();
+  renderTasks();
+}
+
 
 function applyTaskQuickFilter(filter) {
   taskQuickFilter = filter;
@@ -9344,8 +9387,6 @@ function applyTaskQuickFilter(filter) {
       : filter === 'DUE_SOON' ? 'DUE_SOON'
       : 'ACTIVE';
   }
-  const scope = document.getElementById('task-scope-filter');
-  if (scope) scope.value = 'ASSIGNED';
   renderTasks();
 }
 
@@ -9451,13 +9492,6 @@ function renderTasks() {
   if (!currentUser) return;
   const body = document.getElementById('task-table-body');
   if (!body) return;
-  const mine = allTasks.filter(isTaskAssignedToMe);
-  document.getElementById('task-stat-active').innerText = mine.filter(isTaskActive).length;
-  document.getElementById('task-stat-pending').innerText = mine.filter(t => t.status === 'Pending').length;
-  document.getElementById('task-stat-due-soon').innerText = mine.filter(isTaskDueSoon).length;
-  document.getElementById('task-stat-overdue').innerText = mine.filter(isTaskOverdue).length;
-  document.getElementById('task-stat-completed').innerText = mine.filter(t => t.status === 'Completed').length;
-
   const scopeEl = document.getElementById('task-scope-filter');
   const teamOption = document.getElementById('task-scope-team-option');
   const support = isSupportUser(currentUser);
@@ -9467,22 +9501,40 @@ function renderTasks() {
   const status = document.getElementById('task-status-filter').value;
   const categoryFilter = document.getElementById('task-category-filter') ? document.getElementById('task-category-filter').value : 'ALL';
   const search = (document.getElementById('task-search').value || '').trim().toLowerCase();
+  renderTaskAssigneeFilterOptions();
 
-  let list = allTasks.filter(t => {
+  const baseList = allTasks.filter(t => {
     if (scope === 'ASSIGNED' && !isTaskAssignedToMe(t)) return false;
     if (scope === 'CREATED' && !isTaskCreatedByMe(t)) return false;
     if (scope === 'TEAM' && !support) return false;
-    if (status === 'ACTIVE' && !isTaskActive(t)) return false;
-    if (status === 'DUE_SOON' && !isTaskDueSoon(t)) return false;
-    if (status === 'OVERDUE' && !isTaskOverdue(t)) return false;
-    if (!['ALL','ACTIVE','DUE_SOON','OVERDUE'].includes(status) && t.status !== status) return false;
     if (categoryFilter !== 'ALL' && (t.category || 'General / Other') !== categoryFilter) return false;
+    if (taskSelectedAssignees.size && !taskSelectedAssignees.has(taskAssigneeFilterKey(t))) return false;
     if (search) {
-      const hay = [t.title,t.instructions,t.assignedTo,t.createdBy,t.status,t.category,t.relatedClientTalent,t.relatedLink,t.supportOwnerEmail,t.completedBy].join(' ').toLowerCase();
+      const dueDate = String(t.dueDate || '');
+      const createdDate = t.createdAt ? cstDateString(t.createdAt) : '';
+      const hay = [t.taskId,t.title,stripHtml(t.instructions || ''),t.assignedTo,t.assignedToEmail,t.createdBy,t.createdByEmail,
+        t.status,t.category,t.relatedClientTalent,t.relatedLink,t.supportOwnerEmail,t.completedBy,
+        dueDate,dueDate ? formatEventDateMMDDYYYY(dueDate) : '',t.createdAt,createdDate,createdDate ? formatEventDateMMDDYYYY(createdDate) : '']
+        .join(' ').toLowerCase();
       if (!hay.includes(search)) return false;
     }
     return true;
   });
+  document.getElementById('task-stat-active').innerText = baseList.filter(isTaskActive).length;
+  document.getElementById('task-stat-pending').innerText = baseList.filter(t => t.status === 'Pending').length;
+  document.getElementById('task-stat-due-soon').innerText = baseList.filter(isTaskDueSoon).length;
+  document.getElementById('task-stat-overdue').innerText = baseList.filter(isTaskOverdue).length;
+  document.getElementById('task-stat-completed').innerText = baseList.filter(t => t.status === 'Completed').length;
+
+  const list = baseList.filter(t => {
+    if (status === 'ACTIVE' && !isTaskActive(t)) return false;
+    if (status === 'DUE_SOON' && !isTaskDueSoon(t)) return false;
+    if (status === 'OVERDUE' && !isTaskOverdue(t)) return false;
+    if (!['ALL','ACTIVE','DUE_SOON','OVERDUE'].includes(status) && t.status !== status) return false;
+    return true;
+  });
+  const resultCount = document.getElementById('task-result-count');
+  if (resultCount) resultCount.innerText = list.length + (list.length === 1 ? ' task' : ' tasks');
   list.sort((a,b) => {
     const av=taskTableSortValue(a,taskTableSort.key), bv=taskTableSortValue(b,taskTableSort.key);
     let cmp=0;
