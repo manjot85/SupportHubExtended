@@ -288,6 +288,7 @@ html { font-size: 16px; }
 @media (prefers-reduced-motion:reduce) { .create-radial-menu.is-open { animation:none; } .create-radial-item { transition:none; } }
 
 #home-create-menu { z-index:91; }
+#home-create-menu.radial-submenu-active > summary { visibility:hidden; pointer-events:none; }
 #global-create-card:not(.global-create-card-home) #global-create-home-copy { visibility:hidden; }
 #home-question-panel { width:min(900px,calc(100vw - 32px)) !important; height:min(88vh,900px) !important; max-width:calc(100vw - 32px) !important; max-height:calc(100vh - 32px) !important; min-height:420px; }
 @media (max-width:640px) { #home-question-composer { padding:8px; } #home-question-panel { width:calc(100vw - 16px) !important; height:calc(100vh - 16px) !important; max-width:calc(100vw - 16px) !important; max-height:calc(100vh - 16px) !important; min-height:0; border-radius:14px; } }
@@ -6175,7 +6176,7 @@ function renderCreateRadialSubmenu(parentKey){
     const icon=document.createElement('span');icon.setAttribute('aria-hidden','true');icon.textContent=item.icon;
     const label=document.createElement('span');label.textContent=item.label;button.append(icon,label);menu.appendChild(button);
   });
-  panel.appendChild(menu);panel.classList.add('submenu-open');parent.classList.add('submenu-anchor');createRadialSubmenuParent=parentKey;
+  panel.appendChild(menu);panel.classList.add('submenu-open');document.getElementById('home-create-menu')?.classList.add('radial-submenu-active');parent.classList.add('submenu-anchor');createRadialSubmenuParent=parentKey;
 }
 function scheduleCreateRadialSubmenu(parentKey){
   if(createRadialSubmenuTimer)clearTimeout(createRadialSubmenuTimer);
@@ -6264,6 +6265,7 @@ function updateCreateRadialSelection(clientX,clientY){
   }
 }
 function closeCreateRadialMenu(){
+  document.getElementById('home-create-menu')?.classList.remove('radial-submenu-active');
   const panel=document.getElementById('create-radial-menu');
   if(panel){panel.classList.remove('is-open','submenu-open');const sub=panel.querySelector('.create-radial-submenu');if(sub)sub.remove();panel.querySelectorAll('.is-selected,.submenu-anchor').forEach(node=>node.classList.remove('is-selected','submenu-anchor'));}
   if(createRadialSubmenuTimer){clearTimeout(createRadialSubmenuTimer);createRadialSubmenuTimer=null;}
