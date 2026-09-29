@@ -748,9 +748,9 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 <th class="p-3 w-36 cursor-pointer select-none hover:text-slate-700" onclick="onSortHeaderClick('answered','eventName')">EVENT<span id="sort-arrow-answered-eventName"></span></th>
 <th class="p-3">QUESTION &amp; ANSWER PREVIEW</th>
 <th class="p-3 w-36">CREATED BY</th>
-<th class="p-3 w-36">CREATED</th>
+<th class="p-3 w-36">DATE CREATED</th>
 <th class="p-3 w-36 cursor-pointer select-none hover:text-slate-700" onclick="onSortHeaderClick('answered','answeredBy')">ANSWERED BY<span id="sort-arrow-answered-answeredBy"></span></th>
-<th class="p-3 w-36">ANSWERED</th>
+<th class="p-3 w-36">DATE ANSWERED</th>
 <th class="p-3 w-24 text-center cursor-pointer select-none hover:text-slate-700" onclick="onSortHeaderClick('answered','turnaroundHours')">SPEED<span id="sort-arrow-answered-turnaroundHours"></span></th>
 <th class="p-3 w-28 text-right">ACTION</th>
 </tr>
@@ -6539,7 +6539,11 @@ function renderAnsweredTab() {
     const internalTag = isAskedBySupport(q) ? internalBadgeHtml() : '';
     const tr = document.createElement('tr');
     tr.className = 'hover:bg-slate-100/80 cursor-pointer transition ' + (!q.isRead ? 'bg-amber-50/40 font-semibold' : '');
-    tr.onclick = (e) => { if (e.target.tagName !== 'BUTTON') openViewModal(q); };
+    tr.onclick = (e) => {
+      if (e.target.closest('button, a, input, select, textarea')) return;
+      e.preventDefault();
+      openViewModal(q);
+    };
     tr.innerHTML =
       '<td class="p-3"><span class="px-2 py-0.5 text-[9px] font-bold rounded ' + (q.isRead ? 'bg-slate-100 text-slate-500 border border-slate-200/60' : (q.hasUnreadUpdate ? 'bg-indigo-600 text-white shadow-sm' : 'bg-rose-500 text-white shadow-sm')) + '">' + (q.isRead ? 'READ' : (q.hasUnreadUpdate ? 'NEW UPDATE' : 'UNREAD')) + '</span></td>' +
       '<td class="p-3 font-semibold text-slate-800 truncate">' + esc(q.eventName) + internalTag + '</td>' +
@@ -6606,15 +6610,9 @@ function ensureFullTicketContent(q) {
   return request;
 }
 
-async function openViewModal(q) {
-  if (q && q.contentDeferred) {
-    showToast('Opening full ticket details...');
-    try { q = await ensureFullTicketContent(q); }
-    catch (err) {
-      showToast('Could not open ticket details: ' + (err && err.message ? err.message : err));
-      return;
-    }
-  }
+function openViewModal(q) {
+  if (!q) return;
+  const needsFullContent = !!q.contentDeferred;
   activeViewQuestion = q;
   document.getElementById('vmodal-event').innerText = q.eventName || '—';
   document.getElementById('vmodal-context').innerText = ticketContextText(q, isSupportUser(currentUser));
@@ -6661,6 +6659,25 @@ async function openViewModal(q) {
   updateModalReadUI(q.isRead);
   document.getElementById('view-modal').classList.remove('hidden');
   updateDetailNavigationButtons();
+
+  // Open immediately using the compact feed content. If the server has
+  // deferred the rich ticket body, upgrade the already-open modal in the
+  // background instead of blocking the click on a second server request.
+  if (needsFullContent) {
+    showToast('Loading full ticket details...');
+    ensureFullTicketContent(q).then(updated => {
+      if (activeViewQuestion !== q) return;
+      const questionEl = document.getElementById('vmodal-question');
+      const answerEl = document.getElementById('vmodal-answer');
+      if (questionEl) questionEl.innerHTML = ensureExternalLinks(updated.question || '—');
+      if (answerEl) answerEl.innerHTML = ensureExternalLinks(updated.answer || 'No answer recorded.');
+    }).catch(err => {
+      if (activeViewQuestion === q) {
+        showToast('Full ticket content could not be loaded. The ticket is still open with its preview.');
+      }
+      console.warn('Deferred ticket content load failed', err);
+    });
+  }
 
   if (!q.isRead) {
     const clearsMyUnread = isOwnerOf(q) && visiblePersonalAnsweredTickets().filter(row => !row.isRead).length === 1;
@@ -7015,7 +7032,7 @@ function renderAllTickets() {
   updateAdminTicketBulkUi();
 
   if (sorted.length === 0) {
-    body.innerHTML = '<tr><td colspan="10"" class="p-6 text-center text-slate-400">No ticket records found.</td></tr>';
+    body.innerHTML = '<tr><td colspan="10" class="p-6 text-center text-slate-400">No ticket records found.</td></tr>';
     return;
   }
 
