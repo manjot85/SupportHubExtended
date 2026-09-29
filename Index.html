@@ -6,6 +6,8 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
 .table-fixed-layout { table-layout: fixed; width: 100%; }
+.ticket-feed-table { min-width: 1180px; }
+.answered-ticket-table { min-width: 1280px; }
 .preserve-lines { white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere; }
 /* Belt-and-suspenders: some rendered content (case links, ticket IDs, rich-text
    answers with pasted URLs) can contain long unbroken strings. overflow-wrap:
@@ -733,7 +735,7 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 </div>
 
 <div class="overflow-x-auto border rounded-xl border-slate-200">
-<table class="table-fixed-layout text-left text-xs">
+<table class="table-fixed-layout answered-ticket-table text-left text-xs">
 <thead>
 <tr class="bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
 <th class="p-3 w-20 cursor-pointer select-none hover:text-slate-700" onclick="onSortHeaderClick('answered','isRead')">STATUS<span id="sort-arrow-answered-isRead"></span></th>
@@ -777,7 +779,7 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 </div>
 
 <div class="overflow-x-auto border rounded-xl border-slate-200">
-<table class="table-fixed-layout text-left text-xs">
+<table class="table-fixed-layout ticket-feed-table text-left text-xs">
 <thead>
 <tr class="bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
 <th id="all-admin-select-th" class="hidden p-3 w-10 text-center"><input id="all-admin-select-visible" type="checkbox" onclick="event.stopPropagation();toggleAdminSelectVisibleTickets(this.checked)" aria-label="Select all visible tickets"></th>
@@ -6238,7 +6240,7 @@ function renderCoordinatorQuestions() {
     tr.innerHTML =
       '<td class="p-3 text-slate-500">' + formatCSTDateTime(q.created, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) + '</td>' +
       '<td class="p-3 font-semibold text-slate-800"><div class="truncate">' + esc(q.eventName) + '</div>' + ticketContextHtml(q) + '</td>' +
-      '<td class="p-3 text-slate-700 truncate">' + q.question + followTag + '</td>' +
+      '<td class="p-3 text-slate-700 truncate">' + esc(q.question) + followTag + '</td>' +
       '<td class="p-3 text-center">' + statusHtml + '</td>' +
       '<td class="p-3 text-right"><div class="flex flex-col items-end gap-1.5">' +
         (requesterFlagEligible(q) ? '<button onclick="event.stopPropagation(); requestCoordinatorSupportAttention(\'' + esc(q.ticketId) + '\')" class="text-[10px] px-2 py-1 rounded-md bg-orange-50 text-orange-800 border border-orange-300 hover:bg-orange-100 font-bold whitespace-nowrap">⚑ Request Attention</button>' : '') +
@@ -6535,7 +6537,7 @@ function renderAnsweredTab() {
     tr.innerHTML =
       '<td class="p-3"><span class="px-2 py-0.5 text-[9px] font-bold rounded ' + (q.isRead ? 'bg-slate-100 text-slate-500 border border-slate-200/60' : (q.hasUnreadUpdate ? 'bg-indigo-600 text-white shadow-sm' : 'bg-rose-500 text-white shadow-sm')) + '">' + (q.isRead ? 'READ' : (q.hasUnreadUpdate ? 'NEW UPDATE' : 'UNREAD')) + '</span></td>' +
       '<td class="p-3 font-semibold text-slate-800 truncate">' + esc(q.eventName) + internalTag + '</td>' +
-      '<td class="p-3"><div class="text-slate-900 truncate font-semibold">' + q.question + '</div><div class="text-emerald-700 text-[11px] truncate font-medium">' + q.answer + '</div>' + linkedTaskBadgeHtml(q.ticketId) + '</td>' +
+      '<td class="p-3"><div class="text-slate-900 truncate font-semibold">' + esc(q.question) + '</div><div class="text-emerald-700 text-[11px] truncate font-medium">' + esc(q.answer) + '</div>' + linkedTaskBadgeHtml(q.ticketId) + '</td>' +
       '<td class="p-3 text-slate-700 font-medium truncate">' + esc(getUserDisplayName(q.askedBy)) + '</td>' +
       '<td class="p-3 text-[10px] text-slate-500 whitespace-nowrap">' + esc(q._createdDisplay || '—') + '</td>' +
       '<td class="p-3 text-slate-700 font-medium truncate">' + esc(getUserDisplayName(q.answeredBy)) + '</td>' +
@@ -7029,7 +7031,7 @@ function renderAllTickets() {
     tr.innerHTML =
       '<td class="p-3 text-center ' + (isAdmin ? '' : 'hidden') + '"><input type="checkbox" ' + (adminSelectedTicketKeys.has(ticketKey) ? 'checked' : '') + ' onclick="event.stopPropagation()" onchange="toggleAdminTicketSelection(\'' + esc(q.sheet) + '\',\'' + esc(q.ticketId) + '\',this.checked)" aria-label="Select ticket"></td>' +
       '<td class="p-3 font-semibold text-slate-800 truncate">' + esc(q.eventName || '—') + internalTag + weekendTag + '</td>' +
-      '<td class="p-3 text-slate-700 truncate">' + q.question + '</td>' +
+      '<td class="p-3 text-slate-700 truncate">' + esc(q.question) + '</td>' +
       '<td class="p-3 text-slate-700 font-medium truncate">' + esc(getUserDisplayName(q.askedBy)) + '</td>' +
       '<td class="p-3 text-[10px] text-slate-500 whitespace-nowrap">' + esc(q._createdDisplay || '—') + '</td>' +
       '<td class="p-3 text-slate-700 font-medium truncate">' + (q.answeredBy ? esc(getUserDisplayName(q.answeredBy)) : '<span class="text-slate-400">—</span>') + '</td>' +
