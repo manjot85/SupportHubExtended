@@ -6539,7 +6539,6 @@ function renderAnsweredTab() {
       '<td class="p-3 font-semibold text-slate-800 truncate">' + esc(q.eventName) + internalTag + '</td>' +
       '<td class="p-3"><div class="text-slate-900 truncate font-semibold">' + esc(q.question) + '</div><div class="text-emerald-700 text-[11px] truncate font-medium">' + esc(q.answer) + '</div>' + linkedTaskBadgeHtml(q.ticketId) + '</td>' +
       '<td class="p-3 text-slate-700 font-medium truncate">' + esc(getUserDisplayName(q.askedBy)) + '</td>' +
-      '<td class="p-3 text-center">' + (q.caseLink ? '<a href="' + esc(reconstructCaseUrl(q.caseLink)) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="text-blue-600 hover:text-blue-800 font-semibold underline text-[10px]">Open</a>' : '<span class="text-slate-300">—</span>') + '</td>' +
       '<td class="p-3 text-[10px] text-slate-500 whitespace-nowrap">' + esc(q._createdDisplay || '—') + '</td>' +
       '<td class="p-3 text-slate-700 font-medium truncate">' + esc(getUserDisplayName(q.answeredBy)) + '</td>' +
       '<td class="p-3 text-[10px] text-slate-500 whitespace-nowrap">' + esc(q._answeredDisplay || '—') + '</td>' +
@@ -7034,6 +7033,7 @@ function renderAllTickets() {
       '<td class="p-3 font-semibold text-slate-800 truncate">' + esc(q.eventName || '—') + internalTag + weekendTag + '</td>' +
       '<td class="p-3 text-slate-700 truncate">' + esc(q.question) + '</td>' +
       '<td class="p-3 text-slate-700 font-medium truncate">' + esc(getUserDisplayName(q.askedBy)) + '</td>' +
+      '<td class="p-3 text-center">' + (q.caseLink ? '<a href="' + esc(reconstructCaseUrl(q.caseLink)) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="text-blue-600 hover:text-blue-800 font-semibold underline text-[10px]">Open</a>' : '<span class="text-slate-300">—</span>') + '</td>' +
       '<td class="p-3 text-[10px] text-slate-500 whitespace-nowrap">' + esc(q._createdDisplay || '—') + '</td>' +
       '<td class="p-3 text-slate-700 font-medium truncate">' + (q.answeredBy ? esc(getUserDisplayName(q.answeredBy)) : '<span class="text-slate-400">—</span>') + '</td>' +
       '<td class="p-3 text-[10px] text-slate-500 whitespace-nowrap">' + (q.answeredDate ? esc(q._answeredDisplay || '—') : '<span class="text-slate-400">—</span>') + '</td>' +
