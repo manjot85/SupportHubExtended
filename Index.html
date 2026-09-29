@@ -6613,8 +6613,8 @@ async function openViewModal(q) {
   const viewCreatedEl = document.getElementById('vmodal-created');
   const viewAnsweredEl = document.getElementById('vmodal-answered');
   const viewAnsweredByHeaderEl = document.getElementById('vmodal-by-header');
-  if (viewCreatedEl) viewCreatedEl.innerText = formatCSTTimestamp(q.created);
-  if (viewAnsweredEl) viewAnsweredEl.innerText = q.answeredDate ? formatCSTTimestamp(q.answeredDate) : '—';
+  if (viewCreatedEl) viewCreatedEl.innerText = formatCSTDateTime(q.created);
+  if (viewAnsweredEl) viewAnsweredEl.innerText = q.answeredDate ? formatCSTDateTime(q.answeredDate) : '—';
   if (viewAnsweredByHeaderEl) viewAnsweredByHeaderEl.innerText = getUserDisplayName(q.answeredBy);
   document.getElementById('vmodal-asked').innerText = getUserDisplayName(q.askedBy);
   document.getElementById('vmodal-question').innerHTML = ensureExternalLinks(q.question || '—');
