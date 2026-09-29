@@ -449,7 +449,7 @@ html { font-size: 16px; }
 <span id="user-role-tag" class="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-emerald-400 text-slate-950">Coordinator</span>
 </div>
 <details id="home-create-menu" class="relative shrink-0">
-  <summary onclick="closeCreateRadialMenu()" oncontextmenu="openCreateRadialMenu(event)" title="Click to create · Right-click for quick navigation" aria-label="Create or right-click for quick navigation" class="list-none cursor-pointer bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 rounded-md text-[10px] font-bold shadow transition whitespace-nowrap">+ Create</summary>
+  <summary onclick="closeCreateRadialMenu()" oncontextmenu="openCreateRadialMenu(event)" title="Click to create · Right-click for quick navigation" aria-label="Create or right-click for quick navigation" class="list-none cursor-pointer bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-lg text-xs font-bold shadow-md shadow-emerald-950/20 transition whitespace-nowrap">+ Create</summary>
   <div class="absolute right-0 mt-2 w-52 bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden text-xs">
     <button type="button" onclick="closeHomeCreateMenu(); openHomeQuestionComposer()" class="w-full text-left px-4 py-3 hover:bg-slate-50 font-semibold text-slate-800">Ask a Question</button>
     <button type="button" onclick="closeHomeCreateMenu(); openCreateTaskModal()" class="w-full text-left px-4 py-3 hover:bg-slate-50 font-semibold text-slate-800 border-t border-slate-100">Create a Task</button>
@@ -693,7 +693,6 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 <section id="view-peer" class="hidden space-y-5">
   <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col md:flex-row md:items-center justify-between gap-3">
     <div><h2 class="text-base font-bold text-slate-800">Peer Questions</h2><p class="text-xs text-slate-500 mt-1">Quick internal guidance between team members. Keep it simple, reply directly, reassign when another teammate is better placed to help, or escalate when formal Support follow-up is needed.</p></div>
-    <button onclick="openPeerCreateModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold">+ Ask a Peer</button>
   </div>
   <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
     <button onclick="setPeerFilter('MINE')" class="peer-filter-card bg-white border border-slate-200 rounded-xl p-4 text-left"><p class="text-[10px] font-bold uppercase text-slate-400">Assigned to Me</p><p id="peer-stat-mine" class="text-xl font-bold text-slate-900 mt-1">0</p></button>
@@ -1006,7 +1005,6 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
       <h2 class="text-base font-bold text-slate-800">Tasks</h2>
       <p class="text-xs text-slate-500 mt-0.5">Create, track, and complete team follow-up work. Click a task to view its full details or update its status.</p>
     </div>
-    <button onclick="openCreateTaskModal()" class="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-md transition shrink-0">+ Create Task</button>
   </div>
 </div>
 
