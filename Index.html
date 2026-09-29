@@ -264,7 +264,7 @@ html { font-size: 16px; }
 .task-detail-category-editor select { min-width:120px; max-width:210px; }
 
 /* Right-click navigation fan around the shared Create control. */
-.create-radial-menu { display:none; position:absolute; z-index:90; top:calc(100% + 10px); left:50%; width:264px; height:264px; transform:translateX(-50%); border-radius:50%; pointer-events:none; }
+.create-radial-menu { display:none; position:absolute; z-index:90; top:50%; left:50%; width:264px; height:264px; transform:translate(-50%,-50%); border-radius:50%; pointer-events:none; }
 .create-radial-menu.is-open { display:block; pointer-events:auto; animation:createRadialIn .16s ease-out; }
 .create-radial-menu::before { content:""; position:absolute; inset:15px; border:1px solid rgba(148,163,184,.28); border-radius:50%; background:transparent; box-shadow:none; pointer-events:none; }
 .create-radial-center { position:absolute; z-index:3; left:50%; top:50%; width:68px; height:68px; transform:translate(-50%,-50%); border:1px solid rgba(255,255,255,.25); border-radius:50%; display:flex; align-items:center; justify-content:center; text-align:center; background:#0f172a; color:white; font-size:11px; font-weight:800; letter-spacing:.02em; box-shadow:0 5px 15px rgba(15,23,42,.3); cursor:pointer; transition:transform .14s ease,background .14s ease,box-shadow .14s ease; }
@@ -278,9 +278,11 @@ html { font-size: 16px; }
 .create-radial-item[data-create-nav="tasks"] { right:0; top:94px; }
 .create-radial-item[data-create-nav="reporting"] { left:94px; bottom:0; }
 .create-radial-item[data-create-nav="supervisor"] { left:0; top:94px; }
-@keyframes createRadialIn { from { opacity:0; transform:translateX(-50%) scale(.86); } to { opacity:1; transform:translateX(-50%) scale(1); } }
+@keyframes createRadialIn { from { opacity:0; transform:translate(-50%,-50%) scale(.86); } to { opacity:1; transform:translate(-50%,-50%) scale(1); } }
 @media (prefers-reduced-motion:reduce) { .create-radial-menu.is-open { animation:none; } .create-radial-item { transition:none; } }
 
+#home-create-menu { z-index:91; }
+#global-create-card:not(.global-create-card-home) #global-create-home-copy { visibility:hidden; }
 #create-task-modal input,
 #create-task-modal select,
 #create-task-modal textarea,
@@ -516,8 +518,16 @@ html { font-size: 16px; }
 <div id="toast-container" class="fixed top-5 right-5 z-50 space-y-2"></div>
 
 <main class="max-w-7xl mx-auto px-4 py-6 flex-1 w-full">
-  <div id="global-create-card" class="bg-white border border-slate-200 rounded-2xl shadow-sm px-5 py-3 mb-5 flex justify-end">
-    <div id="create-dock-global" class="relative shrink-0"><div id="global-create-control" class="relative shrink-0">
+  <div id="global-create-card" class="bg-white border border-slate-200 rounded-2xl shadow-sm px-5 py-3 mb-5 flex items-center justify-between gap-4">
+    <div id="global-create-home-copy" class="min-w-0 flex-1">
+      <p id="home-role-label" class="hidden"></p>
+      <h2 id="home-dashboard-title" class="text-lg font-bold text-slate-900">Welcome back</h2>
+      <p id="home-dashboard-subtitle" class="text-xs text-slate-500 mt-1">Your current questions, answers, and tasks in one place.</p>
+    </div>
+    <div class="flex items-center gap-3 shrink-0">
+      <button id="home-admin-button" type="button" onclick="switchTab('team')" class="hidden bg-purple-700 hover:bg-purple-800 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-md transition shrink-0">Open Admin Setup</button>
+      <div id="create-dock-global" class="relative shrink-0">
+        <div id="global-create-control" class="relative shrink-0">
         <details id="home-create-menu" class="relative shrink-0">
           <summary onclick="closeCreateRadialMenu()" onpointerdown="beginCreateRadialGesture(event)" oncontextmenu="suppressCreateContextMenu(event)" title="Click to create · Right-click and hold for shortcuts" aria-label="Create or right-click and hold for shortcuts" class="list-none cursor-pointer bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-md transition whitespace-nowrap">+ Create</summary>
           <div class="absolute right-0 mt-2 w-52 bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden text-xs">
@@ -532,23 +542,15 @@ html { font-size: 16px; }
           <button type="button" role="menuitem" data-create-nav="reporting" class="create-radial-item" aria-label="Reports"><span aria-hidden="true">▥</span><span>Reports</span></button>
           <button type="button" role="menuitem" data-create-nav="supervisor" class="create-radial-item" aria-label="Support Queue"><span aria-hidden="true">◎</span><span>Support Queue</span></button>
         </div>
-      </div></div>
+      </div>
+      </div>
+    </div>
   </div>
 
 <!-- TAB 1: COORDINATOR WORKSPACE -->
 <section id="view-coordinator" class="space-y-6">
 <div id="my-work-dashboard" class="space-y-4">
-  <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col md:flex-row md:items-center justify-between gap-4">
-    <div>
-      <p id="home-role-label" class="hidden"></p>
-      <h2 id="home-dashboard-title" class="text-lg font-bold text-slate-900">Welcome back</h2>
-      <p id="home-dashboard-subtitle" class="text-xs text-slate-500 mt-1">Your current questions, answers, and tasks in one place.</p>
-    </div>
-    <div id="create-dock-coordinator" class="shrink-0 self-end md:self-auto">
-      
-    </div>
-    <button id="home-admin-button" type="button" onclick="switchTab('team')" class="hidden bg-purple-700 hover:bg-purple-800 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-md transition shrink-0">Open Admin Setup</button>
-  </div>
+  
 
   <button id="home-question-launcher" type="button" onclick="openHomeQuestionComposer()" class="hidden w-full bg-white border-2 border-emerald-300 rounded-2xl px-5 py-4 text-left shadow-sm hover:border-emerald-500 hover:shadow-md transition group">
     <div class="flex items-center gap-3">
@@ -4877,6 +4879,8 @@ function allowedRoleAwareTab(name) {
 
 function activateTabShell(name) {
   const area = primaryAreaForTab(name);
+  const globalCreateCard = document.getElementById('global-create-card');
+  if (globalCreateCard) globalCreateCard.classList.toggle('global-create-card-home', name === 'coordinator');
   APP_TAB_NAMES.forEach(t => {
     const view = document.getElementById('view-' + t);
     if (view) view.classList.toggle('hidden', t !== name);
