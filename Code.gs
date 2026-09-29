@@ -427,11 +427,10 @@ function clearWorkCategoryCache() {
   try { CacheService.getScriptCache().remove(WORK_CATEGORY_CACHE_KEY); } catch (e) {}
 }
 
-function normalizeWorkCategory(value, configs) {
+function normalizeWorkCategory(value) {
   const raw = String(value || '').trim();
   if (!raw) return 'General / Other';
-  const source = Array.isArray(configs) ? configs : getWorkCategoryConfigs(true);
-  const found = source.find(row => row.category.toLowerCase() === raw.toLowerCase());
+  const found = getWorkCategoryConfigs(true).find(row => row.category.toLowerCase() === raw.toLowerCase());
   return found ? found.category : 'General / Other';
 }
 
@@ -506,12 +505,12 @@ function workCategoryKeywordMatches(text, keyword) {
   return new RegExp('(^|[^a-z0-9])' + needle + '(?=$|[^a-z0-9])', 'i').test(haystack);
 }
 
-function inferWorkCategory(question, eventName, configs) {
+function inferWorkCategory(question, eventName) {
   const text = (String(question || '').replace(/<[^>]*>/g, ' ') + ' ' + String(eventName || '')).toLowerCase();
-  const source = Array.isArray(configs) ? configs : getWorkCategoryConfigs(false);
-  for (let i = 0; i < source.length; i++) {
-    if (source[i].category === 'General / Other') continue;
-    if (source[i].keywords.some(k => workCategoryKeywordMatches(text, k))) return source[i].category;
+  const configs = getWorkCategoryConfigs(false);
+  for (let i = 0; i < configs.length; i++) {
+    if (configs[i].category === 'General / Other') continue;
+    if (configs[i].keywords.some(k => workCategoryKeywordMatches(text, k))) return configs[i].category;
   }
   return 'General / Other';
 }
@@ -1454,24 +1453,11 @@ function stripHtmlToText(value) {
 function compactRichContentForFeed(value) {
   const original = String(value || '');
   if (!original) return { html: '', deferred: false };
-  // Ticket lists only need a short readable preview. Full rich content is
-  // fetched lazily when the user opens the ticket.
-  const hadRichMarkup = /<[^>]+>/.test(original) || /&(?:nbsp|amp|lt|gt|quot|#39);/i.test(original);
-  let compact = original
-    .replace(/<img\b[^>]*>/gi, ' [Image attached] ')
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/(?:p|div|li|h[1-6])\s*>/gi, '\n')
-    .replace(/<[^>]*>/g, ' ')
-    .replace(/&nbsp;/gi, ' ')
-    .replace(/&amp;/gi, '&')
-    .replace(/&lt;/gi, '<')
-    .replace(/&gt;/gi, '>')
-    .replace(/&quot;/gi, '"')
-    .replace(/&#39;/gi, "'")
-    .replace(/\s+/g, ' ')
-    .trim();
-  if (compact.length > 320) compact = compact.slice(0, 320).replace(/\s+\S*$/, '') + '…';
-  return { html: compact, deferred: hadRichMarkup };
+  // Table/search feeds do not need the image itself. Removing IMG tags is
+  // especially important for historical rows that may still contain a large
+  // base64 screenshot from before Drive-backed attachments were introduced.
+  const compact = original.replace(/<img\b[^>]*>/gi, '<span>[Image attached]</span>');
+  return { html: compact, deferred: compact !== original };
 }
 
 function activeMentionableMembers() {
@@ -3372,7 +3358,6 @@ function getQuestionsData(requestingEmail) {
 function getQuestionsDataForMember(requestingEmail, requestingMember) {
   const requesterIsSupport = isSupportMember(requestingMember);
   const requesterEmail = normalizeEmail(requestingEmail);
-  const feedCategoryConfigs = getWorkCategoryConfigs(true);
 
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const qSheet = ss.getSheetByName(SHEET_QUESTIONS);
@@ -3407,6 +3392,8 @@ function getQuestionsDataForMember(requestingEmail, requestingMember) {
           askedBy: stripNoraPrefix(String(row[2] || "").trim()),
           askedByEmail: String(row[Q_COL.ASKED_BY_EMAIL - 1] || "").trim().toLowerCase(),
           created: createdIso,
+          answeredBy: '',
+          answeredDate: '',
           caseLink: extractCaseId(String(row[7] || "").trim()),
           answer: String(row[Q_COL.ANSWER - 1] || '').trim(),
           contentDeferred: compactQuestion.deferred,
@@ -3419,7 +3406,7 @@ function getQuestionsDataForMember(requestingEmail, requestingMember) {
           assignNotes: String(row[Q_COL.ASSIGN_NOTES - 1] || "").trim(),
           statusChangedAt: row[Q_COL.STATUS_CHANGED_AT - 1] ? safeIsoDate(row[Q_COL.STATUS_CHANGED_AT - 1]) : "",
           statusChangedBy: stripNoraPrefix(String(row[Q_COL.STATUS_CHANGED_BY - 1] || '').trim()),
-          category: normalizeWorkCategory(row[Q_COL.WORK_CATEGORY - 1] || inferWorkCategory(qText, row[Q_COL.EVENT - 1], feedCategoryConfigs), feedCategoryConfigs),
+          category: normalizeWorkCategory(row[Q_COL.WORK_CATEGORY - 1] || inferWorkCategory(qText, row[Q_COL.EVENT - 1])),
           eventDate: normalizeEventDate(row[Q_COL.EVENT_DATE - 1]),
           talentRole: String(row[Q_COL.TALENT_ROLE - 1] || '').trim(),
           routedSupportEmail: normalizeEmail(row[Q_COL.ROUTED_SUPPORT_EMAIL - 1]),
@@ -3497,7 +3484,7 @@ function getQuestionsDataForMember(requestingEmail, requestingMember) {
           lastUpdatedAt: lastUpdatedIso,
           hasUnreadUpdate: !requesterHasRead && !!row[A_COL.LAST_UPDATED_AT - 1] &&
             new Date(lastUpdatedIso).getTime() > new Date(answeredIso).getTime(),
-          category: normalizeWorkCategory(row[A_COL.WORK_CATEGORY - 1] || inferWorkCategory(qText, row[A_COL.EVENT - 1], feedCategoryConfigs), feedCategoryConfigs),
+          category: normalizeWorkCategory(row[A_COL.WORK_CATEGORY - 1] || inferWorkCategory(qText, row[A_COL.EVENT - 1])),
           eventDate: normalizeEventDate(row[A_COL.EVENT_DATE - 1]),
           talentRole: String(row[A_COL.TALENT_ROLE - 1] || '').trim(),
           routedSupportEmail: normalizeEmail(row[A_COL.ROUTED_SUPPORT_EMAIL - 1]),
@@ -3752,6 +3739,8 @@ function getSupervisorQuestionsDataIfChanged(requestingEmail, clientVersion) {
       askedBy: stripNoraPrefix(String(row[Q_COL.ASKED_BY - 1] || '').trim()),
       askedByEmail: normalizeEmail(row[Q_COL.ASKED_BY_EMAIL - 1]),
       created: safeIsoDate(row[Q_COL.CREATED - 1]),
+      answeredBy: '',
+      answeredDate: '',
       caseLink: extractCaseId(String(row[Q_COL.LINK - 1] || '').trim()),
       answer: String(row[Q_COL.ANSWER - 1] || '').trim(),
       contentDeferred: compactQuestion.deferred,
@@ -3908,6 +3897,8 @@ function navigationQuestionFromRow(row, sheetName, requestingEmail) {
     askedBy: stripNoraPrefix(String(row[C.ASKED_BY - 1] || '').trim()),
     askedByEmail: normalizeEmail(row[C.ASKED_BY_EMAIL - 1]),
     created: safeIsoDate(row[C.CREATED - 1]),
+    answeredBy: '',
+    answeredDate: '',
     caseLink: extractCaseId(String(row[C.LINK - 1] || '').trim()),
     answer: String(row[C.ANSWER - 1] || '').trim(),
     contentDeferred: false,
@@ -3975,33 +3966,15 @@ function getTicketForNavigation(ticketId, requestingEmail) {
   const id = String(ticketId || '').trim();
   if (!id) throw new Error('The linked ticket ID is missing.');
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-
-  // Answered is checked first because this function is also used by global
-  // navigation where the caller may only have a Ticket ID. A completed ticket
-  // must resolve to the Answered record if an old/stale Questions row happens
-  // to exist during a move or migration.
-  const aSheet = ss.getSheetByName(SHEET_ANSWERED);
-  if (aSheet) {
-    const aRow = findRowIndexByTicketId(aSheet, id, A_COL.TICKET_ID);
-    if (aRow !== -1) {
-      return navigationQuestionFromRow(
-        aSheet.getRange(aRow, 1, 1, A_WIDTH).getValues()[0],
-        SHEET_ANSWERED,
-        requestingEmail
-      );
-    }
-  }
-
   const qSheet = ss.getSheetByName(SHEET_QUESTIONS);
   if (qSheet) {
     const qRow = findRowIndexByTicketId(qSheet, id, Q_COL.TICKET_ID);
-    if (qRow !== -1) {
-      return navigationQuestionFromRow(
-        qSheet.getRange(qRow, 1, 1, Q_WIDTH).getValues()[0],
-        SHEET_QUESTIONS,
-        requestingEmail
-      );
-    }
+    if (qRow !== -1) return navigationQuestionFromRow(qSheet.getRange(qRow, 1, 1, Q_WIDTH).getValues()[0], SHEET_QUESTIONS, requestingEmail);
+  }
+  const aSheet = ss.getSheetByName(SHEET_ANSWERED);
+  if (aSheet) {
+    const aRow = findRowIndexByTicketId(aSheet, id, A_COL.TICKET_ID);
+    if (aRow !== -1) return navigationQuestionFromRow(aSheet.getRange(aRow, 1, 1, A_WIDTH).getValues()[0], SHEET_ANSWERED, requestingEmail);
   }
   throw new Error('The linked ticket no longer exists.');
 }
