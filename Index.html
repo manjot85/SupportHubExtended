@@ -540,7 +540,7 @@ html { font-size: 16px; }
     </div>
   </div>
 
-  <div id="create-shortcut-settings-modal" class="hidden fixed inset-0 z-[120] items-center justify-center bg-slate-950/50 p-4" onclick="if(event.target===this)closeCreateShortcutSettings()">
+  <div id="create-shortcut-settings-modal" class="hidden fixed inset-0 z-[120] items-center justify-center bg-slate-950/50 p-4" onclick="if(event.target===this&&!createSettingsHoldTriggered)closeCreateShortcutSettings()">
     <div class="w-full max-w-lg rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden" role="dialog" aria-modal="true" aria-labelledby="create-shortcut-settings-title">
       <div class="px-5 py-4 border-b border-slate-200 flex items-start justify-between gap-4">
         <div><h2 id="create-shortcut-settings-title" class="text-base font-bold text-slate-900">Radial shortcuts</h2><p class="text-xs text-slate-500 mt-1">Choose up to six shortcuts for right-click navigation.</p></div>
