@@ -738,17 +738,21 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 <tr class="bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
 <th class="p-3 w-20 cursor-pointer select-none hover:text-slate-700" onclick="onSortHeaderClick('answered','isRead')">STATUS<span id="sort-arrow-answered-isRead"></span></th>
 <th class="p-3 w-36 cursor-pointer select-none hover:text-slate-700" onclick="onSortHeaderClick('answered','eventName')">EVENT<span id="sort-arrow-answered-eventName"></span></th>
-<th class="p-3">QUESTION &amp; ANSWER PREVIEW</th>
-<th class="p-3 w-36">ASKED BY</th>
-<th class="p-3 w-40">ASKED AT</th>
+<th class="p-3 cursor-pointer select-none" onclick="onSortHeaderClick('answered','question')">QUESTION &amp; ANSWER PREVIEW<span id="sort-arrow-answered-question"></span></th>
+<th class="p-3 w-36 cursor-pointer select-none" onclick="onSortHeaderClick('answered','askedBy')">ASKED BY<span id="sort-arrow-answered-askedBy"></span></th>
+<th class="p-3 w-40 cursor-pointer select-none" onclick="onSortHeaderClick('answered','created')">ASKED AT<span id="sort-arrow-answered-created"></span></th>
 <th class="p-3 w-36 cursor-pointer select-none hover:text-slate-700" onclick="onSortHeaderClick('answered','answeredBy')">ANSWERED BY<span id="sort-arrow-answered-answeredBy"></span></th>
-<th class="p-3 w-40">ANSWERED AT</th>
+<th class="p-3 w-40 cursor-pointer select-none" onclick="onSortHeaderClick('answered','answeredDate')">ANSWERED AT<span id="sort-arrow-answered-answeredDate"></span></th>
 <th class="p-3 w-24 text-center cursor-pointer select-none hover:text-slate-700" onclick="onSortHeaderClick('answered','turnaroundHours')">SPEED<span id="sort-arrow-answered-turnaroundHours"></span></th>
 <th class="p-3 w-28 text-right">ACTION</th>
 </tr>
 </thead>
 <tbody id="answered-table-body" class="divide-y divide-slate-100"></tbody>
 </table>
+</div>
+<div class="flex items-center justify-between gap-3 border-t border-slate-100 px-3 py-2 text-xs" id="answered-pagination">
+  <span id="answered-page-status" class="text-slate-500">Showing 0 tickets</span>
+  <div class="flex gap-2"><button type="button" onclick="changeTicketTablePage('answered', -1)" class="rounded border border-slate-300 px-3 py-1 text-slate-700 disabled:opacity-40">Previous</button><button type="button" onclick="changeTicketTablePage('answered', 1)" class="rounded border border-slate-300 px-3 py-1 text-slate-700 disabled:opacity-40">Next</button></div>
 </div>
 </div>
 </section>
@@ -782,18 +786,22 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 <tr class="bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
 <th id="all-admin-select-th" class="hidden p-3 w-10 text-center"><input id="all-admin-select-visible" type="checkbox" onclick="event.stopPropagation();toggleAdminSelectVisibleTickets(this.checked)" aria-label="Select all visible tickets"></th>
 <th class="p-3 w-36 cursor-pointer select-none hover:text-slate-700" onclick="onSortHeaderClick('all','eventName')">EVENT<span id="sort-arrow-all-eventName"></span></th>
-<th class="p-3">QUESTION</th>
+<th class="p-3 cursor-pointer select-none" onclick="onSortHeaderClick('all','question')">QUESTION<span id="sort-arrow-all-question"></span></th>
 <th class="p-3 w-36 cursor-pointer select-none hover:text-slate-700" onclick="onSortHeaderClick('all','askedBy')">ASKED BY<span id="sort-arrow-all-askedBy"></span></th>
-<th class="p-3 w-40">ASKED AT</th>
-<th class="p-3 w-16 text-center">LINK</th>
-<th class="p-3 w-36">ANSWERED BY</th>
-<th class="p-3 w-40">ANSWERED AT</th>
+<th class="p-3 w-40 cursor-pointer select-none" onclick="onSortHeaderClick('all','created')">ASKED AT<span id="sort-arrow-all-created"></span></th>
+<th class="p-3 w-16 text-center cursor-pointer select-none" onclick="onSortHeaderClick('all','caseLink')">LINK<span id="sort-arrow-all-caseLink"></span></th>
+<th class="p-3 w-36 cursor-pointer select-none" onclick="onSortHeaderClick('all','answeredBy')">ANSWERED BY<span id="sort-arrow-all-answeredBy"></span></th>
+<th class="p-3 w-40 cursor-pointer select-none" onclick="onSortHeaderClick('all','answeredDate')">ANSWERED AT<span id="sort-arrow-all-answeredDate"></span></th>
 <th class="p-3 w-28 text-center cursor-pointer select-none hover:text-slate-700" onclick="onSortHeaderClick('all','statusLabel')">STATUS<span id="sort-arrow-all-statusLabel"></span></th>
 <th id="all-admin-th" class="p-3 w-28 text-right hidden">ADMIN</th>
 </tr>
 </thead>
 <tbody id="all-tickets-table-body" class="divide-y divide-slate-100"></tbody>
 </table>
+</div>
+<div class="flex items-center justify-between gap-3 border-t border-slate-100 px-3 py-2 text-xs" id="all-tickets-pagination">
+  <span id="all-tickets-page-status" class="text-slate-500">Showing 0 tickets</span>
+  <div class="flex gap-2"><button type="button" onclick="changeTicketTablePage('all', -1)" class="rounded border border-slate-300 px-3 py-1 text-slate-700 disabled:opacity-40">Previous</button><button type="button" onclick="changeTicketTablePage('all', 1)" class="rounded border border-slate-300 px-3 py-1 text-slate-700 disabled:opacity-40">Next</button></div>
 </div>
 </div>
 </section>
@@ -2485,9 +2493,14 @@ const sortState = {
 };
 const SORT_ARROW_MAP = {
   coord: ['created', 'eventName', 'status'],
-  answered: ['isRead', 'eventName', 'answeredBy', 'turnaroundHours'],
-  all: ['eventName', 'askedBy', 'statusLabel']
+  answered: ['isRead', 'eventName', 'question', 'askedBy', 'created', 'answeredBy', 'answeredDate', 'turnaroundHours'],
+  all: ['eventName', 'question', 'askedBy', 'created', 'caseLink', 'answeredBy', 'answeredDate', 'statusLabel']
 };
+const TICKET_TABLE_PAGE_SIZE = 50;
+let answeredTablePageIndex = 0;
+let allTicketTablePageIndex = 0;
+let answeredFilterSignature = '';
+let allTicketFilterSignature = '';
 
 const REFRESH_INTERVAL_MS = 30000;
 const SUPERVISOR_AUXILIARY_INTERVAL_MS = 120000;
@@ -5410,6 +5423,8 @@ function onSortHeaderClick(tableKey, column) {
     s.col = column;
     s.dir = 'asc';
   }
+  if (tableKey === 'answered') answeredTablePageIndex = 0;
+  if (tableKey === 'all') allTicketTablePageIndex = 0;
   if (tableKey === 'coord') renderCoordinatorQuestions();
   else if (tableKey === 'answered') renderAnsweredTab();
   else if (tableKey === 'all') renderAllTickets();
@@ -5440,6 +5455,28 @@ function applySort(list, tableKey) {
     if (av > bv) return 1 * dir;
     return 0;
   });
+}
+
+function changeTicketTablePage(tableKey, change) {
+  if (tableKey === 'answered') {
+    answeredTablePageIndex = Math.max(0, answeredTablePageIndex + change);
+    renderAnsweredTab();
+  } else if (tableKey === 'all') {
+    allTicketTablePageIndex = Math.max(0, allTicketTablePageIndex + change);
+    renderAllTickets();
+  }
+}
+
+function updateTicketTablePagination(tableKey, totalRows, pageIndex) {
+  const idPrefix = tableKey === 'answered' ? 'answered' : 'all-tickets';
+  const start = totalRows ? pageIndex * TICKET_TABLE_PAGE_SIZE + 1 : 0;
+  const end = Math.min(totalRows, (pageIndex + 1) * TICKET_TABLE_PAGE_SIZE);
+  const status = document.getElementById(idPrefix + '-page-status');
+  const previous = document.querySelector('#' + idPrefix + '-pagination button:first-child');
+  const next = document.querySelector('#' + idPrefix + '-pagination button:last-child');
+  if (status) status.innerText = totalRows ? 'Showing ' + start + '–' + end + ' of ' + totalRows + ' tickets' : 'Showing 0 tickets';
+  if (previous) previous.disabled = pageIndex <= 0 || totalRows === 0;
+  if (next) next.disabled = end >= totalRows;
 }
 
 // Headers with an existing data-aware sort keep that behavior. This fills in
@@ -6422,6 +6459,7 @@ function prepareAnsweredDefaultView() {
   if (answeredByEl) answeredByEl.value = '';
   if (readEl) readEl.value = 'UNREAD';
   if (dateEl) dateEl.value = '';
+  answeredTablePageIndex = 0;
 }
 
 function showAnsweredReviewCelebration() {
@@ -6459,6 +6497,7 @@ function applyMyAnsweredCardFilter(readState) {
   if (answeredByEl) answeredByEl.value = '';
   if (readEl) readEl.value = readState === 'READ' || readState === 'UNREAD' ? readState : 'ALL';
   if (dateEl) dateEl.value = '';
+  answeredTablePageIndex = 0;
 
   renderAnsweredTab();
 }
@@ -6627,6 +6666,11 @@ function renderAnsweredTab() {
   const answeredByFilter = document.getElementById('answered-by-filter').value;
   const readFilter = document.getElementById('answered-read-filter').value;
   const dateFilter = document.getElementById('answered-date-filter').value;
+  const nextFilterSignature = JSON.stringify([scope, search, askedByFilter, answeredByFilter, readFilter, dateFilter, sortState.answered.col, sortState.answered.dir]);
+  if (nextFilterSignature !== answeredFilterSignature) {
+    answeredFilterSignature = nextFilterSignature;
+    answeredTablePageIndex = 0;
+  }
 
   const body = document.getElementById('answered-table-body');
   if (!body || !currentUser) return;
@@ -6678,6 +6722,9 @@ function renderAnsweredTab() {
   });
 
   const sorted = applySort(answeredList, 'answered');
+  const lastPage = Math.max(0, Math.ceil(sorted.length / TICKET_TABLE_PAGE_SIZE) - 1);
+  answeredTablePageIndex = Math.min(answeredTablePageIndex, lastPage);
+  updateTicketTablePagination('answered', sorted.length, answeredTablePageIndex);
 
   if (sorted.length === 0) {
     const personalView = !userIsSupport || scope === 'MINE';
@@ -6689,8 +6736,9 @@ function renderAnsweredTab() {
     return;
   }
 
+  const pageRows = sorted.slice(answeredTablePageIndex * TICKET_TABLE_PAGE_SIZE, (answeredTablePageIndex + 1) * TICKET_TABLE_PAGE_SIZE);
   const answeredRowsFragment = document.createDocumentFragment();
-  sorted.forEach(q => {
+  pageRows.forEach(q => {
     const internalTag = isAskedBySupport(q) ? internalBadgeHtml() : '';
     const tr = document.createElement('tr');
     tr.className = 'hover:bg-slate-100/80 cursor-pointer transition ' + (!q.isRead ? 'bg-amber-50/40 font-semibold' : '');
@@ -7140,6 +7188,11 @@ function renderAllTickets() {
   const search = (document.getElementById('all-search').value || '').toLowerCase();
   const typeFilter = document.getElementById('all-type-filter').value;
   const dateFilter = document.getElementById('all-date-filter').value;
+  const nextFilterSignature = JSON.stringify([search, typeFilter, dateFilter, sortState.all.col, sortState.all.dir]);
+  if (nextFilterSignature !== allTicketFilterSignature) {
+    allTicketFilterSignature = nextFilterSignature;
+    allTicketTablePageIndex = 0;
+  }
   const body = document.getElementById('all-tickets-table-body');
   if (!body || !currentUser) return;
   body.innerHTML = '';
@@ -7160,9 +7213,13 @@ function renderAllTickets() {
   });
 
   const sorted = applySort(filtered, 'all');
+  const lastPage = Math.max(0, Math.ceil(sorted.length / TICKET_TABLE_PAGE_SIZE) - 1);
+  allTicketTablePageIndex = Math.min(allTicketTablePageIndex, lastPage);
+  updateTicketTablePagination('all', sorted.length, allTicketTablePageIndex);
 
   const isAdmin = isAdminUser(currentUser);
-  adminVisibleTicketKeys = isAdmin ? sorted.map(q => adminTicketSelectionKey(q.sheet, q.ticketId)) : [];
+  const pageRows = sorted.slice(allTicketTablePageIndex * TICKET_TABLE_PAGE_SIZE, (allTicketTablePageIndex + 1) * TICKET_TABLE_PAGE_SIZE);
+  adminVisibleTicketKeys = isAdmin ? pageRows.map(q => adminTicketSelectionKey(q.sheet, q.ticketId)) : [];
   updateAdminTicketBulkUi();
 
   if (sorted.length === 0) {
@@ -7171,7 +7228,7 @@ function renderAllTickets() {
   }
 
   const ticketRowsFragment = document.createDocumentFragment();
-  sorted.forEach(q => {
+  pageRows.forEach(q => {
     const tr = document.createElement('tr');
     tr.className = 'hover:bg-slate-50 transition border-b border-slate-100 cursor-pointer';
     tr.onclick = (e) => {
