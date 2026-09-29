@@ -277,9 +277,6 @@ html { font-size: 16px; }
 .create-radial-menu.submenu-open > .create-radial-item.submenu-anchor { z-index:7; }
 .create-radial-submenu { position:absolute; z-index:6; width:244px; height:244px; border-radius:50%; pointer-events:auto; animation:createRadialSubmenuIn .14s ease-out; }
 .create-radial-submenu::before { content:none; display:none; }
-.create-radial-guide { position:absolute; inset:0; width:100%; height:100%; overflow:visible; z-index:9; pointer-events:none; }
-.create-radial-guide line { stroke:rgba(51,65,85,.92); stroke-width:1.35; stroke-linecap:round; vector-effect:non-scaling-stroke; }
-.create-radial-guide circle { fill:#334155; stroke:#fff; stroke-width:1.1; vector-effect:non-scaling-stroke; }
 .create-radial-child { position:absolute; left:50%; top:50%; width:68px; height:68px; padding:4px; border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; border:1px solid rgba(203,213,225,.92); background:rgba(255,255,255,.96); color:#334155; box-shadow:0 5px 15px rgba(15,23,42,.15); font-size:8px; line-height:1.05; font-weight:800; text-align:center; transform:translate(-50%,-50%) translate(var(--filter-x),var(--filter-y)); transition:background .12s ease,color .12s ease,box-shadow .12s ease; }
 .create-desk-filter-item { position:absolute; left:50%; top:50%; width:58px; height:58px; padding:3px; border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; border:1px solid rgba(203,213,225,.92); background:rgba(255,255,255,.96); color:#334155; box-shadow:0 5px 15px rgba(15,23,42,.15); font-size:8px; line-height:1; font-weight:800; text-align:center; transform:translate(-50%,-50%) translate(var(--filter-x),var(--filter-y)); transition:background .12s ease,color .12s ease,box-shadow .12s ease; }
 .create-radial-child span:first-child,.create-desk-filter-item span:first-child { font-size:13px; line-height:1; color:#059669; }
@@ -6075,11 +6072,6 @@ let createRadialGestureActive=false;
 let createRadialSelectedKey='';
 let createRadialSelectedChild='';
 let createRadialSubmenuParent='';
-let createRadialGuideOrigin=null;
-let createRadialGuidePosition=null;
-let createRadialGuideTarget=null;
-let createRadialGuideFrame=null;
-let createRadialLastPointer=null;
 let createRadialSubmenuTimer=null;
 let createSettingsHoldTimer=null;
 let createSettingsHoldTriggered=false;
@@ -6156,10 +6148,6 @@ function renderCreateRadialMenu(){
   const panel=document.getElementById('create-radial-menu');if(!panel)return;
   const selected=getCreateShortcutKeys().map(key=>CREATE_SHORTCUTS.find(item=>item.key===key)).filter(Boolean);
   panel.innerHTML='';
-  const guide=document.createElementNS('http://www.w3.org/2000/svg','svg');guide.setAttribute('class','create-radial-guide');guide.setAttribute('aria-hidden','true');guide.setAttribute('viewBox','0 0 264 264');
-  const line=document.createElementNS('http://www.w3.org/2000/svg','line');line.dataset.guideLine='true';
-  const dot=document.createElementNS('http://www.w3.org/2000/svg','circle');dot.dataset.guideDot='true';dot.setAttribute('r','3');
-  guide.append(line,dot);panel.appendChild(guide);
   const radius=88;
   selected.forEach((item,index)=>{
     const angle=(-90+360*index/selected.length)*Math.PI/180;
@@ -6189,8 +6177,6 @@ function renderCreateRadialSubmenu(parentKey){
     const label=document.createElement('span');label.textContent=item.label;button.append(icon,label);menu.appendChild(button);
   });
   panel.appendChild(menu);panel.classList.add('submenu-open');document.getElementById('home-create-menu')?.classList.add('radial-submenu-active');parent.classList.add('submenu-anchor');createRadialSubmenuParent=parentKey;
-  createRadialGuideOrigin={x:parentRect.left+parentRect.width/2-panelRect.left,y:parentRect.top+parentRect.height/2-panelRect.top};
-  if(createRadialLastPointer)updateCreateRadialGuide(createRadialLastPointer.x,createRadialLastPointer.y,document.elementFromPoint(createRadialLastPointer.x,createRadialLastPointer.y),panel);
 }
 function scheduleCreateRadialSubmenu(parentKey){
   if(createRadialSubmenuTimer)clearTimeout(createRadialSubmenuTimer);
@@ -6252,65 +6238,10 @@ function saveCreateShortcutSettings(){
   }catch(e){}
   closeCreateShortcutSettings();showToast('Radial shortcuts saved.');
 }
-function animateCreateRadialGuide(){
-  if(createRadialGuideFrame!==null)return;
-  const tick=()=>{
-    createRadialGuideFrame=null;
-    const panel=document.getElementById('create-radial-menu'),svg=panel&&panel.querySelector('.create-radial-guide'),line=svg&&svg.querySelector('[data-guide-line]'),dot=svg&&svg.querySelector('[data-guide-dot]');
-    if(!line||!dot||!createRadialGuideTarget||!createRadialGestureActive)return;
-    if(!createRadialGuidePosition)createRadialGuidePosition={...createRadialGuideTarget};
-    const p=createRadialGuidePosition,t=createRadialGuideTarget,ease=.24;
-    p.x1+=(t.x1-p.x1)*ease;p.y1+=(t.y1-p.y1)*ease;p.x2+=(t.x2-p.x2)*ease;p.y2+=(t.y2-p.y2)*ease;
-    const done=Math.abs(t.x1-p.x1)+Math.abs(t.y1-p.y1)+Math.abs(t.x2-p.x2)+Math.abs(t.y2-p.y2)<.45;
-    if(done)createRadialGuidePosition={...t};
-    const q=createRadialGuidePosition;
-    line.setAttribute('x1',q.x1);line.setAttribute('y1',q.y1);line.setAttribute('x2',q.x2);line.setAttribute('y2',q.y2);dot.setAttribute('cx',q.x2);dot.setAttribute('cy',q.y2);
-    if(!done)createRadialGuideFrame=requestAnimationFrame(tick);
-  };
-  createRadialGuideFrame=requestAnimationFrame(tick);
-}
-function createRadialShortcutAtPoint(panel,target,clientX,clientY){
-  const selector='[data-create-nav],[data-submenu-action]';
-  const direct=target&&target.closest?target.closest(selector):null;
-  if(direct&&panel.contains(direct))return direct;
-  const candidates=[...panel.querySelectorAll(selector)].filter(item=>{
-    if(panel.classList.contains('submenu-open')&&item.hasAttribute('data-create-nav')&&!item.classList.contains('submenu-anchor'))return false;
-    return getComputedStyle(item).pointerEvents!=='none'&&getComputedStyle(item).display!=='none';
-  });
-  let best=null,bestDistance=Infinity;
-  candidates.forEach(item=>{
-    const rect=item.getBoundingClientRect(),dx=Math.max(rect.left-clientX,0,clientX-rect.right),dy=Math.max(rect.top-clientY,0,clientY-rect.bottom),distance=Math.hypot(dx,dy);
-    if(distance<=7&&distance<bestDistance){best=item;bestDistance=distance;}
-  });
-  return best;
-}
-function updateCreateRadialGuide(clientX,clientY,target,panel){
-  createRadialLastPointer={x:clientX,y:clientY};
-  const svg=panel&&panel.querySelector('.create-radial-guide'),line=svg&&svg.querySelector('[data-guide-line]'),dot=svg&&svg.querySelector('[data-guide-dot]');
-  if(!svg||!line||!dot||!createRadialGestureActive||!createRadialGuideOrigin){if(svg)svg.style.visibility='hidden';return;}
-  const panelRect=panel.getBoundingClientRect(),submenu=panel.querySelector('.create-radial-submenu'),submenuRect=submenu&&submenu.getBoundingClientRect();
-  const inPanel=clientX>=panelRect.left&&clientX<=panelRect.right&&clientY>=panelRect.top&&clientY<=panelRect.bottom;
-  const inSubmenu=submenuRect&&clientX>=submenuRect.left&&clientX<=submenuRect.right&&clientY>=submenuRect.top&&clientY<=submenuRect.bottom;
-  const radialTarget=createRadialShortcutAtPoint(panel,target,clientX,clientY);
-  if(!inPanel&&!inSubmenu&&!radialTarget){svg.style.visibility='hidden';return;}
-  svg.style.visibility='visible';
-  let endX=clientX-panelRect.left,endY=clientY-panelRect.top;
-  if(radialTarget){
-    const rect=radialTarget.getBoundingClientRect(),cx=rect.left+rect.width/2,cy=rect.top+rect.height/2;
-    if(panel.classList.contains('submenu-open')&&radialTarget.hasAttribute('data-create-nav')&&Math.hypot(cx-(panelRect.left+createRadialGuideOrigin.x),cy-(panelRect.top+createRadialGuideOrigin.y))<1){svg.style.visibility='hidden';return;}
-    const dx=cx-createRadialGuideOrigin.x,dy=cy-createRadialGuideOrigin.y,length=Math.hypot(dx,dy)||1;
-    const radius=Math.max(0,Math.min(rect.width,rect.height)/2-2);
-    endX=cx-panelRect.left-(dx/length)*radius;endY=cy-panelRect.top-(dy/length)*radius;
-  }
-  createRadialGuideTarget={x1:createRadialGuideOrigin.x,y1:createRadialGuideOrigin.y,x2:endX,y2:endY};
-  animateCreateRadialGuide();
-}
 function updateCreateRadialSelection(clientX,clientY){
   const panel=document.getElementById('create-radial-menu');if(!panel||!createRadialGestureActive)return;
   const target=document.elementFromPoint(clientX,clientY);
-  updateCreateRadialGuide(clientX,clientY,target,panel);
-  const radialTarget=createRadialShortcutAtPoint(panel,target,clientX,clientY);
-  const child=radialTarget&&radialTarget.matches('[data-submenu-action]')?radialTarget:null;
+  const child=target&&target.closest?target.closest('[data-submenu-action]'):null;
   if(child&&panel.contains(child)){
     panel.querySelectorAll('.create-radial-child.is-selected,.create-desk-filter-item.is-selected').forEach(item=>item.classList.remove('is-selected'));
     child.classList.add('is-selected');createRadialSelectedChild=child.dataset.submenuAction||'';
@@ -6323,7 +6254,7 @@ function updateCreateRadialSelection(clientX,clientY){
     if(anchor&&target&&anchor.contains(target)){createRadialSelectedKey=createRadialSubmenuParent;return;}
     return;
   }
-  const item=radialTarget&&radialTarget.matches('[data-create-nav]')?radialTarget:null;
+  const item=target&&target.closest?target.closest('[data-create-nav]'):null;
   const nextKey=item&&panel.contains(item)?(item.dataset.createNav||''):'';
   panel.querySelectorAll('.create-radial-item.is-selected').forEach(node=>node.classList.remove('is-selected'));
   if(item&&panel.contains(item))item.classList.add('is-selected');
@@ -6336,18 +6267,15 @@ function updateCreateRadialSelection(clientX,clientY){
 function closeCreateRadialMenu(){
   document.getElementById('home-create-menu')?.classList.remove('radial-submenu-active');
   const panel=document.getElementById('create-radial-menu');
-  if(panel){panel.classList.remove('is-open','submenu-open');const sub=panel.querySelector('.create-radial-submenu');if(sub)sub.remove();const guide=panel.querySelector('.create-radial-guide');if(guide)guide.remove();panel.querySelectorAll('.is-selected,.submenu-anchor').forEach(node=>node.classList.remove('is-selected','submenu-anchor'));}
+  if(panel){panel.classList.remove('is-open','submenu-open');const sub=panel.querySelector('.create-radial-submenu');if(sub)sub.remove();panel.querySelectorAll('.is-selected,.submenu-anchor').forEach(node=>node.classList.remove('is-selected','submenu-anchor'));}
   if(createRadialSubmenuTimer){clearTimeout(createRadialSubmenuTimer);createRadialSubmenuTimer=null;}
-  createRadialGestureActive=false;createRadialSelectedKey='';createRadialSelectedChild='';createRadialSubmenuParent='';createRadialGuideOrigin=null;createRadialGuideTarget=null;createRadialGuidePosition=null;createRadialLastPointer=null;
-  if(createRadialGuideFrame!==null){cancelAnimationFrame(createRadialGuideFrame);createRadialGuideFrame=null;}
+  createRadialGestureActive=false;createRadialSelectedKey='';createRadialSelectedChild='';createRadialSubmenuParent='';
 }
 function beginCreateRadialGesture(event){
   if(!event||event.button!==2)return;
   event.preventDefault();event.stopPropagation();closeHomeCreateMenu();closeCreateRadialMenu();
   const panel=document.getElementById('create-radial-menu');if(!panel||!currentUser)return;
   renderCreateRadialMenu();createRadialGestureActive=true;panel.classList.add('is-open');
-  const rect=panel.getBoundingClientRect();createRadialGuideOrigin={x:event.clientX-rect.left,y:event.clientY-rect.top};createRadialGuidePosition={x1:createRadialGuideOrigin.x,y1:createRadialGuideOrigin.y,x2:createRadialGuideOrigin.x,y2:createRadialGuideOrigin.y};
-  updateCreateRadialGuide(event.clientX,event.clientY,event.target,panel);
 }
 function startCreateButtonHold(event){
   if(!event)return;
