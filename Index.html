@@ -273,6 +273,16 @@ html { font-size: 16px; }
 .create-radial-item.is-selected span:first-child,.create-radial-item.is-selected span:last-child,.create-radial-item:hover span:first-child,.create-radial-item:hover span:last-child,.create-radial-item:focus-visible span:first-child,.create-radial-item:focus-visible span:last-child { color:#fff; }
 .create-radial-item.is-selected span:last-child { text-decoration:underline; text-decoration-thickness:1px; text-underline-offset:3px; }
 .create-radial-item span:first-child { font-size:18px; line-height:1; color:#059669; }
+.create-radial-menu.submenu-open > .create-radial-item:not([data-create-nav="my-desk"]) { opacity:0; pointer-events:none; }
+.create-radial-menu.submenu-open > .create-radial-item[data-create-nav="my-desk"] { z-index:7; }
+.create-desk-submenu { position:absolute; z-index:6; width:244px; height:244px; border-radius:50%; pointer-events:auto; animation:createDeskSubmenuIn .14s ease-out; }
+.create-desk-submenu::before { content:""; position:absolute; inset:5px; border:1px solid rgba(148,163,184,.24); border-radius:50%; pointer-events:none; }
+.create-desk-filter-item { position:absolute; left:50%; top:50%; width:58px; height:58px; padding:3px; border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; border:1px solid rgba(203,213,225,.92); background:rgba(255,255,255,.96); color:#334155; box-shadow:0 5px 15px rgba(15,23,42,.15); font-size:8px; line-height:1; font-weight:800; text-align:center; transform:translate(-50%,-50%) translate(var(--filter-x),var(--filter-y)); transition:background .12s ease,color .12s ease,box-shadow .12s ease; }
+.create-desk-filter-item span:first-child { font-size:13px; line-height:1; color:#059669; }
+.create-desk-filter-item.is-selected,.create-desk-filter-item:hover { background:#0f172a; border-color:#0f172a; color:#fff; box-shadow:0 8px 20px rgba(15,23,42,.34); }
+.create-desk-filter-item.is-selected span:first-child,.create-desk-filter-item:hover span:first-child { color:#fff; }
+@keyframes createDeskSubmenuIn { from { opacity:0; transform:scale(.9); } to { opacity:1; transform:scale(1); } }
+
 @keyframes createRadialIn { from { opacity:0; transform:translate(-50%,-50%) scale(.86); } to { opacity:1; transform:translate(-50%,-50%) scale(1); } }
 @media (prefers-reduced-motion:reduce) { .create-radial-menu.is-open { animation:none; } .create-radial-item { transition:none; } }
 
@@ -522,7 +532,7 @@ html { font-size: 16px; }
     <div class="flex items-center gap-3 shrink-0">
       <button id="home-admin-button" type="button" onclick="switchTab('team')" class="hidden bg-purple-700 hover:bg-purple-800 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-md transition shrink-0">Open Admin Setup</button>
       <div id="create-dock-global" class="relative shrink-0 flex items-center gap-2">
-        <button id="create-shortcut-settings-button" type="button" onclick="openCreateShortcutSettings()" aria-label="Configure radial shortcuts" title="Configure radial shortcuts" class="inline-flex items-center justify-center w-10 h-10 rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-300" style="font-size:18px">⚙</button>
+        <button id="create-shortcut-settings-button" type="button" onclick="openCreateShortcutSettings()" aria-label="Configure radial shortcuts" title="Configure radial shortcuts" class="inline-flex items-center justify-center w-10 h-10 rounded-xl border-0 bg-transparent text-slate-500 hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-300" style="font-size:18px">⚙</button>
         <div id="global-create-control" class="relative shrink-0">
         <details id="home-create-menu" class="relative shrink-0">
           <summary onclick="handleCreateButtonClick(event)" onpointerdown="startCreateButtonHold(event)" oncontextmenu="suppressCreateContextMenu(event)" title="Click to create · Right-click and hold for shortcuts" aria-label="Create or right-click and hold for shortcuts" class="list-none cursor-pointer bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-md transition whitespace-nowrap">+ Create</summary>
@@ -546,7 +556,15 @@ html { font-size: 16px; }
         <div><h2 id="create-shortcut-settings-title" class="text-base font-bold text-slate-900">Radial shortcuts</h2><p class="text-xs text-slate-500 mt-1">Choose up to six shortcuts for right-click navigation.</p></div>
         <button type="button" onclick="closeCreateShortcutSettings()" aria-label="Close shortcut settings" class="text-slate-400 hover:text-slate-700 text-xl leading-none">×</button>
       </div>
-      <div id="create-shortcut-options" class="p-4 grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[60vh] overflow-y-auto"></div>
+      <div class="max-h-[60vh] overflow-y-auto px-4">
+        <p class="pt-4 pb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">Main radial shortcuts · up to 6</p>
+        <div id="create-shortcut-options" class="grid grid-cols-1 sm:grid-cols-2 gap-2 pb-4"></div>
+        <div id="create-desk-filter-section" class="hidden border-t border-slate-200">
+          <p class="pt-4 pb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">My Desk quick filters</p>
+          <p class="text-[11px] text-slate-500 pb-2">Choose which filters appear after holding on My Desk for one second.</p>
+          <div id="create-desk-filter-options" class="grid grid-cols-1 sm:grid-cols-2 gap-2 pb-4"></div>
+        </div>
+      </div>
       <div class="px-5 py-4 border-t border-slate-200 flex items-center justify-between gap-3">
         <p id="create-shortcut-count" class="text-xs text-slate-500">0 of 6 selected</p>
         <div class="flex items-center gap-2"><button type="button" onclick="closeCreateShortcutSettings()" class="px-4 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100">Cancel</button><button type="button" onclick="saveCreateShortcutSettings()" class="px-4 py-2 rounded-lg bg-slate-900 text-white text-xs font-bold hover:bg-slate-800">Save shortcuts</button></div>
@@ -6024,21 +6042,74 @@ const CREATE_SHORTCUTS = [
   {key:'my-desk',label:'My Desk',icon:'▤',role:()=>isOperationalSupportUser(currentUser),run:()=>switchTab('supervisor')}
 ];
 const DEFAULT_CREATE_SHORTCUTS=['my-questions','my-tasks','answered','all-questions','peer','ask-support'];
+const CREATE_DESK_FILTERS=[
+  {key:'all',label:'All Questions',icon:'≡'},
+  {key:'unassigned',label:'Unassigned',icon:'○'},
+  {key:'mine-active',label:'Assigned to Me',icon:'●'},
+  {key:'hold',label:'On Hold',icon:'Ⅱ'},
+  {key:'followup',label:'Follow-ups',icon:'↻'},
+  {key:'weekend',label:'Event This Weekend',icon:'◷'},
+  {key:'attention',label:'Attention Today',icon:'⚑'},
+  {key:'teamflag',label:'Flagged by Team',icon:'⚑'}
+];
+const DEFAULT_DESK_FILTERS=CREATE_DESK_FILTERS.map(item=>item.key);
 let createRadialGestureActive=false;
 let createRadialSelectedKey='';
+let createRadialSelectedFilter='';
+let createDeskSubmenuTimer=null;
 let createSettingsHoldTimer=null;
 let createSettingsHoldTriggered=false;
 let createShortcutDraft=[];
 
 function allowedCreateShortcuts(){return CREATE_SHORTCUTS.filter(item=>item.role());}
 function createShortcutStorageKey(){return 'supportHubRadialShortcuts:'+String(currentUser&&currentUser.email||'guest').toLowerCase();}
+function createDeskFilterStorageKey(){return 'supportHubMyDeskFilters:'+String(currentUser&&currentUser.email||'guest').toLowerCase();}
+function getCreateDeskFilterKeys(){
+  const valid=new Set(CREATE_DESK_FILTERS.map(item=>item.key));
+  try{
+    const saved=JSON.parse(localStorage.getItem(createDeskFilterStorageKey())||'null');
+    if(Array.isArray(saved))return saved.filter((key,index)=>valid.has(key)&&saved.indexOf(key)===index);
+  }catch(e){}
+  return DEFAULT_DESK_FILTERS.slice();
+}
 function getCreateShortcutKeys(){
   const allowed=new Set(allowedCreateShortcuts().map(item=>item.key));
   try{
     const saved=JSON.parse(localStorage.getItem(createShortcutStorageKey())||'null');
     if(Array.isArray(saved))return saved.filter((key,index)=>allowed.has(key)&&saved.indexOf(key)===index).slice(0,6);
   }catch(e){}
-  return DEFAULT_CREATE_SHORTCUTS.filter(key=>allowed.has(key)).slice(0,6);
+  const defaults=isOperationalSupportUser(currentUser)
+    ? ['my-questions','my-desk','my-tasks','all-questions','answered','ask-support']
+    : DEFAULT_CREATE_SHORTCUTS;
+  return defaults.filter(key=>allowed.has(key)).slice(0,6);
+}
+function renderCreateDeskSubmenu(){
+  const panel=document.getElementById('create-radial-menu');
+  const parent=panel&&panel.querySelector('[data-create-nav="my-desk"]');
+  if(!panel||!parent)return;
+  const old=panel.querySelector('.create-desk-submenu');if(old)old.remove();
+  const filters=getCreateDeskFilterKeys().map(key=>CREATE_DESK_FILTERS.find(item=>item.key===key)).filter(Boolean);
+  if(!filters.length)return;
+  const panelRect=panel.getBoundingClientRect(),parentRect=parent.getBoundingClientRect(),size=244;
+  const menu=document.createElement('div');menu.className='create-desk-submenu';menu.setAttribute('role','menu');menu.setAttribute('aria-label','My Desk quick filters');
+  menu.style.left=(parentRect.left+parentRect.width/2-panelRect.left-size/2)+'px';
+  menu.style.top=(parentRect.top+parentRect.height/2-panelRect.top-size/2)+'px';
+  const radius=78;
+  filters.forEach((filter,index)=>{
+    const angle=(-90+360*index/filters.length)*Math.PI/180;
+    const button=document.createElement('button');button.type='button';button.className='create-desk-filter-item';button.setAttribute('role','menuitem');button.dataset.createFilter=filter.key;button.setAttribute('aria-label',filter.label);
+    button.style.setProperty('--filter-x',(Math.cos(angle)*radius).toFixed(1)+'px');button.style.setProperty('--filter-y',(Math.sin(angle)*radius).toFixed(1)+'px');
+    const icon=document.createElement('span');icon.setAttribute('aria-hidden','true');icon.textContent=filter.icon;
+    const label=document.createElement('span');label.textContent=filter.label;button.append(icon,label);menu.appendChild(button);
+  });
+  panel.appendChild(menu);panel.classList.add('submenu-open');
+}
+function scheduleCreateDeskSubmenu(){
+  if(createDeskSubmenuTimer)clearTimeout(createDeskSubmenuTimer);
+  createDeskSubmenuTimer=setTimeout(()=>{
+    createDeskSubmenuTimer=null;
+    if(createRadialGestureActive&&createRadialSelectedKey==='my-desk')renderCreateDeskSubmenu();
+  },1000);
 }
 function renderCreateRadialMenu(){
   const panel=document.getElementById('create-radial-menu');if(!panel)return;
@@ -6061,33 +6132,60 @@ function updateCreateShortcutSettingsCount(){
 }
 function openCreateShortcutSettings(){
   if(!currentUser)return;closeCreateRadialMenu();createShortcutDraft=getCreateShortcutKeys();
-  const options=document.getElementById('create-shortcut-options'),modal=document.getElementById('create-shortcut-settings-modal');if(!options||!modal)return;
-  options.innerHTML='';
+  const options=document.getElementById('create-shortcut-options'),deskOptions=document.getElementById('create-desk-filter-options');
+  const deskSection=document.getElementById('create-desk-filter-section'),modal=document.getElementById('create-shortcut-settings-modal');
+  if(!options||!deskOptions||!modal)return;
+  options.innerHTML='';deskOptions.innerHTML='';
   allowedCreateShortcuts().forEach(item=>{
     const label=document.createElement('label');label.className='flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer';
     const box=document.createElement('input');box.type='checkbox';box.value=item.key;box.checked=createShortcutDraft.includes(item.key);box.className='w-4 h-4 accent-slate-900';
     box.addEventListener('change',()=>{createShortcutDraft=[...options.querySelectorAll('input:checked')].map(input=>input.value);updateCreateShortcutSettingsCount();});
     const text=document.createElement('span');text.className='text-xs font-semibold text-slate-700';text.textContent=item.label;label.append(box,text);options.appendChild(label);
   });
+  const deskFilters=getCreateDeskFilterKeys();
+  CREATE_DESK_FILTERS.forEach(item=>{
+    const label=document.createElement('label');label.className='flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer';
+    const box=document.createElement('input');box.type='checkbox';box.value=item.key;box.checked=deskFilters.includes(item.key);box.className='w-4 h-4 accent-slate-900';
+    box.addEventListener('change',()=>{});const text=document.createElement('span');text.className='text-xs font-semibold text-slate-700';text.textContent=item.label;label.append(box,text);deskOptions.appendChild(label);
+  });
+  if(deskSection)deskSection.classList.toggle('hidden',!isOperationalSupportUser(currentUser));
   updateCreateShortcutSettingsCount();modal.classList.remove('hidden');modal.classList.add('flex');
 }
 function saveCreateShortcutSettings(){
-  const options=document.getElementById('create-shortcut-options');if(!options)return;
+  const options=document.getElementById('create-shortcut-options'),deskOptions=document.getElementById('create-desk-filter-options');if(!options||!deskOptions)return;
   const selected=[...options.querySelectorAll('input:checked')].map(input=>input.value).slice(0,6);
   if(!selected.length){showToast('Choose at least one radial shortcut.');return;}
-  try{localStorage.setItem(createShortcutStorageKey(),JSON.stringify(selected));}catch(e){}
+  const deskSelected=[...deskOptions.querySelectorAll('input:checked')].map(input=>input.value);
+  try{localStorage.setItem(createShortcutStorageKey(),JSON.stringify(selected));localStorage.setItem(createDeskFilterStorageKey(),JSON.stringify(deskSelected));}catch(e){}
   closeCreateShortcutSettings();showToast('Radial shortcuts saved.');
 }
 function updateCreateRadialSelection(clientX,clientY){
   const panel=document.getElementById('create-radial-menu');if(!panel||!createRadialGestureActive)return;
-  panel.querySelectorAll('.create-radial-item.is-selected').forEach(item=>item.classList.remove('is-selected'));
-  const target=document.elementFromPoint(clientX,clientY),item=target&&target.closest?target.closest('[data-create-nav]'):null;
-  if(!item||!panel.contains(item)){createRadialSelectedKey='';return;}
-  item.classList.add('is-selected');createRadialSelectedKey=item.getAttribute('data-create-nav')||'';
+  const target=document.elementFromPoint(clientX,clientY);
+  const filter=target&&target.closest?target.closest('[data-create-filter]'):null;
+  if(filter&&panel.contains(filter)){
+    if(createDeskSubmenuTimer){clearTimeout(createDeskSubmenuTimer);createDeskSubmenuTimer=null;}
+    panel.querySelectorAll('.create-desk-filter-item.is-selected').forEach(item=>item.classList.remove('is-selected'));
+    filter.classList.add('is-selected');createRadialSelectedFilter=filter.dataset.createFilter||'';createRadialSelectedKey='my-desk';
+    return;
+  }
+  panel.querySelectorAll('.create-desk-filter-item.is-selected').forEach(item=>item.classList.remove('is-selected'));
+  createRadialSelectedFilter='';
+  const item=target&&target.closest?target.closest('[data-create-nav]'):null;
+  const nextKey=item&&panel.contains(item)?(item.dataset.createNav||''):'';
+  panel.querySelectorAll('.create-radial-item.is-selected').forEach(node=>node.classList.remove('is-selected'));
+  if(item&&panel.contains(item)){item.classList.add('is-selected');}
+  if(nextKey!==createRadialSelectedKey){
+    if(createDeskSubmenuTimer){clearTimeout(createDeskSubmenuTimer);createDeskSubmenuTimer=null;}
+    createRadialSelectedKey=nextKey;
+    if(nextKey==='my-desk')scheduleCreateDeskSubmenu();
+  }
 }
 function closeCreateRadialMenu(){
-  const panel=document.getElementById('create-radial-menu');if(panel)panel.classList.remove('is-open');
-  createRadialGestureActive=false;createRadialSelectedKey='';
+  const panel=document.getElementById('create-radial-menu');
+  if(panel){panel.classList.remove('is-open','submenu-open');const sub=panel.querySelector('.create-desk-submenu');if(sub)sub.remove();panel.querySelectorAll('.is-selected').forEach(node=>node.classList.remove('is-selected'));}
+  if(createDeskSubmenuTimer){clearTimeout(createDeskSubmenuTimer);createDeskSubmenuTimer=null;}
+  createRadialGestureActive=false;createRadialSelectedKey='';createRadialSelectedFilter='';
 }
 function beginCreateRadialGesture(event){
   if(!event||event.button!==2)return;
@@ -6105,8 +6203,10 @@ function startCreateButtonHold(event){
 function finishCreateRadialGesture(event,shouldNavigate){
   if(!createRadialGestureActive)return;
   if(event&&Number.isFinite(event.clientX)&&Number.isFinite(event.clientY))updateCreateRadialSelection(event.clientX,event.clientY);
-  const key=createRadialSelectedKey;closeCreateRadialMenu();
-  if(shouldNavigate&&key){const item=CREATE_SHORTCUTS.find(shortcut=>shortcut.key===key);if(item&&item.role())item.run();}
+  const key=createRadialSelectedKey,filter=createRadialSelectedFilter;closeCreateRadialMenu();
+  if(!shouldNavigate||!key)return;
+  if(key==='my-desk'){openSupportQueueFilter(filter||'all');return;}
+  const item=CREATE_SHORTCUTS.find(shortcut=>shortcut.key===key);if(item&&item.role())item.run();
 }
 function handleCreateButtonClick(event){
   if(createSettingsHoldTriggered){if(event)event.preventDefault();createSettingsHoldTriggered=false;return;}
