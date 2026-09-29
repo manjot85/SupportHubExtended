@@ -5455,16 +5455,30 @@ function formatEventDateMMDDYYYY(value) {
 function ticketContextText(q, includeRouting) {
   if (!q) return '';
   const parts = [];
-  if (q.talentRole) parts.push('Event Role: ' + q.talentRole);
+  const eventRoles = ['Lead Photographer', 'Associate Photographer', 'Lead Videographer', 'Associate Videographer', 'Client 1', 'Client 2'];
+  const talentRole = String(q.talentRole || '').trim();
+  const validRole = eventRoles.find(role => role.toLowerCase() === talentRole.toLowerCase());
+  if (validRole) parts.push('Event Role: ' + validRole);
   if (q.eventDate) parts.push('Event Date: ' + formatEventDateMMDDYYYY(q.eventDate));
-  if (q.attentionRequested) parts.push('Attention' + (hasActiveAttentionToday(q) ? ' Today' : ' requested') + ': ' + (q.attentionReason || 'No reason recorded'));
-  if (includeRouting && q.routedSupportEmail) parts.push('Originally routed to: ' + getUserDisplayName(q.routedSupportEmail));
+  if (q.attentionRequested) {
+    const attentionLabel = 'Attention' + (hasActiveAttentionToday(q) ? ' Today' : ' requested');
+    const reason = String(q.attentionReason || '').trim();
+    const isOpaqueReason = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(reason);
+    parts.push(attentionLabel + (reason && !isOpaqueReason ? ': ' + reason : ''));
+  }
+  if (includeRouting && q.routedSupportEmail && String(q.routedSupportEmail).includes('@')) {
+    const routedMember = findOperationalTeamMemberByEmail(q.routedSupportEmail);
+    if (routedMember) parts.push('Originally routed to: ' + routedMember.name);
+  }
   return parts.join(' · ');
 }
 
 function ticketContextHtml(q) {
   const details = [];
-  if (q && q.talentRole) details.push('<span class="font-semibold text-blue-700">' + esc(q.talentRole) + '</span>');
+  const eventRoles = ['Lead Photographer', 'Associate Photographer', 'Lead Videographer', 'Associate Videographer', 'Client 1', 'Client 2'];
+  const talentRole = String(q && q.talentRole || '').trim();
+  const validRole = eventRoles.find(role => role.toLowerCase() === talentRole.toLowerCase());
+  if (validRole) details.push('<span class="font-semibold text-blue-700">' + esc(validRole) + '</span>');
   if (q && q.eventDate) details.push('<span class="text-slate-500">' + esc(formatEventDateMMDDYYYY(q.eventDate)) + '</span>');
   if (q && q.attentionRequested) details.push('<span class="font-bold ' + (hasActiveAttentionToday(q) ? 'text-rose-700' : 'text-slate-500') + '">' + (hasActiveAttentionToday(q) ? 'Attention Today' : 'Attention history') + '</span>');
   return details.length ? '<div class="mt-1 text-[10px] flex flex-wrap gap-1.5">' + details.join('<span class="text-slate-300">·</span>') + '</div>' : '';
