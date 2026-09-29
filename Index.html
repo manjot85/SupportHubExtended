@@ -277,7 +277,7 @@ html { font-size: 16px; }
 .create-radial-menu.submenu-open > .create-radial-item.submenu-anchor { z-index:7; }
 .create-radial-submenu { position:absolute; z-index:6; width:244px; height:244px; border-radius:50%; pointer-events:auto; animation:createRadialSubmenuIn .14s ease-out; }
 .create-radial-submenu::before { content:none; display:none; }
-.create-radial-guide { position:absolute; inset:0; width:100%; height:100%; overflow:visible; z-index:5; pointer-events:none; }
+.create-radial-guide { position:absolute; inset:0; width:100%; height:100%; overflow:visible; z-index:9; pointer-events:none; }
 .create-radial-guide line { stroke:rgba(51,65,85,.92); stroke-width:1.35; stroke-linecap:round; vector-effect:non-scaling-stroke; }
 .create-radial-guide circle { fill:#334155; stroke:#fff; stroke-width:1.1; vector-effect:non-scaling-stroke; }
 .create-radial-child { position:absolute; left:50%; top:50%; width:68px; height:68px; padding:4px; border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; border:1px solid rgba(203,213,225,.92); background:rgba(255,255,255,.96); color:#334155; box-shadow:0 5px 15px rgba(15,23,42,.15); font-size:8px; line-height:1.05; font-weight:800; text-align:center; transform:translate(-50%,-50%) translate(var(--filter-x),var(--filter-y)); transition:background .12s ease,color .12s ease,box-shadow .12s ease; }
@@ -6299,7 +6299,7 @@ function updateCreateRadialGuide(clientX,clientY,target,panel){
     const rect=radialTarget.getBoundingClientRect(),cx=rect.left+rect.width/2,cy=rect.top+rect.height/2;
     if(panel.classList.contains('submenu-open')&&radialTarget.hasAttribute('data-create-nav')&&Math.hypot(cx-(panelRect.left+createRadialGuideOrigin.x),cy-(panelRect.top+createRadialGuideOrigin.y))<1){svg.style.visibility='hidden';return;}
     const dx=cx-createRadialGuideOrigin.x,dy=cy-createRadialGuideOrigin.y,length=Math.hypot(dx,dy)||1;
-    const radius=Math.min(rect.width,rect.height)/2+3;
+    const radius=Math.max(0,Math.min(rect.width,rect.height)/2-2);
     endX=cx-panelRect.left-(dx/length)*radius;endY=cy-panelRect.top-(dy/length)*radius;
   }
   createRadialGuideTarget={x1:createRadialGuideOrigin.x,y1:createRadialGuideOrigin.y,x2:endX,y2:endY};
