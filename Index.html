@@ -288,6 +288,8 @@ html { font-size: 16px; }
 
 #home-create-menu { z-index:91; }
 #global-create-card:not(.global-create-card-home) #global-create-home-copy { visibility:hidden; }
+#home-question-panel { width:min(900px,calc(100vw - 32px)) !important; height:min(88vh,900px) !important; max-width:calc(100vw - 32px) !important; max-height:calc(100vh - 32px) !important; min-height:420px; }
+@media (max-width:640px) { #home-question-composer { padding:8px; } #home-question-panel { width:calc(100vw - 16px) !important; height:calc(100vh - 16px) !important; max-width:calc(100vw - 16px) !important; max-height:calc(100vh - 16px) !important; min-height:0; border-radius:14px; } }
 #create-task-modal input,
 #create-task-modal select,
 #create-task-modal textarea,
@@ -559,6 +561,16 @@ html { font-size: 16px; }
       <div class="max-h-[60vh] overflow-y-auto px-4">
         <p class="pt-4 pb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">Main radial shortcuts · up to 6</p>
         <div id="create-shortcut-options" class="grid grid-cols-1 sm:grid-cols-2 gap-2 pb-4"></div>
+        <div id="create-priority-filter-section" class="hidden border-t border-slate-200">
+          <p class="pt-4 pb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">My Priority Questions filters</p>
+          <p class="text-[11px] text-slate-500 pb-2">Choose which role-specific priority cards appear after holding on My Priority Questions.</p>
+          <div id="create-priority-filter-options" class="grid grid-cols-1 sm:grid-cols-2 gap-2 pb-4"></div>
+        </div>
+        <div id="create-task-filter-section" class="border-t border-slate-200">
+          <p class="pt-4 pb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">My Tasks filters</p>
+          <p class="text-[11px] text-slate-500 pb-2">Choose which task filters appear after holding on My Tasks.</p>
+          <div id="create-task-filter-options" class="grid grid-cols-1 sm:grid-cols-2 gap-2 pb-4"></div>
+        </div>
         <div id="create-desk-filter-section" class="hidden border-t border-slate-200">
           <p class="pt-4 pb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">My Desk quick filters</p>
           <p class="text-[11px] text-slate-500 pb-2">Choose which filters appear after holding on My Desk for one second.</p>
@@ -575,14 +587,6 @@ html { font-size: 16px; }
 <section id="view-coordinator" class="space-y-6">
 <div id="my-work-dashboard" class="space-y-4">
   
-
-  <button id="home-question-launcher" type="button" onclick="openHomeQuestionComposer()" class="hidden w-full bg-white border-2 border-emerald-300 rounded-2xl px-5 py-4 text-left shadow-sm hover:border-emerald-500 hover:shadow-md transition group">
-    <div class="flex items-center gap-3">
-      <span class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-lg font-bold shrink-0">?</span>
-      <div class="min-w-0 flex-1"><p class="text-sm font-bold text-slate-900">Ask Support</p><p class="text-xs text-slate-400 mt-0.5 truncate">What do you need help with? Add your question, link, or screenshot.</p></div>
-      <span class="text-sm font-bold text-emerald-700 group-hover:translate-x-1 transition-transform shrink-0">Open →</span>
-    </div>
-  </button>
 
   <div id="home-overview-grid" class="grid grid-cols-1 xl:grid-cols-3 gap-4">
     <section id="home-priority-overview" class="xl:col-span-2 bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
@@ -621,10 +625,10 @@ html { font-size: 16px; }
   </div>
 </div>
 
-<div id="home-question-composer" class="fixed inset-0 z-[70] hidden bg-slate-950/60 backdrop-blur-sm justify-end" onclick="if(event.target===this)closeHomeQuestionComposer()">
-<div id="home-question-panel" class="bg-white w-full max-w-2xl h-full shadow-2xl border-l border-slate-200 flex flex-col">
+<div id="home-question-composer" role="dialog" aria-modal="true" aria-labelledby="home-question-title" class="fixed inset-0 z-[110] hidden bg-slate-950/60 backdrop-blur-sm items-center justify-center p-4" onclick="if(event.target===this)closeHomeQuestionComposer()">
+<div id="home-question-panel" class="bg-white shadow-2xl border border-slate-200 rounded-2xl flex flex-col overflow-hidden" role="document">
 <div class="flex items-center justify-between gap-3 p-5 border-b border-slate-200 shrink-0">
-<h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
+<h2 id="home-question-title" class="text-base font-bold text-slate-800 flex items-center gap-2">
 <span class="w-2 h-2 bg-emerald-500 rounded-full"></span> Submit Question
 </h2>
 <button id="home-question-close-btn" type="button" onclick="closeHomeQuestionComposer()" class="w-8 h-8 rounded-lg text-lg font-bold text-slate-400 hover:text-slate-800 hover:bg-slate-100">×</button>
@@ -6033,15 +6037,16 @@ function closeHomeCreateMenu() {
 
 const CREATE_SHORTCUTS = [
   {key:'peer',label:'Peer Questions',icon:'◎',role:()=>normalizeCategoryClient(currentUser&&(currentUser.category||currentUser.role))!=='Admin',run:()=>switchTab('peer')},
-  {key:'ask-support',label:'Ask Support',icon:'✉',role:()=>true,run:()=>openHomeQuestionComposer()},
+  {key:'ask-support',label:'Ask Support',icon:'✉',role:()=>normalizeCategoryClient(currentUser&&(currentUser.category||currentUser.role))==='Coordinator',run:()=>openHomeQuestionComposer()},
   {key:'my-questions',label:'My Questions',icon:'⌂',role:()=>true,run:()=>switchTab('coordinator')},
+  {key:'my-priority',label:'My Priority Questions',icon:'!',role:()=>isOperationalSupportUser(currentUser)||normalizeCategoryClient(currentUser&&(currentUser.category||currentUser.role))==='Coordinator',run:()=>switchTab('coordinator')},
   {key:'my-tasks',label:'My Tasks',icon:'✓',role:()=>true,run:()=>switchTab('tasks')},
   {key:'answered',label:'Answered',icon:'✓',role:()=>true,run:()=>switchTab('answered')},
   {key:'all-questions',label:'All Questions',icon:'≡',role:()=>true,run:()=>switchTab('all-tickets')},
   {key:'unread-answers',label:'Unread Answers',icon:'●',role:()=>true,run:()=>{switchTab('answered');applyMyAnsweredCardFilter('UNREAD');}},
-  {key:'my-desk',label:'My Desk',icon:'▤',role:()=>isOperationalSupportUser(currentUser),run:()=>switchTab('supervisor')}
+  {key:'my-desk',label:'My Desk',icon:'▤',role:()=>isOperationalSupportUser(currentUser),run:()=>openSupportQueueFilter('all')}
 ];
-const DEFAULT_CREATE_SHORTCUTS=['my-questions','my-tasks','answered','all-questions','peer','ask-support'];
+const DEFAULT_CREATE_SHORTCUTS=['my-questions','my-priority','my-tasks','answered','all-questions','ask-support'];
 const CREATE_DESK_FILTERS=[
   {key:'all',label:'All Questions',icon:'≡'},
   {key:'unassigned',label:'Unassigned',icon:'○'},
@@ -6052,11 +6057,20 @@ const CREATE_DESK_FILTERS=[
   {key:'attention',label:'Attention Today',icon:'⚑'},
   {key:'teamflag',label:'Flagged by Team',icon:'⚑'}
 ];
+const CREATE_TASK_FILTERS=[
+  {key:'ACTIVE',label:'Active',icon:'✓'},
+  {key:'PENDING',label:'Pending',icon:'◷'},
+  {key:'DUE_SOON',label:'Due Soon',icon:'⌛'},
+  {key:'OVERDUE',label:'Overdue',icon:'!'},
+  {key:'COMPLETED',label:'Completed',icon:'✓'}
+];
 const DEFAULT_DESK_FILTERS=CREATE_DESK_FILTERS.map(item=>item.key);
+const DEFAULT_TASK_FILTERS=CREATE_TASK_FILTERS.map(item=>item.key);
 let createRadialGestureActive=false;
 let createRadialSelectedKey='';
-let createRadialSelectedFilter='';
-let createDeskSubmenuTimer=null;
+let createRadialSelectedChild='';
+let createRadialSubmenuParent='';
+let createRadialSubmenuTimer=null;
 let createSettingsHoldTimer=null;
 let createSettingsHoldTriggered=false;
 let createShortcutDraft=[];
@@ -6064,52 +6078,69 @@ let createShortcutDraft=[];
 function allowedCreateShortcuts(){return CREATE_SHORTCUTS.filter(item=>item.role());}
 function createShortcutStorageKey(){return 'supportHubRadialShortcuts:'+String(currentUser&&currentUser.email||'guest').toLowerCase();}
 function createDeskFilterStorageKey(){return 'supportHubMyDeskFilters:'+String(currentUser&&currentUser.email||'guest').toLowerCase();}
-function getCreateDeskFilterKeys(){
-  const valid=new Set(CREATE_DESK_FILTERS.map(item=>item.key));
+function createTaskFilterStorageKey(){return 'supportHubMyTaskFilters:'+String(currentUser&&currentUser.email||'guest').toLowerCase();}
+function createPriorityFilterStorageKey(){return 'supportHubPriorityFilters:'+String(currentUser&&currentUser.email||'guest').toLowerCase();}
+function getStoredShortcutKeys(storageKey,validKeys,defaults){
   try{
-    const saved=JSON.parse(localStorage.getItem(createDeskFilterStorageKey())||'null');
-    if(Array.isArray(saved))return saved.filter((key,index)=>valid.has(key)&&saved.indexOf(key)===index);
+    const saved=JSON.parse(localStorage.getItem(storageKey)||'null');
+    if(Array.isArray(saved))return saved.filter((key,index)=>validKeys.has(String(key))&&saved.indexOf(key)===index);
   }catch(e){}
-  return DEFAULT_DESK_FILTERS.slice();
+  return defaults.slice();
+}
+function getCreateDeskFilterKeys(){return getStoredShortcutKeys(createDeskFilterStorageKey(),new Set(CREATE_DESK_FILTERS.map(item=>item.key)),DEFAULT_DESK_FILTERS);}
+function getCreateTaskFilterKeys(){return getStoredShortcutKeys(createTaskFilterStorageKey(),new Set(CREATE_TASK_FILTERS.map(item=>item.key)),DEFAULT_TASK_FILTERS);}
+function getCreatePriorityItems(){
+  const host=document.getElementById('home-priority-metrics');
+  if(!host)return [];
+  return [...host.querySelectorAll('[id^="home-metric-card-"]')].filter(card=>!card.classList.contains('hidden')).map(card=>{
+    const index=Number((card.id.match(/home-metric-card-(\d+)/)||[])[1]);
+    const label=(document.getElementById('home-metric-label-'+index)?.innerText||'').trim();
+    if(!index||!label)return null;
+    return {key:String(index),label,icon:'•',run:()=>{switchTab('coordinator');setTimeout(()=>openHomeMetric(index),0);}};
+  }).filter(Boolean);
+}
+function getCreatePriorityFilterKeys(){
+  const items=getCreatePriorityItems();
+  return getStoredShortcutKeys(createPriorityFilterStorageKey(),new Set(items.map(item=>item.key)),items.map(item=>item.key));
 }
 function getCreateShortcutKeys(){
   const allowed=new Set(allowedCreateShortcuts().map(item=>item.key));
   try{
     const saved=JSON.parse(localStorage.getItem(createShortcutStorageKey())||'null');
-    if(Array.isArray(saved))return saved.filter((key,index)=>allowed.has(key)&&saved.indexOf(key)===index).slice(0,6);
+    if(Array.isArray(saved)){
+      const selected=saved.filter((key,index)=>allowed.has(key)&&saved.indexOf(key)===index).slice(0,6);
+      if(allowed.has('my-priority')&&!selected.includes('my-priority')){
+        if(selected.length<6)selected.push('my-priority');
+        else if(selected.includes('ask-support'))selected[selected.indexOf('ask-support')]='my-priority';
+      }
+      return selected;
+    }
   }catch(e){}
+  const category=normalizeCategoryClient(currentUser&&(currentUser.category||currentUser.role));
   const defaults=isOperationalSupportUser(currentUser)
-    ? ['my-questions','my-desk','my-tasks','all-questions','answered','ask-support']
-    : DEFAULT_CREATE_SHORTCUTS;
+    ? ['my-questions','my-priority','my-desk','my-tasks','all-questions','answered']
+    : category==='Coordinator'
+      ? DEFAULT_CREATE_SHORTCUTS
+      : ['my-questions','my-tasks','answered','all-questions'];
   return defaults.filter(key=>allowed.has(key)).slice(0,6);
 }
-function renderCreateDeskSubmenu(){
-  const panel=document.getElementById('create-radial-menu');
-  const parent=panel&&panel.querySelector('[data-create-nav="my-desk"]');
-  if(!panel||!parent)return;
-  const old=panel.querySelector('.create-desk-submenu');if(old)old.remove();
-  const filters=getCreateDeskFilterKeys().map(key=>CREATE_DESK_FILTERS.find(item=>item.key===key)).filter(Boolean);
-  if(!filters.length)return;
-  const panelRect=panel.getBoundingClientRect(),parentRect=parent.getBoundingClientRect(),size=244;
-  const menu=document.createElement('div');menu.className='create-desk-submenu';menu.setAttribute('role','menu');menu.setAttribute('aria-label','My Desk quick filters');
-  menu.style.left=(parentRect.left+parentRect.width/2-panelRect.left-size/2)+'px';
-  menu.style.top=(parentRect.top+parentRect.height/2-panelRect.top-size/2)+'px';
-  const radius=78;
-  filters.forEach((filter,index)=>{
-    const angle=(-90+360*index/filters.length)*Math.PI/180;
-    const button=document.createElement('button');button.type='button';button.className='create-desk-filter-item';button.setAttribute('role','menuitem');button.dataset.createFilter=filter.key;button.setAttribute('aria-label',filter.label);
-    button.style.setProperty('--filter-x',(Math.cos(angle)*radius).toFixed(1)+'px');button.style.setProperty('--filter-y',(Math.sin(angle)*radius).toFixed(1)+'px');
-    const icon=document.createElement('span');icon.setAttribute('aria-hidden','true');icon.textContent=filter.icon;
-    const label=document.createElement('span');label.textContent=filter.label;button.append(icon,label);menu.appendChild(button);
-  });
-  panel.appendChild(menu);panel.classList.add('submenu-open');
-}
-function scheduleCreateDeskSubmenu(){
-  if(createDeskSubmenuTimer)clearTimeout(createDeskSubmenuTimer);
-  createDeskSubmenuTimer=setTimeout(()=>{
-    createDeskSubmenuTimer=null;
-    if(createRadialGestureActive&&createRadialSelectedKey==='my-desk')renderCreateDeskSubmenu();
-  },1000);
+function getCreateSubmenuItems(parentKey){
+  if(parentKey==='my-desk'){
+    const keys=new Set(getCreateDeskFilterKeys());
+    return CREATE_DESK_FILTERS.filter(item=>keys.has(item.key)).map(item=>({key:'desk:'+item.key,label:item.label,icon:item.icon,run:()=>openSupportQueueFilter(item.key)}));
+  }
+  if(parentKey==='my-tasks'){
+    const keys=new Set(getCreateTaskFilterKeys());
+    return CREATE_TASK_FILTERS.filter(item=>keys.has(item.key)).map(item=>({key:'task:'+item.key,label:item.label,icon:item.icon,run:()=>{switchTab('tasks');setTimeout(()=>applyTaskQuickFilter(item.key),0);}}));
+  }
+  if(parentKey==='my-priority'){
+    const keys=new Set(getCreatePriorityFilterKeys());
+    return getCreatePriorityItems().filter(item=>keys.has(item.key)).map(item=>({key:'priority:'+item.key,label:item.label,icon:item.icon,run:item.run}));
+  }
+  if(parentKey==='peer'&&normalizeCategoryClient(currentUser&&(currentUser.category||currentUser.role))!=='Admin'){
+    return [{key:'peer:ask',label:'Ask a Peer',icon:'✉',run:()=>openPeerCreateModal()}];
+  }
+  return [];
 }
 function renderCreateRadialMenu(){
   const panel=document.getElementById('create-radial-menu');if(!panel)return;
@@ -6124,68 +6155,118 @@ function renderCreateRadialMenu(){
     const label=document.createElement('span');label.textContent=item.label;button.append(icon,label);panel.appendChild(button);
   });
 }
+function renderCreateRadialSubmenu(parentKey){
+  const panel=document.getElementById('create-radial-menu');
+  const parent=panel&&panel.querySelector('[data-create-nav="'+parentKey+'"]');
+  if(!panel||!parent)return;
+  const old=panel.querySelector('.create-radial-submenu');if(old)old.remove();
+  const items=getCreateSubmenuItems(parentKey);if(!items.length)return;
+  const panelRect=panel.getBoundingClientRect(),parentRect=parent.getBoundingClientRect(),size=240;
+  const menu=document.createElement('div');menu.className='create-radial-submenu';menu.dataset.parent=parentKey;menu.setAttribute('role','menu');menu.setAttribute('aria-label',parent.getAttribute('aria-label')+' shortcuts');
+  menu.style.left=(parentRect.left+parentRect.width/2-panelRect.left-size/2)+'px';
+  menu.style.top=(parentRect.top+parentRect.height/2-panelRect.top-size/2)+'px';
+  const compact=parentKey==='my-desk';
+  const radius=compact?78:82;
+  items.forEach((item,index)=>{
+    const angle=(-90+360*index/items.length)*Math.PI/180;
+    const button=document.createElement('button');button.type='button';button.className=compact?'create-desk-filter-item':'create-radial-child';button.setAttribute('role','menuitem');button.dataset.submenuAction=item.key;button.setAttribute('aria-label',item.label);
+    button.style.setProperty('--filter-x',(Math.cos(angle)*radius).toFixed(1)+'px');button.style.setProperty('--filter-y',(Math.sin(angle)*radius).toFixed(1)+'px');
+    const icon=document.createElement('span');icon.setAttribute('aria-hidden','true');icon.textContent=item.icon;
+    const label=document.createElement('span');label.textContent=item.label;button.append(icon,label);menu.appendChild(button);
+  });
+  panel.appendChild(menu);panel.classList.add('submenu-open');parent.classList.add('submenu-anchor');createRadialSubmenuParent=parentKey;
+}
+function scheduleCreateRadialSubmenu(parentKey){
+  if(createRadialSubmenuTimer)clearTimeout(createRadialSubmenuTimer);
+  createRadialSubmenuTimer=setTimeout(()=>{
+    createRadialSubmenuTimer=null;
+    if(createRadialGestureActive&&createRadialSelectedKey===parentKey)renderCreateRadialSubmenu(parentKey);
+  },1000);
+}
 function closeCreateShortcutSettings(){const modal=document.getElementById('create-shortcut-settings-modal');if(modal){modal.classList.add('hidden');modal.classList.remove('flex');}}
 function updateCreateShortcutSettingsCount(){
   const options=document.getElementById('create-shortcut-options'),count=document.getElementById('create-shortcut-count');if(!options||!count)return;
   const boxes=[...options.querySelectorAll('input[type="checkbox"]')],checked=boxes.filter(box=>box.checked).length;
   count.textContent=checked+' of 6 selected';boxes.forEach(box=>{box.disabled=!box.checked&&checked>=6;});
 }
+function appendCreateShortcutSetting(container,item,checked){
+  const label=document.createElement('label');label.className='flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer';
+  const box=document.createElement('input');box.type='checkbox';box.value=item.key;box.checked=checked;box.className='w-4 h-4 accent-slate-900';
+  const text=document.createElement('span');text.className='text-xs font-semibold text-slate-700';text.textContent=item.label;label.append(box,text);container.appendChild(label);
+}
+function ensurePriorityHomeMetrics(){
+  if(!getCreatePriorityItems().length&&currentUser&&document.getElementById('my-work-dashboard'))renderMyWorkDashboard();
+}
 function openCreateShortcutSettings(){
-  if(!currentUser)return;closeCreateRadialMenu();createShortcutDraft=getCreateShortcutKeys();
+  if(!currentUser)return;closeCreateRadialMenu();ensurePriorityHomeMetrics();
+  createShortcutDraft=getCreateShortcutKeys();
   const options=document.getElementById('create-shortcut-options'),deskOptions=document.getElementById('create-desk-filter-options');
-  const deskSection=document.getElementById('create-desk-filter-section'),modal=document.getElementById('create-shortcut-settings-modal');
-  if(!options||!deskOptions||!modal)return;
-  options.innerHTML='';deskOptions.innerHTML='';
-  allowedCreateShortcuts().forEach(item=>{
-    const label=document.createElement('label');label.className='flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer';
-    const box=document.createElement('input');box.type='checkbox';box.value=item.key;box.checked=createShortcutDraft.includes(item.key);box.className='w-4 h-4 accent-slate-900';
-    box.addEventListener('change',()=>{createShortcutDraft=[...options.querySelectorAll('input:checked')].map(input=>input.value);updateCreateShortcutSettingsCount();});
-    const text=document.createElement('span');text.className='text-xs font-semibold text-slate-700';text.textContent=item.label;label.append(box,text);options.appendChild(label);
-  });
-  const deskFilters=getCreateDeskFilterKeys();
-  CREATE_DESK_FILTERS.forEach(item=>{
-    const label=document.createElement('label');label.className='flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer';
-    const box=document.createElement('input');box.type='checkbox';box.value=item.key;box.checked=deskFilters.includes(item.key);box.className='w-4 h-4 accent-slate-900';
-    box.addEventListener('change',()=>{});const text=document.createElement('span');text.className='text-xs font-semibold text-slate-700';text.textContent=item.label;label.append(box,text);deskOptions.appendChild(label);
-  });
+  const taskOptions=document.getElementById('create-task-filter-options'),priorityOptions=document.getElementById('create-priority-filter-options');
+  const deskSection=document.getElementById('create-desk-filter-section'),taskSection=document.getElementById('create-task-filter-section'),prioritySection=document.getElementById('create-priority-filter-section');
+  const modal=document.getElementById('create-shortcut-settings-modal');
+  if(!options||!deskOptions||!taskOptions||!priorityOptions||!modal)return;
+  options.innerHTML='';deskOptions.innerHTML='';taskOptions.innerHTML='';priorityOptions.innerHTML='';
+  allowedCreateShortcuts().forEach(item=>appendCreateShortcutSetting(options,item,createShortcutDraft.includes(item.key)));
+  getCreatePriorityItems().forEach(item=>appendCreateShortcutSetting(priorityOptions,item,getCreatePriorityFilterKeys().includes(item.key)));
+  CREATE_TASK_FILTERS.forEach(item=>appendCreateShortcutSetting(taskOptions,{key:item.key,label:item.label},getCreateTaskFilterKeys().includes(item.key)));
+  CREATE_DESK_FILTERS.forEach(item=>appendCreateShortcutSetting(deskOptions,{key:item.key,label:item.label},getCreateDeskFilterKeys().includes(item.key)));
+  if(prioritySection)prioritySection.classList.toggle('hidden',!canUsePriorityShortcuts());
+  if(taskSection)taskSection.classList.toggle('hidden',false);
   if(deskSection)deskSection.classList.toggle('hidden',!isOperationalSupportUser(currentUser));
   updateCreateShortcutSettingsCount();modal.classList.remove('hidden');modal.classList.add('flex');
 }
+function canUsePriorityShortcuts(){
+  const category=normalizeCategoryClient(currentUser&&(currentUser.category||currentUser.role));
+  return isOperationalSupportUser(currentUser)||category==='Coordinator';
+}
 function saveCreateShortcutSettings(){
-  const options=document.getElementById('create-shortcut-options'),deskOptions=document.getElementById('create-desk-filter-options');if(!options||!deskOptions)return;
+  const options=document.getElementById('create-shortcut-options'),deskOptions=document.getElementById('create-desk-filter-options');
+  const taskOptions=document.getElementById('create-task-filter-options'),priorityOptions=document.getElementById('create-priority-filter-options');
+  if(!options||!deskOptions||!taskOptions||!priorityOptions)return;
   const selected=[...options.querySelectorAll('input:checked')].map(input=>input.value).slice(0,6);
   if(!selected.length){showToast('Choose at least one radial shortcut.');return;}
   const deskSelected=[...deskOptions.querySelectorAll('input:checked')].map(input=>input.value);
-  try{localStorage.setItem(createShortcutStorageKey(),JSON.stringify(selected));localStorage.setItem(createDeskFilterStorageKey(),JSON.stringify(deskSelected));}catch(e){}
+  const taskSelected=[...taskOptions.querySelectorAll('input:checked')].map(input=>input.value);
+  const prioritySelected=[...priorityOptions.querySelectorAll('input:checked')].map(input=>input.value);
+  try{
+    localStorage.setItem(createShortcutStorageKey(),JSON.stringify(selected));
+    localStorage.setItem(createDeskFilterStorageKey(),JSON.stringify(deskSelected));
+    localStorage.setItem(createTaskFilterStorageKey(),JSON.stringify(taskSelected));
+    localStorage.setItem(createPriorityFilterStorageKey(),JSON.stringify(prioritySelected));
+  }catch(e){}
   closeCreateShortcutSettings();showToast('Radial shortcuts saved.');
 }
 function updateCreateRadialSelection(clientX,clientY){
   const panel=document.getElementById('create-radial-menu');if(!panel||!createRadialGestureActive)return;
   const target=document.elementFromPoint(clientX,clientY);
-  const filter=target&&target.closest?target.closest('[data-create-filter]'):null;
-  if(filter&&panel.contains(filter)){
-    if(createDeskSubmenuTimer){clearTimeout(createDeskSubmenuTimer);createDeskSubmenuTimer=null;}
-    panel.querySelectorAll('.create-desk-filter-item.is-selected').forEach(item=>item.classList.remove('is-selected'));
-    filter.classList.add('is-selected');createRadialSelectedFilter=filter.dataset.createFilter||'';createRadialSelectedKey='my-desk';
+  const child=target&&target.closest?target.closest('[data-submenu-action]'):null;
+  if(child&&panel.contains(child)){
+    panel.querySelectorAll('.create-radial-child.is-selected,.create-desk-filter-item.is-selected').forEach(item=>item.classList.remove('is-selected'));
+    child.classList.add('is-selected');createRadialSelectedChild=child.dataset.submenuAction||'';
     return;
   }
-  panel.querySelectorAll('.create-desk-filter-item.is-selected').forEach(item=>item.classList.remove('is-selected'));
-  createRadialSelectedFilter='';
+  panel.querySelectorAll('.create-radial-child.is-selected,.create-desk-filter-item.is-selected').forEach(item=>item.classList.remove('is-selected'));
+  createRadialSelectedChild='';
+  if(panel.classList.contains('submenu-open')){
+    const anchor=panel.querySelector('.submenu-anchor');
+    if(anchor&&target&&anchor.contains(target)){createRadialSelectedKey=createRadialSubmenuParent;return;}
+    return;
+  }
   const item=target&&target.closest?target.closest('[data-create-nav]'):null;
   const nextKey=item&&panel.contains(item)?(item.dataset.createNav||''):'';
   panel.querySelectorAll('.create-radial-item.is-selected').forEach(node=>node.classList.remove('is-selected'));
-  if(item&&panel.contains(item)){item.classList.add('is-selected');}
+  if(item&&panel.contains(item))item.classList.add('is-selected');
   if(nextKey!==createRadialSelectedKey){
-    if(createDeskSubmenuTimer){clearTimeout(createDeskSubmenuTimer);createDeskSubmenuTimer=null;}
+    if(createRadialSubmenuTimer){clearTimeout(createRadialSubmenuTimer);createRadialSubmenuTimer=null;}
     createRadialSelectedKey=nextKey;
-    if(nextKey==='my-desk')scheduleCreateDeskSubmenu();
+    if(['my-desk','my-tasks','my-priority','peer'].includes(nextKey))scheduleCreateRadialSubmenu(nextKey);
   }
 }
 function closeCreateRadialMenu(){
   const panel=document.getElementById('create-radial-menu');
-  if(panel){panel.classList.remove('is-open','submenu-open');const sub=panel.querySelector('.create-desk-submenu');if(sub)sub.remove();panel.querySelectorAll('.is-selected').forEach(node=>node.classList.remove('is-selected'));}
-  if(createDeskSubmenuTimer){clearTimeout(createDeskSubmenuTimer);createDeskSubmenuTimer=null;}
-  createRadialGestureActive=false;createRadialSelectedKey='';createRadialSelectedFilter='';
+  if(panel){panel.classList.remove('is-open','submenu-open');const sub=panel.querySelector('.create-radial-submenu');if(sub)sub.remove();panel.querySelectorAll('.is-selected,.submenu-anchor').forEach(node=>node.classList.remove('is-selected','submenu-anchor'));}
+  if(createRadialSubmenuTimer){clearTimeout(createRadialSubmenuTimer);createRadialSubmenuTimer=null;}
+  createRadialGestureActive=false;createRadialSelectedKey='';createRadialSelectedChild='';createRadialSubmenuParent='';
 }
 function beginCreateRadialGesture(event){
   if(!event||event.button!==2)return;
@@ -6203,9 +6284,9 @@ function startCreateButtonHold(event){
 function finishCreateRadialGesture(event,shouldNavigate){
   if(!createRadialGestureActive)return;
   if(event&&Number.isFinite(event.clientX)&&Number.isFinite(event.clientY))updateCreateRadialSelection(event.clientX,event.clientY);
-  const key=createRadialSelectedKey,filter=createRadialSelectedFilter;closeCreateRadialMenu();
-  if(!shouldNavigate||!key)return;
-  if(key==='my-desk'){openSupportQueueFilter(filter||'all');return;}
+  const key=createRadialSelectedKey,childKey=createRadialSelectedChild,items=getCreateSubmenuItems(key);closeCreateRadialMenu();
+  if(!shouldNavigate)return;
+  if(childKey){const child=items.find(item=>item.key===childKey);if(child){child.run();return;}}
   const item=CREATE_SHORTCUTS.find(shortcut=>shortcut.key===key);if(item&&item.role())item.run();
 }
 function handleCreateButtonClick(event){
@@ -6213,6 +6294,22 @@ function handleCreateButtonClick(event){
   closeCreateRadialMenu();
 }
 function suppressCreateContextMenu(event){if(event)event.preventDefault();}
+const GLOBAL_CREATE_HIDE_MODAL_IDS=['login-overlay','admin-test-modal','notification-settings-modal','create-shortcut-settings-modal','home-question-composer','quick-guide-modal','quick-question-modal','quick-mydesk-modal','quick-unread-modal','quick-report-modal','create-task-modal','task-detail-modal','task-completion-decision-modal','edit-task-modal','custom-dialog-overlay','answer-modal','view-modal','admin-edit-modal','ticket-detail-modal','peer-create-modal','peer-detail-modal'];
+function refreshGlobalCreateVisibility(){
+  const card=document.getElementById('global-create-card');if(!card)return;
+  const hasOpenModal=GLOBAL_CREATE_HIDE_MODAL_IDS.some(id=>{const modal=document.getElementById(id);return !!modal&&!modal.classList.contains('hidden')&&getComputedStyle(modal).display!=='none';});
+  card.classList.toggle('hidden',hasOpenModal);
+}
+function observeGlobalCreateVisibility(){
+  refreshGlobalCreateVisibility();
+  if(!document.body||typeof MutationObserver==='undefined')return;
+  let queued=false;
+  const observer=new MutationObserver(()=>{
+    if(queued)return;queued=true;
+    requestAnimationFrame(()=>{queued=false;refreshGlobalCreateVisibility();});
+  });
+  observer.observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['class','style','hidden']});
+}
 document.addEventListener('pointermove',event=>{if(createRadialGestureActive)updateCreateRadialSelection(event.clientX,event.clientY);},true);
 document.addEventListener('pointerup',event=>{
   if(createSettingsHoldTimer){clearTimeout(createSettingsHoldTimer);createSettingsHoldTimer=null;}
@@ -6228,6 +6325,7 @@ window.addEventListener('blur',()=>{
   if(createSettingsHoldTimer){clearTimeout(createSettingsHoldTimer);createSettingsHoldTimer=null;}
   createSettingsHoldTriggered=false;finishCreateRadialGesture(null,false);
 });
+observeGlobalCreateVisibility();
 
 function openHomeQuestionComposer() {
   closeHomeCreateMenu();
@@ -6256,8 +6354,6 @@ function handleHomeQuestionComposerEscape(event) {
 
 function configureHomeQuestionComposer(category) {
   const composer = document.getElementById('home-question-composer');
-  const launcher = document.getElementById('home-question-launcher');
-  if (launcher) launcher.classList.toggle('hidden', category !== 'Coordinator');
   if (composer && category !== 'Coordinator' && !composer.classList.contains('hidden')) closeHomeQuestionComposer();
 }
 
