@@ -8,6 +8,12 @@
 .table-fixed-layout { table-layout: fixed; width: 100%; }
 .ticket-feed-table { min-width: 1180px; }
 .answered-ticket-table { min-width: 1280px; }
+.ticket-feed-table th, .ticket-feed-table td,
+.answered-ticket-table th, .answered-ticket-table td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: top;
+}
 .preserve-lines { white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere; }
 /* Belt-and-suspenders: some rendered content (case links, ticket IDs, rich-text
    answers with pasted URLs) can contain long unbroken strings. overflow-wrap:
@@ -7009,7 +7015,7 @@ function renderAllTickets() {
   updateAdminTicketBulkUi();
 
   if (sorted.length === 0) {
-    body.innerHTML = '<tr><td colspan="' + (isAdmin ? 10 : 8) + '" class="p-6 text-center text-slate-400">No ticket records found.</td></tr>';
+    body.innerHTML = '<tr><td colspan="10"" class="p-6 text-center text-slate-400">No ticket records found.</td></tr>';
     return;
   }
 
