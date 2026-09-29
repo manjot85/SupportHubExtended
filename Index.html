@@ -266,7 +266,7 @@ html { font-size: 16px; }
 /* Right-click navigation fan around the shared Create control. */
 .create-radial-menu { display:none; position:absolute; z-index:90; top:50%; left:50%; width:264px; height:264px; transform:translate(-50%,-50%); border-radius:50%; pointer-events:none; }
 .create-radial-menu.is-open { display:block; pointer-events:auto; animation:createRadialIn .16s ease-out; }
-.create-radial-menu::before { content:""; position:absolute; inset:9px; border:1px solid rgba(148,163,184,.26); border-radius:50%; background:transparent; pointer-events:none; }
+.create-radial-menu::before { content:none; display:none; }
 .create-radial-item { position:absolute; z-index:2; left:50%; top:50%; width:76px; height:76px; padding:6px; border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; border:1px solid rgba(203,213,225,.92); background:rgba(255,255,255,.88); backdrop-filter:blur(9px); -webkit-backdrop-filter:blur(9px); color:#1e293b; box-shadow:0 7px 20px rgba(15,23,42,.14); font-size:9px; line-height:1.05; font-weight:800; text-align:center; transform:translate(-50%,-50%) translate(var(--shortcut-x,0px),var(--shortcut-y,0px)); transition:background .14s ease,box-shadow .14s ease,border-color .14s ease,color .14s ease; }
 .create-radial-item.hidden { display:none; }
 .create-radial-item.is-selected,.create-radial-item:hover,.create-radial-item:focus-visible { background:#0f172a; border-color:#0f172a; color:#fff; box-shadow:0 10px 26px rgba(15,23,42,.34); outline:none; }
@@ -276,7 +276,11 @@ html { font-size: 16px; }
 .create-radial-menu.submenu-open > .create-radial-item:not(.submenu-anchor) { opacity:0; pointer-events:none; }
 .create-radial-menu.submenu-open > .create-radial-item.submenu-anchor { z-index:7; }
 .create-radial-submenu { position:absolute; z-index:6; width:244px; height:244px; border-radius:50%; pointer-events:auto; animation:createRadialSubmenuIn .14s ease-out; }
-.create-radial-submenu::before { content:""; position:absolute; inset:5px; border:1px solid rgba(148,163,184,.24); border-radius:50%; pointer-events:none; }
+.create-radial-submenu::before { content:none; display:none; }
+.create-radial-guide { position:absolute; inset:0; width:100%; height:100%; overflow:visible; z-index:5; pointer-events:none; }
+.create-radial-guide line { stroke:rgba(15,23,42,.74); stroke-width:1.6; stroke-linecap:round; vector-effect:non-scaling-stroke; }
+.create-radial-guide circle { fill:#0f172a; stroke:#fff; stroke-width:1.25; vector-effect:non-scaling-stroke; }
+@media (prefers-reduced-motion:no-preference) { .create-radial-guide line { transition:x2 35ms linear,y2 35ms linear; } }
 .create-radial-child { position:absolute; left:50%; top:50%; width:68px; height:68px; padding:4px; border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; border:1px solid rgba(203,213,225,.92); background:rgba(255,255,255,.96); color:#334155; box-shadow:0 5px 15px rgba(15,23,42,.15); font-size:8px; line-height:1.05; font-weight:800; text-align:center; transform:translate(-50%,-50%) translate(var(--filter-x),var(--filter-y)); transition:background .12s ease,color .12s ease,box-shadow .12s ease; }
 .create-desk-filter-item { position:absolute; left:50%; top:50%; width:58px; height:58px; padding:3px; border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; border:1px solid rgba(203,213,225,.92); background:rgba(255,255,255,.96); color:#334155; box-shadow:0 5px 15px rgba(15,23,42,.15); font-size:8px; line-height:1; font-weight:800; text-align:center; transform:translate(-50%,-50%) translate(var(--filter-x),var(--filter-y)); transition:background .12s ease,color .12s ease,box-shadow .12s ease; }
 .create-radial-child span:first-child,.create-desk-filter-item span:first-child { font-size:13px; line-height:1; color:#059669; }
@@ -6072,6 +6076,7 @@ let createRadialGestureActive=false;
 let createRadialSelectedKey='';
 let createRadialSelectedChild='';
 let createRadialSubmenuParent='';
+let createRadialGuideOrigin=null;
 let createRadialSubmenuTimer=null;
 let createSettingsHoldTimer=null;
 let createSettingsHoldTriggered=false;
@@ -6148,6 +6153,10 @@ function renderCreateRadialMenu(){
   const panel=document.getElementById('create-radial-menu');if(!panel)return;
   const selected=getCreateShortcutKeys().map(key=>CREATE_SHORTCUTS.find(item=>item.key===key)).filter(Boolean);
   panel.innerHTML='';
+  const guide=document.createElementNS('http://www.w3.org/2000/svg','svg');guide.setAttribute('class','create-radial-guide');guide.setAttribute('aria-hidden','true');guide.setAttribute('viewBox','0 0 264 264');
+  const line=document.createElementNS('http://www.w3.org/2000/svg','line');line.dataset.guideLine='true';
+  const dot=document.createElementNS('http://www.w3.org/2000/svg','circle');dot.dataset.guideDot='true';dot.setAttribute('r','3');
+  guide.append(line,dot);panel.appendChild(guide);
   const radius=88;
   selected.forEach((item,index)=>{
     const angle=(-90+360*index/selected.length)*Math.PI/180;
@@ -6238,9 +6247,30 @@ function saveCreateShortcutSettings(){
   }catch(e){}
   closeCreateShortcutSettings();showToast('Radial shortcuts saved.');
 }
+function updateCreateRadialGuide(clientX,clientY,target,panel){
+  const svg=panel&&panel.querySelector('.create-radial-guide'),line=svg&&svg.querySelector('[data-guide-line]'),dot=svg&&svg.querySelector('[data-guide-dot]');
+  if(!svg||!line||!dot||!createRadialGestureActive||!createRadialGuideOrigin){if(svg)svg.style.visibility='hidden';return;}
+  const panelRect=panel.getBoundingClientRect(),submenu=panel.querySelector('.create-radial-submenu'),submenuRect=submenu&&submenu.getBoundingClientRect();
+  const inPanel=clientX>=panelRect.left&&clientX<=panelRect.right&&clientY>=panelRect.top&&clientY<=panelRect.bottom;
+  const inSubmenu=submenuRect&&clientX>=submenuRect.left&&clientX<=submenuRect.right&&clientY>=submenuRect.top&&clientY<=submenuRect.bottom;
+  const radialTarget=target&&target.closest?target.closest('[data-create-nav],[data-submenu-action]'):null;
+  if(!inPanel&&!inSubmenu&&!radialTarget){svg.style.visibility='hidden';return;}
+  svg.style.visibility='visible';
+  let endX=clientX-panelRect.left,endY=clientY-panelRect.top;
+  if(radialTarget){
+    const rect=radialTarget.getBoundingClientRect(),cx=rect.left+rect.width/2,cy=rect.top+rect.height/2;
+    const dx=cx-createRadialGuideOrigin.x,dy=cy-createRadialGuideOrigin.y,length=Math.hypot(dx,dy)||1;
+    const radius=Math.min(rect.width,rect.height)/2+3;
+    endX=cx-panelRect.left-(dx/length)*radius;endY=cy-panelRect.top-(dy/length)*radius;
+  }
+  line.setAttribute('x1',createRadialGuideOrigin.x);line.setAttribute('y1',createRadialGuideOrigin.y);
+  line.setAttribute('x2',endX);line.setAttribute('y2',endY);
+  dot.setAttribute('cx',endX);dot.setAttribute('cy',endY);
+}
 function updateCreateRadialSelection(clientX,clientY){
   const panel=document.getElementById('create-radial-menu');if(!panel||!createRadialGestureActive)return;
   const target=document.elementFromPoint(clientX,clientY);
+  updateCreateRadialGuide(clientX,clientY,target,panel);
   const child=target&&target.closest?target.closest('[data-submenu-action]'):null;
   if(child&&panel.contains(child)){
     panel.querySelectorAll('.create-radial-child.is-selected,.create-desk-filter-item.is-selected').forEach(item=>item.classList.remove('is-selected'));
@@ -6267,15 +6297,17 @@ function updateCreateRadialSelection(clientX,clientY){
 function closeCreateRadialMenu(){
   document.getElementById('home-create-menu')?.classList.remove('radial-submenu-active');
   const panel=document.getElementById('create-radial-menu');
-  if(panel){panel.classList.remove('is-open','submenu-open');const sub=panel.querySelector('.create-radial-submenu');if(sub)sub.remove();panel.querySelectorAll('.is-selected,.submenu-anchor').forEach(node=>node.classList.remove('is-selected','submenu-anchor'));}
+  if(panel){panel.classList.remove('is-open','submenu-open');const sub=panel.querySelector('.create-radial-submenu');if(sub)sub.remove();const guide=panel.querySelector('.create-radial-guide');if(guide)guide.remove();panel.querySelectorAll('.is-selected,.submenu-anchor').forEach(node=>node.classList.remove('is-selected','submenu-anchor'));}
   if(createRadialSubmenuTimer){clearTimeout(createRadialSubmenuTimer);createRadialSubmenuTimer=null;}
-  createRadialGestureActive=false;createRadialSelectedKey='';createRadialSelectedChild='';createRadialSubmenuParent='';
+  createRadialGestureActive=false;createRadialSelectedKey='';createRadialSelectedChild='';createRadialSubmenuParent='';createRadialGuideOrigin=null;
 }
 function beginCreateRadialGesture(event){
   if(!event||event.button!==2)return;
   event.preventDefault();event.stopPropagation();closeHomeCreateMenu();closeCreateRadialMenu();
   const panel=document.getElementById('create-radial-menu');if(!panel||!currentUser)return;
   renderCreateRadialMenu();createRadialGestureActive=true;panel.classList.add('is-open');
+  const rect=panel.getBoundingClientRect();createRadialGuideOrigin={x:event.clientX-rect.left,y:event.clientY-rect.top};
+  updateCreateRadialGuide(event.clientX,event.clientY,event.target,panel);
 }
 function startCreateButtonHold(event){
   if(!event)return;
