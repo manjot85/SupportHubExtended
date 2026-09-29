@@ -273,15 +273,16 @@ html { font-size: 16px; }
 .create-radial-item.is-selected span:first-child,.create-radial-item.is-selected span:last-child,.create-radial-item:hover span:first-child,.create-radial-item:hover span:last-child,.create-radial-item:focus-visible span:first-child,.create-radial-item:focus-visible span:last-child { color:#fff; }
 .create-radial-item.is-selected span:last-child { text-decoration:underline; text-decoration-thickness:1px; text-underline-offset:3px; }
 .create-radial-item span:first-child { font-size:18px; line-height:1; color:#059669; }
-.create-radial-menu.submenu-open > .create-radial-item:not([data-create-nav="my-desk"]) { opacity:0; pointer-events:none; }
-.create-radial-menu.submenu-open > .create-radial-item[data-create-nav="my-desk"] { z-index:7; }
-.create-desk-submenu { position:absolute; z-index:6; width:244px; height:244px; border-radius:50%; pointer-events:auto; animation:createDeskSubmenuIn .14s ease-out; }
-.create-desk-submenu::before { content:""; position:absolute; inset:5px; border:1px solid rgba(148,163,184,.24); border-radius:50%; pointer-events:none; }
+.create-radial-menu.submenu-open > .create-radial-item:not(.submenu-anchor) { opacity:0; pointer-events:none; }
+.create-radial-menu.submenu-open > .create-radial-item.submenu-anchor { z-index:7; }
+.create-radial-submenu { position:absolute; z-index:6; width:244px; height:244px; border-radius:50%; pointer-events:auto; animation:createRadialSubmenuIn .14s ease-out; }
+.create-radial-submenu::before { content:""; position:absolute; inset:5px; border:1px solid rgba(148,163,184,.24); border-radius:50%; pointer-events:none; }
+.create-radial-child { position:absolute; left:50%; top:50%; width:68px; height:68px; padding:4px; border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; border:1px solid rgba(203,213,225,.92); background:rgba(255,255,255,.96); color:#334155; box-shadow:0 5px 15px rgba(15,23,42,.15); font-size:8px; line-height:1.05; font-weight:800; text-align:center; transform:translate(-50%,-50%) translate(var(--filter-x),var(--filter-y)); transition:background .12s ease,color .12s ease,box-shadow .12s ease; }
 .create-desk-filter-item { position:absolute; left:50%; top:50%; width:58px; height:58px; padding:3px; border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; border:1px solid rgba(203,213,225,.92); background:rgba(255,255,255,.96); color:#334155; box-shadow:0 5px 15px rgba(15,23,42,.15); font-size:8px; line-height:1; font-weight:800; text-align:center; transform:translate(-50%,-50%) translate(var(--filter-x),var(--filter-y)); transition:background .12s ease,color .12s ease,box-shadow .12s ease; }
-.create-desk-filter-item span:first-child { font-size:13px; line-height:1; color:#059669; }
-.create-desk-filter-item.is-selected,.create-desk-filter-item:hover { background:#0f172a; border-color:#0f172a; color:#fff; box-shadow:0 8px 20px rgba(15,23,42,.34); }
-.create-desk-filter-item.is-selected span:first-child,.create-desk-filter-item:hover span:first-child { color:#fff; }
-@keyframes createDeskSubmenuIn { from { opacity:0; transform:scale(.9); } to { opacity:1; transform:scale(1); } }
+.create-radial-child span:first-child,.create-desk-filter-item span:first-child { font-size:13px; line-height:1; color:#059669; }
+.create-radial-child.is-selected,.create-radial-child:hover,.create-desk-filter-item.is-selected,.create-desk-filter-item:hover { background:#0f172a; border-color:#0f172a; color:#fff; box-shadow:0 8px 20px rgba(15,23,42,.34); }
+.create-radial-child.is-selected span:first-child,.create-radial-child:hover span:first-child,.create-desk-filter-item.is-selected span:first-child,.create-desk-filter-item:hover span:first-child { color:#fff; }
+@keyframes createRadialSubmenuIn { from { opacity:0; transform:scale(.9); } to { opacity:1; transform:scale(1); } }
 
 @keyframes createRadialIn { from { opacity:0; transform:translate(-50%,-50%) scale(.86); } to { opacity:1; transform:translate(-50%,-50%) scale(1); } }
 @media (prefers-reduced-motion:reduce) { .create-radial-menu.is-open { animation:none; } .create-radial-item { transition:none; } }
