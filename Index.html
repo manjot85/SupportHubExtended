@@ -6182,7 +6182,7 @@ function scheduleCreateRadialSubmenu(parentKey){
   createRadialSubmenuTimer=setTimeout(()=>{
     createRadialSubmenuTimer=null;
     if(createRadialGestureActive&&createRadialSelectedKey===parentKey)renderCreateRadialSubmenu(parentKey);
-  },1000);
+  },500);
 }
 function closeCreateShortcutSettings(){const modal=document.getElementById('create-shortcut-settings-modal');if(modal){modal.classList.add('hidden');modal.classList.remove('flex');}}
 function updateCreateShortcutSettingsCount(){
