@@ -448,21 +448,6 @@ html { font-size: 16px; }
 <div>
 <span id="user-role-tag" class="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-emerald-400 text-slate-950">Coordinator</span>
 </div>
-<details id="home-create-menu" class="relative shrink-0">
-  <summary onclick="closeCreateRadialMenu()" oncontextmenu="openCreateRadialMenu(event)" title="Click to create · Right-click for quick navigation" aria-label="Create or right-click for quick navigation" class="list-none cursor-pointer bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-lg text-xs font-bold shadow-md shadow-emerald-950/20 transition whitespace-nowrap">+ Create</summary>
-  <div class="absolute right-0 mt-2 w-52 bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden text-xs">
-    <button type="button" onclick="closeHomeCreateMenu(); openHomeQuestionComposer()" class="w-full text-left px-4 py-3 hover:bg-slate-50 font-semibold text-slate-800">Ask a Question</button>
-    <button type="button" onclick="closeHomeCreateMenu(); openCreateTaskModal()" class="w-full text-left px-4 py-3 hover:bg-slate-50 font-semibold text-slate-800 border-t border-slate-100">Create a Task</button>
-    <button id="home-create-peer" type="button" onclick="closeHomeCreateMenu(); openPeerCreateModal()" class="hidden w-full text-left px-4 py-3 hover:bg-slate-50 font-semibold text-slate-800 border-t border-slate-100">Ask a Peer Question</button>
-  </div>
-  <div id="create-radial-menu" class="create-radial-menu" role="menu" aria-label="Quick navigation" onclick="navigateCreateRadialMenu(event)">
-    <div class="create-radial-center" aria-hidden="true">Quick<br>Navigate</div>
-    <button type="button" role="menuitem" data-create-nav="coordinator" class="create-radial-item" aria-label="My Questions"><span aria-hidden="true">⌂</span><span>My Questions</span></button>
-    <button type="button" role="menuitem" data-create-nav="tasks" class="create-radial-item" aria-label="My Tasks"><span aria-hidden="true">✓</span><span>My Tasks</span></button>
-    <button type="button" role="menuitem" data-create-nav="reporting" class="create-radial-item" aria-label="Reports"><span aria-hidden="true">▥</span><span>Reports</span></button>
-    <button type="button" role="menuitem" data-create-nav="supervisor" class="create-radial-item" aria-label="Support Queue"><span aria-hidden="true">◎</span><span>Support Queue</span></button>
-  </div>
-</details>
 <button id="admin-test-tools-btn" onclick="openAdminTestModal()" class="hidden text-[10px] bg-purple-600 hover:bg-purple-500 px-2 py-1 rounded-md text-white font-bold transition" title="Admin development tools">Admin Test</button>
 <div class="relative">
 <button onclick="toggleNotificationPanel(event)" id="notification-bell-btn" title="Notifications" class="relative text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 w-8 h-7 rounded-md flex items-center justify-center transition">
@@ -539,7 +524,25 @@ html { font-size: 16px; }
       <h2 id="home-dashboard-title" class="text-lg font-bold text-slate-900">Welcome back</h2>
       <p id="home-dashboard-subtitle" class="text-xs text-slate-500 mt-1">Your current questions, answers, and tasks in one place.</p>
     </div>
-
+    <div id="create-dock-coordinator" class="shrink-0 self-end md:self-auto">
+      <div id="global-create-control" class="relative shrink-0">
+        <details id="home-create-menu" class="relative shrink-0">
+          <summary onclick="closeCreateRadialMenu()" oncontextmenu="openCreateRadialMenu(event)" title="Click to create · Right-click for quick navigation" aria-label="Create or right-click for quick navigation" class="list-none cursor-pointer bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-md transition whitespace-nowrap">+ Create</summary>
+          <div class="absolute right-0 mt-2 w-52 bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden text-xs">
+            <button type="button" onclick="closeHomeCreateMenu(); openHomeQuestionComposer()" class="w-full text-left px-4 py-3 hover:bg-slate-50 font-semibold text-slate-800">Ask a Question</button>
+            <button type="button" onclick="closeHomeCreateMenu(); openCreateTaskModal()" class="w-full text-left px-4 py-3 hover:bg-slate-50 font-semibold text-slate-800 border-t border-slate-100">Create a Task</button>
+            <button id="home-create-peer" type="button" onclick="closeHomeCreateMenu(); openPeerCreateModal()" class="hidden w-full text-left px-4 py-3 hover:bg-slate-50 font-semibold text-slate-800 border-t border-slate-100">Ask a Peer Question</button>
+          </div>
+        </details>
+        <div id="create-radial-menu" class="create-radial-menu" role="menu" aria-label="Quick navigation" onclick="navigateCreateRadialMenu(event)">
+          <div class="create-radial-center" aria-hidden="true">Quick<br>Navigate</div>
+          <button type="button" role="menuitem" data-create-nav="coordinator" class="create-radial-item" aria-label="My Questions"><span aria-hidden="true">⌂</span><span>My Questions</span></button>
+          <button type="button" role="menuitem" data-create-nav="tasks" class="create-radial-item" aria-label="My Tasks"><span aria-hidden="true">✓</span><span>My Tasks</span></button>
+          <button type="button" role="menuitem" data-create-nav="reporting" class="create-radial-item" aria-label="Reports"><span aria-hidden="true">▥</span><span>Reports</span></button>
+          <button type="button" role="menuitem" data-create-nav="supervisor" class="create-radial-item" aria-label="Support Queue"><span aria-hidden="true">◎</span><span>Support Queue</span></button>
+        </div>
+      </div>
+    </div>
     <button id="home-admin-button" type="button" onclick="switchTab('team')" class="hidden bg-purple-700 hover:bg-purple-800 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-md transition shrink-0">Open Admin Setup</button>
   </div>
 
@@ -693,6 +696,7 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 <section id="view-peer" class="hidden space-y-5">
   <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col md:flex-row md:items-center justify-between gap-3">
     <div><h2 class="text-base font-bold text-slate-800">Peer Questions</h2><p class="text-xs text-slate-500 mt-1">Quick internal guidance between team members. Keep it simple, reply directly, reassign when another teammate is better placed to help, or escalate when formal Support follow-up is needed.</p></div>
+    <div id="create-dock-peer" class="shrink-0 self-end md:self-auto"></div>
   </div>
   <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
     <button onclick="setPeerFilter('MINE')" class="peer-filter-card bg-white border border-slate-200 rounded-xl p-4 text-left"><p class="text-[10px] font-bold uppercase text-slate-400">Assigned to Me</p><p id="peer-stat-mine" class="text-xl font-bold text-slate-900 mt-1">0</p></button>
@@ -710,9 +714,12 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 <section id="view-answered" class="hidden space-y-6">
 <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80">
 <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+<div class="flex items-center justify-between gap-4 flex-1 min-w-0">
 <div>
 <h2 class="text-base font-bold text-slate-800">Answered Only</h2>
 <p id="answered-subtitle" class="text-xs text-slate-500">Review supervisor answers and resolution turnaround times</p>
+</div>
+<div id="create-dock-answered" class="shrink-0"></div>
 </div>
 <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
 <select id="answered-scope-filter" onchange="renderAnsweredTab()" class="border border-slate-300 px-3 py-1.5 rounded-lg text-xs outline-none focus:ring-1 focus:ring-emerald-500 font-semibold">
@@ -784,9 +791,12 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 <section id="view-all-tickets" class="hidden space-y-6">
 <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80">
 <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+<div class="flex items-center justify-between gap-4 flex-1 min-w-0">
 <div>
 <h2 class="text-base font-bold text-slate-800">Global Question Feed</h2>
 <p class="text-xs text-slate-500">Live stream of all questions and resolution activity</p>
+</div>
+<div id="create-dock-all-tickets" class="shrink-0"></div>
 </div>
 <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
 <select id="all-type-filter" onchange="renderAllTickets()" class="border border-slate-300 px-3 py-1.5 rounded-lg text-xs outline-none focus:ring-1 focus:ring-emerald-500 font-medium">
@@ -838,6 +848,7 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
      the 100vw-vs-scrollbar rounding some browsers introduce. -->
 <section id="view-supervisor" class="hidden">
 <div class="w-screen relative left-1/2 -translate-x-1/2 px-4 md:px-6 lg:px-8">
+<div id="create-dock-supervisor" class="max-w-7xl mx-auto flex justify-end pb-3"></div>
 <div class="flex flex-col lg:flex-row gap-4 items-start" id="sup-desk-flex">
 
 <!-- SIDEBAR COLUMN: quick filters, workload, search/filter controls. Sticky on
@@ -1005,6 +1016,7 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
       <h2 class="text-base font-bold text-slate-800">Tasks</h2>
       <p class="text-xs text-slate-500 mt-0.5">Create, track, and complete team follow-up work. Click a task to view its full details or update its status.</p>
     </div>
+    <div id="create-dock-tasks" class="shrink-0 self-end lg:self-auto"></div>
   </div>
 </div>
 
@@ -1084,9 +1096,12 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 <section id="view-reporting" class="hidden space-y-6">
 <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80">
   <div class="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 mb-5">
+    <div class="flex items-center justify-between gap-4 flex-1 min-w-0">
     <div>
       <h2 class="text-base font-bold text-slate-800">Reporting Analytics</h2>
       <p class="text-xs text-slate-500">Answer performance, answered-question review progress, and task follow-through. All dates follow Central Time.</p>
+    </div>
+    <div id="create-dock-reporting" class="shrink-0"></div>
     </div>
     <div class="flex flex-wrap items-center gap-2">
       <select id="report-range-preset" onchange="handleReportRangeChange()" class="border border-slate-300 px-2 py-1.5 rounded-lg text-xs outline-none">
@@ -1395,6 +1410,7 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80">
   <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
     <div><p class="text-[10px] font-bold uppercase tracking-wider text-purple-700">Setup</p><h2 id="admin-page-title" class="text-lg font-bold text-slate-900 mt-1">Team &amp; App Setup</h2><p id="admin-page-subtitle" class="text-xs text-slate-500 mt-1">Choose the area you want to manage. Only one setup area opens at a time.</p></div>
+    <div id="create-dock-team" class="shrink-0 self-end lg:self-auto"></div>
   </div>
 </div>
 
@@ -4861,6 +4877,7 @@ function activateTabShell(name) {
     const view = document.getElementById('view-' + t);
     if (view) view.classList.toggle('hidden', t !== name);
   });
+  moveGlobalCreateControl(name);
 
   const primaryTabs = [
     { id: 'tab-coordinator', area: 'home' },
@@ -4899,6 +4916,12 @@ function activateTabShell(name) {
     tab.classList.toggle('hover:bg-slate-100', !active);
     tab.setAttribute('aria-current', active ? 'page' : 'false');
   });
+}
+
+function moveGlobalCreateControl(tabName) {
+  const control = document.getElementById('global-create-control');
+  const dock = document.getElementById('create-dock-' + tabName);
+  if (control && dock && control.parentElement !== dock) dock.appendChild(control);
 }
 
 function switchTab(name) {
@@ -6006,11 +6029,11 @@ function navigateCreateRadialMenu(event) {
 }
 
 document.addEventListener('click', event => {
-  const root = document.getElementById('home-create-menu');
+  const root = document.getElementById('global-create-control');
   if (root && !root.contains(event.target)) closeCreateRadialMenu();
 });
 document.addEventListener('contextmenu', event => {
-  const root = document.getElementById('home-create-menu');
+  const root = document.getElementById('global-create-control');
   if (root && !root.contains(event.target)) closeCreateRadialMenu();
 });
 document.addEventListener('keydown', event => {
