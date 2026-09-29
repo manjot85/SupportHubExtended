@@ -266,16 +266,13 @@ html { font-size: 16px; }
 /* Right-click navigation fan around the shared Create control. */
 .create-radial-menu { display:none; position:absolute; z-index:90; top:50%; left:50%; width:264px; height:264px; transform:translate(-50%,-50%); border-radius:50%; pointer-events:none; }
 .create-radial-menu.is-open { display:block; pointer-events:auto; animation:createRadialIn .16s ease-out; }
-.create-radial-menu::before { content:""; position:absolute; inset:15px; border:1px solid rgba(148,163,184,.28); border-radius:50%; background:transparent; box-shadow:none; pointer-events:none; }
-.create-radial-item { position:absolute; z-index:2; width:76px; height:76px; padding:6px; border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; border:1px solid #cbd5e1; background:rgba(255,255,255,.76); backdrop-filter:blur(7px); -webkit-backdrop-filter:blur(7px); color:#1e293b; box-shadow:0 5px 13px rgba(15,23,42,.13); font-size:9px; line-height:1.05; font-weight:800; text-align:center; transition:transform .14s ease,box-shadow .14s ease,border-color .14s ease; }
+.create-radial-menu::before { content:""; position:absolute; inset:9px; border:1px solid rgba(148,163,184,.26); border-radius:50%; background:transparent; pointer-events:none; }
+.create-radial-item { position:absolute; z-index:2; left:50%; top:50%; width:76px; height:76px; padding:6px; border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; border:1px solid rgba(203,213,225,.92); background:rgba(255,255,255,.88); backdrop-filter:blur(9px); -webkit-backdrop-filter:blur(9px); color:#1e293b; box-shadow:0 7px 20px rgba(15,23,42,.14); font-size:9px; line-height:1.05; font-weight:800; text-align:center; transform:translate(-50%,-50%) translate(var(--shortcut-x,0px),var(--shortcut-y,0px)); transition:background .14s ease,box-shadow .14s ease,border-color .14s ease,color .14s ease; }
 .create-radial-item.hidden { display:none; }
-.create-radial-item.is-selected { background:rgba(15,23,42,.94); border-color:#0f172a; color:#fff; box-shadow:0 9px 24px rgba(15,23,42,.32); transform:scale(1.1); }\n.create-radial-item.is-selected span:first-child,.create-radial-item.is-selected span:last-child { color:#fff; }\n.create-radial-item.is-selected span:last-child { text-decoration:underline; text-decoration-thickness:1px; text-underline-offset:3px; }
-.create-radial-item:hover,.create-radial-item:focus-visible { transform:scale(1.08); border-color:#34d399; box-shadow:0 8px 18px rgba(5,150,105,.2); outline:none; }
+.create-radial-item.is-selected,.create-radial-item:hover,.create-radial-item:focus-visible { background:#0f172a; border-color:#0f172a; color:#fff; box-shadow:0 10px 26px rgba(15,23,42,.34); outline:none; }
+.create-radial-item.is-selected span:first-child,.create-radial-item.is-selected span:last-child,.create-radial-item:hover span:first-child,.create-radial-item:hover span:last-child,.create-radial-item:focus-visible span:first-child,.create-radial-item:focus-visible span:last-child { color:#fff; }
+.create-radial-item.is-selected span:last-child { text-decoration:underline; text-decoration-thickness:1px; text-underline-offset:3px; }
 .create-radial-item span:first-child { font-size:18px; line-height:1; color:#059669; }
-.create-radial-item[data-create-nav="coordinator"] { left:94px; top:0; }
-.create-radial-item[data-create-nav="tasks"] { right:0; top:94px; }
-.create-radial-item[data-create-nav="reporting"] { left:94px; bottom:0; }
-.create-radial-item[data-create-nav="supervisor"] { left:0; top:94px; }
 @keyframes createRadialIn { from { opacity:0; transform:translate(-50%,-50%) scale(.86); } to { opacity:1; transform:translate(-50%,-50%) scale(1); } }
 @media (prefers-reduced-motion:reduce) { .create-radial-menu.is-open { animation:none; } .create-radial-item { transition:none; } }
 
@@ -525,9 +522,10 @@ html { font-size: 16px; }
     <div class="flex items-center gap-3 shrink-0">
       <button id="home-admin-button" type="button" onclick="switchTab('team')" class="hidden bg-purple-700 hover:bg-purple-800 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-md transition shrink-0">Open Admin Setup</button>
       <div id="create-dock-global" class="relative shrink-0">
+        <button id="create-shortcut-settings-button" type="button" onclick="openCreateShortcutSettings()" aria-label="Configure radial shortcuts" title="Configure radial shortcuts" class="inline-flex items-center justify-center w-10 h-10 rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-300" style="font-size:18px">⚙</button>
         <div id="global-create-control" class="relative shrink-0">
         <details id="home-create-menu" class="relative shrink-0">
-          <summary onclick="closeCreateRadialMenu()" onpointerdown="beginCreateRadialGesture(event)" oncontextmenu="suppressCreateContextMenu(event)" title="Click to create · Right-click and hold for shortcuts" aria-label="Create or right-click and hold for shortcuts" class="list-none cursor-pointer bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-md transition whitespace-nowrap">+ Create</summary>
+          <summary onclick="handleCreateButtonClick(event)" onpointerdown="startCreateButtonHold(event)" oncontextmenu="suppressCreateContextMenu(event)" title="Click to create · Right-click and hold for shortcuts" aria-label="Create or right-click and hold for shortcuts" class="list-none cursor-pointer bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-md transition whitespace-nowrap">+ Create</summary>
           <div class="absolute right-0 mt-2 w-52 bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden text-xs">
             <button type="button" onclick="closeHomeCreateMenu(); openHomeQuestionComposer()" class="w-full text-left px-4 py-3 hover:bg-slate-50 font-semibold text-slate-800">Ask a Question</button>
             <button type="button" onclick="closeHomeCreateMenu(); openCreateTaskModal()" class="w-full text-left px-4 py-3 hover:bg-slate-50 font-semibold text-slate-800 border-t border-slate-100">Create a Task</button>
@@ -535,16 +533,26 @@ html { font-size: 16px; }
           </div>
         </details>
         <div id="create-radial-menu" class="create-radial-menu" role="menu" aria-label="Quick navigation">
-          <button type="button" role="menuitem" data-create-nav="coordinator" class="create-radial-item" aria-label="My Questions"><span aria-hidden="true">⌂</span><span>My Questions</span></button>
-          <button type="button" role="menuitem" data-create-nav="tasks" class="create-radial-item" aria-label="My Tasks"><span aria-hidden="true">✓</span><span>My Tasks</span></button>
-          <button type="button" role="menuitem" data-create-nav="reporting" class="create-radial-item" aria-label="Reports"><span aria-hidden="true">▥</span><span>Reports</span></button>
-          <button type="button" role="menuitem" data-create-nav="supervisor" class="create-radial-item" aria-label="Support Queue"><span aria-hidden="true">◎</span><span>Support Queue</span></button>
+           
         </div>
       </div>
       </div>
     </div>
   </div>
 
+  <div id="create-shortcut-settings-modal" class="hidden fixed inset-0 z-[120] items-center justify-center bg-slate-950/50 p-4" onclick="if(event.target===this)closeCreateShortcutSettings()">
+    <div class="w-full max-w-lg rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden" role="dialog" aria-modal="true" aria-labelledby="create-shortcut-settings-title">
+      <div class="px-5 py-4 border-b border-slate-200 flex items-start justify-between gap-4">
+        <div><h2 id="create-shortcut-settings-title" class="text-base font-bold text-slate-900">Radial shortcuts</h2><p class="text-xs text-slate-500 mt-1">Choose up to six shortcuts for right-click navigation.</p></div>
+        <button type="button" onclick="closeCreateShortcutSettings()" aria-label="Close shortcut settings" class="text-slate-400 hover:text-slate-700 text-xl leading-none">×</button>
+      </div>
+      <div id="create-shortcut-options" class="p-4 grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[60vh] overflow-y-auto"></div>
+      <div class="px-5 py-4 border-t border-slate-200 flex items-center justify-between gap-3">
+        <p id="create-shortcut-count" class="text-xs text-slate-500">0 of 6 selected</p>
+        <div class="flex items-center gap-2"><button type="button" onclick="closeCreateShortcutSettings()" class="px-4 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100">Cancel</button><button type="button" onclick="saveCreateShortcutSettings()" class="px-4 py-2 rounded-lg bg-slate-900 text-white text-xs font-bold hover:bg-slate-800">Save shortcuts</button></div>
+      </div>
+    </div>
+  </div>
 <!-- TAB 1: COORDINATOR WORKSPACE -->
 <section id="view-coordinator" class="space-y-6">
 <div id="my-work-dashboard" class="space-y-4">
@@ -6006,77 +6014,126 @@ function closeHomeCreateMenu() {
   if (menu) menu.removeAttribute('open');
 }
 
-let createRadialGestureActive = false;
-let createRadialSelectedTab = '';
+const CREATE_SHORTCUTS = [
+  {key:'peer',label:'Peer Questions',icon:'◎',role:()=>normalizeCategoryClient(currentUser&&(currentUser.category||currentUser.role))!=='Admin',run:()=>switchTab('peer')},
+  {key:'ask-support',label:'Ask Support',icon:'✉',role:()=>true,run:()=>openHomeQuestionComposer()},
+  {key:'my-questions',label:'My Questions',icon:'⌂',role:()=>true,run:()=>switchTab('coordinator')},
+  {key:'my-tasks',label:'My Tasks',icon:'✓',role:()=>true,run:()=>switchTab('tasks')},
+  {key:'global-search',label:'Global Search',icon:'⌕',role:()=>true,run:()=>focusGlobalSearchFromRadial()},
+  {key:'answered',label:'Answered',icon:'✓',role:()=>true,run:()=>switchTab('answered')},
+  {key:'all-questions',label:'All Questions',icon:'≡',role:()=>true,run:()=>switchTab('all-tickets')},
+  {key:'unread-answers',label:'Unread Answers',icon:'●',role:()=>true,run:()=>{switchTab('answered');applyMyAnsweredCardFilter('UNREAD');}},
+  {key:'my-desk',label:'My Desk',icon:'▤',role:()=>isOperationalSupportUser(currentUser),run:()=>switchTab('supervisor')}
+];
+const DEFAULT_CREATE_SHORTCUTS=['my-questions','my-tasks','global-search','answered','all-questions','peer'];
+let createRadialGestureActive=false;
+let createRadialSelectedKey='';
+let createSettingsHoldTimer=null;
+let createSettingsHoldTriggered=false;
+let createShortcutDraft=[];
 
-function closeCreateRadialMenu() {
-  const panel = document.getElementById('create-radial-menu');
-  if (panel) {
-    panel.classList.remove('is-open');
-    panel.querySelectorAll('.create-radial-item.is-selected').forEach(item => item.classList.remove('is-selected'));
-  }
-  createRadialGestureActive = false;
-  createRadialSelectedTab = '';
+function allowedCreateShortcuts(){return CREATE_SHORTCUTS.filter(item=>item.role());}
+function createShortcutStorageKey(){return 'supportHubRadialShortcuts:'+String(currentUser&&currentUser.email||'guest').toLowerCase();}
+function getCreateShortcutKeys(){
+  const allowed=new Set(allowedCreateShortcuts().map(item=>item.key));
+  try{
+    const saved=JSON.parse(localStorage.getItem(createShortcutStorageKey())||'null');
+    if(Array.isArray(saved))return saved.filter((key,index)=>allowed.has(key)&&saved.indexOf(key)===index).slice(0,6);
+  }catch(e){}
+  return DEFAULT_CREATE_SHORTCUTS.filter(key=>allowed.has(key)).slice(0,6);
 }
-
-function suppressCreateContextMenu(event) {
-  if (event) event.preventDefault();
-}
-
-function updateCreateRadialSelection(clientX, clientY) {
-  const panel = document.getElementById('create-radial-menu');
-  if (!panel || !createRadialGestureActive) return;
-  panel.querySelectorAll('.create-radial-item.is-selected').forEach(item => item.classList.remove('is-selected'));
-  const target = document.elementFromPoint(clientX, clientY);
-  const item = target && target.closest ? target.closest('[data-create-nav]') : null;
-  if (!item || !panel.contains(item) || item.classList.contains('hidden')) {
-    createRadialSelectedTab = '';
-    return;
-  }
-  item.classList.add('is-selected');
-  createRadialSelectedTab = item.getAttribute('data-create-nav') || '';
-}
-
-function beginCreateRadialGesture(event) {
-  if (!event || event.button !== 2) return;
-  event.preventDefault();
-  event.stopPropagation();
-  closeHomeCreateMenu();
-  closeCreateRadialMenu();
-  const panel = document.getElementById('create-radial-menu');
-  if (!panel || !currentUser) return;
-  panel.querySelectorAll('[data-create-nav]').forEach(button => {
-    const tab = button.getAttribute('data-create-nav');
-    button.classList.toggle('hidden', allowedRoleAwareTab(tab) !== tab);
+function renderCreateRadialMenu(){
+  const panel=document.getElementById('create-radial-menu');if(!panel)return;
+  const selected=getCreateShortcutKeys().map(key=>CREATE_SHORTCUTS.find(item=>item.key===key)).filter(Boolean);
+  panel.innerHTML='';
+  const radius=88;
+  selected.forEach((item,index)=>{
+    const angle=(-90+360*index/selected.length)*Math.PI/180;
+    const button=document.createElement('button');button.type='button';button.setAttribute('role','menuitem');button.setAttribute('data-create-nav',item.key);button.setAttribute('aria-label',item.label);button.className='create-radial-item';
+    button.style.setProperty('--shortcut-x',(Math.cos(angle)*radius).toFixed(1)+'px');button.style.setProperty('--shortcut-y',(Math.sin(angle)*radius).toFixed(1)+'px');
+    const icon=document.createElement('span');icon.setAttribute('aria-hidden','true');icon.textContent=item.icon;
+    const label=document.createElement('span');label.textContent=item.label;button.append(icon,label);panel.appendChild(button);
   });
-  createRadialGestureActive = true;
-  panel.classList.add('is-open');
 }
-
-function finishCreateRadialGesture(event, shouldNavigate) {
-  if (!createRadialGestureActive) return;
-  if (event && Number.isFinite(event.clientX) && Number.isFinite(event.clientY)) {
-    updateCreateRadialSelection(event.clientX, event.clientY);
-  }
-  const requestedTab = createRadialSelectedTab;
+function closeCreateShortcutSettings(){const modal=document.getElementById('create-shortcut-settings-modal');if(modal){modal.classList.add('hidden');modal.classList.remove('flex');}}
+function updateCreateShortcutSettingsCount(){
+  const options=document.getElementById('create-shortcut-options'),count=document.getElementById('create-shortcut-count');if(!options||!count)return;
+  const boxes=[...options.querySelectorAll('input[type="checkbox"]')],checked=boxes.filter(box=>box.checked).length;
+  count.textContent=checked+' of 6 selected';boxes.forEach(box=>{box.disabled=!box.checked&&checked>=6;});
+}
+function openCreateShortcutSettings(){
+  if(!currentUser)return;closeCreateRadialMenu();createShortcutDraft=getCreateShortcutKeys();
+  const options=document.getElementById('create-shortcut-options'),modal=document.getElementById('create-shortcut-settings-modal');if(!options||!modal)return;
+  options.innerHTML='';
+  allowedCreateShortcuts().forEach(item=>{
+    const label=document.createElement('label');label.className='flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer';
+    const box=document.createElement('input');box.type='checkbox';box.value=item.key;box.checked=createShortcutDraft.includes(item.key);box.className='w-4 h-4 accent-slate-900';
+    box.addEventListener('change',()=>{createShortcutDraft=[...options.querySelectorAll('input:checked')].map(input=>input.value);updateCreateShortcutSettingsCount();});
+    const text=document.createElement('span');text.className='text-xs font-semibold text-slate-700';text.textContent=item.label;label.append(box,text);options.appendChild(label);
+  });
+  updateCreateShortcutSettingsCount();modal.classList.remove('hidden');modal.classList.add('flex');
+}
+function saveCreateShortcutSettings(){
+  const options=document.getElementById('create-shortcut-options');if(!options)return;
+  const selected=[...options.querySelectorAll('input:checked')].map(input=>input.value).slice(0,6);
+  if(!selected.length){showToast('Choose at least one radial shortcut.');return;}
+  try{localStorage.setItem(createShortcutStorageKey(),JSON.stringify(selected));}catch(e){}
+  closeCreateShortcutSettings();showToast('Radial shortcuts saved.');
+}
+function focusGlobalSearchFromRadial(){
+  const input=document.getElementById('quick-command-input');if(!input)return;
+  input.focus();input.select();handleQuickCommandInput();
+}
+function updateCreateRadialSelection(clientX,clientY){
+  const panel=document.getElementById('create-radial-menu');if(!panel||!createRadialGestureActive)return;
+  panel.querySelectorAll('.create-radial-item.is-selected').forEach(item=>item.classList.remove('is-selected'));
+  const target=document.elementFromPoint(clientX,clientY),item=target&&target.closest?target.closest('[data-create-nav]'):null;
+  if(!item||!panel.contains(item)){createRadialSelectedKey='';return;}
+  item.classList.add('is-selected');createRadialSelectedKey=item.getAttribute('data-create-nav')||'';
+}
+function closeCreateRadialMenu(){
+  const panel=document.getElementById('create-radial-menu');if(panel)panel.classList.remove('is-open');
+  createRadialGestureActive=false;createRadialSelectedKey='';
+}
+function beginCreateRadialGesture(event){
+  if(!event||event.button!==2)return;
+  event.preventDefault();event.stopPropagation();closeHomeCreateMenu();closeCreateRadialMenu();
+  const panel=document.getElementById('create-radial-menu');if(!panel||!currentUser)return;
+  renderCreateRadialMenu();createRadialGestureActive=true;panel.classList.add('is-open');
+}
+function startCreateButtonHold(event){
+  if(!event)return;
+  if(event.button===2){beginCreateRadialGesture(event);return;}
+  if(event.button!==0)return;
+  createSettingsHoldTriggered=false;if(createSettingsHoldTimer)clearTimeout(createSettingsHoldTimer);
+  createSettingsHoldTimer=setTimeout(()=>{createSettingsHoldTimer=null;createSettingsHoldTriggered=true;closeHomeCreateMenu();openCreateShortcutSettings();},550);
+}
+function finishCreateRadialGesture(event,shouldNavigate){
+  if(!createRadialGestureActive)return;
+  if(event&&Number.isFinite(event.clientX)&&Number.isFinite(event.clientY))updateCreateRadialSelection(event.clientX,event.clientY);
+  const key=createRadialSelectedKey;closeCreateRadialMenu();
+  if(shouldNavigate&&key){const item=CREATE_SHORTCUTS.find(shortcut=>shortcut.key===key);if(item&&item.role())item.run();}
+}
+function handleCreateButtonClick(event){
+  if(createSettingsHoldTriggered){if(event)event.preventDefault();createSettingsHoldTriggered=false;return;}
   closeCreateRadialMenu();
-  if (shouldNavigate && requestedTab) {
-    closeHomeCreateMenu();
-    switchTab(allowedRoleAwareTab(requestedTab));
-  }
 }
-
-document.addEventListener('pointermove', event => {
-  if (createRadialGestureActive) updateCreateRadialSelection(event.clientX, event.clientY);
-}, true);
-document.addEventListener('pointerup', event => {
-  if (event.button === 2) finishCreateRadialGesture(event, true);
-}, true);
-document.addEventListener('pointercancel', event => finishCreateRadialGesture(event, false), true);
-document.addEventListener('keydown', event => {
-  if (event.key === 'Escape') closeCreateRadialMenu();
+function suppressCreateContextMenu(event){if(event)event.preventDefault();}
+document.addEventListener('pointermove',event=>{if(createRadialGestureActive)updateCreateRadialSelection(event.clientX,event.clientY);},true);
+document.addEventListener('pointerup',event=>{
+  if(createSettingsHoldTimer){clearTimeout(createSettingsHoldTimer);createSettingsHoldTimer=null;}
+  if(event.button===2){finishCreateRadialGesture(event,true);return;}
+  if(createSettingsHoldTriggered)setTimeout(()=>{createSettingsHoldTriggered=false;},80);
+},true);
+document.addEventListener('pointercancel',event=>{
+  if(createSettingsHoldTimer){clearTimeout(createSettingsHoldTimer);createSettingsHoldTimer=null;}
+  if(event.button===2)finishCreateRadialGesture(event,false);createSettingsHoldTriggered=false;
+},true);
+document.addEventListener('keydown',event=>{if(event.key==='Escape'){closeCreateRadialMenu();closeCreateShortcutSettings();}});
+window.addEventListener('blur',()=>{
+  if(createSettingsHoldTimer){clearTimeout(createSettingsHoldTimer);createSettingsHoldTimer=null;}
+  createSettingsHoldTriggered=false;finishCreateRadialGesture(null,false);
 });
-window.addEventListener('blur', () => finishCreateRadialGesture(null, false));
 
 function openHomeQuestionComposer() {
   closeHomeCreateMenu();
