@@ -4754,7 +4754,7 @@ function answerQuestion(ticketId, answerText, supervisorEmail, supervisorName, f
         title: title,
         instructions: instructions,
         assignee: assignee,
-        dueDate: normalizeTaskDueDate(raw.dueDate) || getNextBusinessTaskDueDate(),
+        dueDate: taskDueDateForAttention_(normalizeTaskDueDate(raw.dueDate) || getNextBusinessTaskDueDate(), raw.needAttentionToday === true || raw.attentionToday === true),
         priority: '', // Legacy priority column retained only for sheet compatibility.
         category: normalizeWorkCategory(raw.category || selectedCategory),
         relatedClientTalent: relatedClientTalent,
@@ -5164,7 +5164,8 @@ function createFollowUpTaskFromAnswered(ticketId, payload, requestingEmail) {
     const assignee = requireTaskAssignee(requestedAssignee);
     const title = String(payload.title || '').trim();
     const instructions = String(payload.instructions || '').trim();
-    const dueDate = normalizeTaskDueDate(payload.dueDate) || getNextBusinessTaskDueDate();
+    const attentionToday = payload.needAttentionToday === true || payload.attentionToday === true;
+    const dueDate = taskDueDateForAttention_(normalizeTaskDueDate(payload.dueDate) || getNextBusinessTaskDueDate(), attentionToday);
     const priority = ''; // Legacy priority column retained only for sheet compatibility.
     const taskCategory = normalizeWorkCategory(payload.category || row[A_COL.WORK_CATEGORY - 1]);
     const relatedClientTalent = Object.prototype.hasOwnProperty.call(payload, 'relatedClientTalent')
@@ -5174,7 +5175,6 @@ function createFollowUpTaskFromAnswered(ticketId, payload, requestingEmail) {
       ? String(payload.relatedLink || '').trim()
       : String(row[A_COL.LINK - 1] || '').trim();
     const relatedEntityType = String(payload.relatedEntityType || (relatedClientTalent ? 'Event' : '')).trim();
-    const attentionToday = payload.needAttentionToday === true || payload.attentionToday === true;
     const attentionUntil = attentionToday ? todayCSTDateString() : '';
     if (!title) throw new Error('Task title is required.');
     if (title.length > 140) throw new Error('Task title is too long. Please keep it under 140 characters.');
@@ -5858,6 +5858,15 @@ function getNextBusinessTaskDueDate() {
   return Utilities.formatDate(d, 'UTC', 'yyyy-MM-dd');
 }
 
+function taskDueDateForAttention_(dueDate, attentionToday) {
+  const cleanDueDate = normalizeTaskDueDate(dueDate);
+  if (attentionToday !== true) return cleanDueDate;
+  const today = todayCSTDateString();
+  // Keep a past due date visible as overdue. Otherwise, attention means the
+  // task is due today, regardless of a future or blank requested date.
+  return cleanDueDate && cleanDueDate < today ? cleanDueDate : today;
+}
+
 function findTaskRowById(sheet, taskId) {
   const id = String(taskId || '').trim();
   if (!id) return -1;
@@ -6082,7 +6091,8 @@ function createTask(payload) {
     const assignee = requireTaskAssignee(payload.assignedToEmail);
     const title = String(payload.title || '').trim();
     const instructions = String(payload.instructions || '').trim();
-    const dueDate = normalizeTaskDueDate(payload.dueDate) || getNextBusinessTaskDueDate();
+    const attentionToday = payload.needAttentionToday === true || payload.attentionToday === true;
+    const dueDate = taskDueDateForAttention_(normalizeTaskDueDate(payload.dueDate) || getNextBusinessTaskDueDate(), attentionToday);
     const priority = ''; // Legacy priority column retained only for sheet compatibility.
     const parent = resolveTaskParentContext(payload.parentType, payload.parentId, creator);
     const requestedTaskCategory = Object.prototype.hasOwnProperty.call(payload, 'category') ? String(payload.category || '').trim() : 'None';
@@ -6137,7 +6147,6 @@ function createTask(payload) {
     const now = new Date();
     const taskId = Utilities.getUuid();
     const supportOwnerEmail = resolveTaskSupportOwnerEmail(assignee);
-    const attentionToday = payload.needAttentionToday === true || payload.attentionToday === true;
     const attentionUntil = attentionToday ? todayCSTDateString() : '';
     sheet.appendRow([
       taskId, title, instructions, assignee.name, assignee.email,
@@ -6217,6 +6226,8 @@ function setTaskAttentionToday(taskId, enabled, requestingEmail) {
     if (task.status === TASK_STATUS_COMPLETED || task.status === TASK_STATUS_CANCELLED) throw new Error('Completed or cancelled tasks cannot be marked Need Attention Today.');
     const active = enabled === true || String(enabled).toLowerCase() === 'true';
     const now = new Date();
+    const dueDate = active ? taskDueDateForAttention_(task.dueDate, true) : task.dueDate;
+    if (dueDate !== task.dueDate) target.sheet.getRange(target.rowIndex, T_COL.DUE_DATE).setValue(dueDate);
     target.sheet.getRange(target.rowIndex, T_COL.ATTENTION_TODAY).setValue(active);
     target.sheet.getRange(target.rowIndex, T_COL.ATTENTION_SET_AT).setValue(active ? now : '');
     target.sheet.getRange(target.rowIndex, T_COL.ATTENTION_SET_BY).setValue(active ? actor.name : '');
@@ -6224,7 +6235,10 @@ function setTaskAttentionToday(taskId, enabled, requestingEmail) {
     target.sheet.getRange(target.rowIndex, T_COL.UPDATED_AT).setValue(now);
     target.sheet.getRange(target.rowIndex, T_COL.UPDATED_BY).setValue(actor.name);
     bumpTaskDataVersion();
-    logAudit(active ? 'TASK_ATTENTION_TODAY_SET' : 'TASK_ATTENTION_TODAY_CLEARED', actor.email, actor.name, taskId, { attentionToday: active, entity: 'Task' });
+    logAudit(active ? 'TASK_ATTENTION_TODAY_SET' : 'TASK_ATTENTION_TODAY_CLEARED', actor.email, actor.name, taskId, {
+      attentionToday: active, entity: 'Task',
+      dueDateFrom: task.dueDate || '', dueDateTo: dueDate || '', dueDateAdjusted: dueDate !== task.dueDate
+    });
     return { success: true, task: taskRowToObject(target.sheet.getRange(target.rowIndex, 1, 1, T_WIDTH).getValues()[0]) };
   }, { operation: 'setTaskAttentionToday' });
 }
@@ -6335,8 +6349,9 @@ function updateTaskDueDate(taskId, dueDate, requestingEmail, expected) {
     const actorEmail = normalizeEmail(actor.email);
     const canViewTask = isSupportMember(actor) || task.assignedToEmail === actorEmail || task.createdByEmail === actorEmail;
     if (!canViewTask) throw new Error('Access denied: you cannot update this task.');
-    const cleanDueDate = normalizeTaskDueDate(dueDate);
-    if (!cleanDueDate) throw new Error('Please choose a due date.');
+    const requestedDueDate = normalizeTaskDueDate(dueDate);
+    if (!requestedDueDate) throw new Error('Please choose a due date.');
+    const cleanDueDate = taskDueDateForAttention_(requestedDueDate, task.attentionToday === true);
 
     expected = expected || {};
     if (expected.updatedAt && task.updatedAt && String(expected.updatedAt) !== String(task.updatedAt)) {
@@ -6403,7 +6418,10 @@ function updateTaskDetails(taskId, updates, requestingEmail, expected) {
     updates = updates || {};
     const title = String(updates.title !== undefined ? updates.title : task.title).trim();
     const instructions = String(updates.instructions !== undefined ? updates.instructions : task.instructions).trim();
-    const dueDate = normalizeTaskDueDate(updates.dueDate !== undefined ? updates.dueDate : task.dueDate);
+    const requestedDueDate = normalizeTaskDueDate(updates.dueDate !== undefined ? updates.dueDate : task.dueDate);
+    const dueDate = task.attentionToday === true
+      ? taskDueDateForAttention_(requestedDueDate, true)
+      : requestedDueDate;
     const priority = ''; // Legacy priority column retained only for sheet compatibility.
     const taskCategory = normalizeTaskCategoryValue_(updates.category !== undefined ? updates.category : task.category, task.category);
     const relatedClientTalent = String(updates.relatedClientTalent !== undefined ? updates.relatedClientTalent : task.relatedClientTalent).trim();
