@@ -1,3 +1,6 @@
+Warning: truncated output (original token count: 195499)
+Total output lines: 12353
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1967,14 +1970,14 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 <div class="p-5 border-b shrink-0 bg-white">
   <div class="flex justify-between items-start gap-4">
     <div class="min-w-0 flex-1">
-      <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200/60">Resolve Ticket</span>
+      <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200/60">Resolve Question</span>
       <h3 id="amodal-event" class="text-base font-bold text-slate-900 mt-1 break-words">Event Name</h3>
     </div>
-    <div class="app-modal-tools" aria-label="Ticket window controls">
-      <button type="button" onclick="minimizeWorkModal('answer-modal')" class="app-modal-tool" title="Minimize" aria-label="Minimize ticket window">—</button>
-      <button type="button" onclick="resetWorkModal('answer-modal')" class="app-modal-tool" title="Reset size" aria-label="Reset ticket window size">↺</button>
-      <button type="button" onclick="maximizeWorkModal('answer-modal')" class="app-modal-tool" title="Maximize" aria-label="Maximize ticket window">□</button>
-      <button type="button" onclick="closeAnswerModal()" class="app-modal-tool app-modal-tool-close" title="Close" aria-label="Close ticket window">&times;</button>
+    <div class="app-modal-tools" aria-label="Question window controls">
+      <button type="button" onclick="minimizeWorkModal('answer-modal')" class="app-modal-tool" title="Minimize" aria-label="Minimize question window">—</button>
+      <button type="button" onclick="resetWorkModal('answer-modal')" class="app-modal-tool" title="Reset size" aria-label="Reset question window size">↺</button>
+      <button type="button" onclick="maximizeWorkModal('answer-modal')" class="app-modal-tool" title="Maximize" aria-label="Maximize question window">□</button>
+      <button type="button" onclick="closeAnswerModal()" class="app-modal-tool app-modal-tool-close" title="Close" aria-label="Close question window">&times;</button>
     </div>
   </div>
 
@@ -2124,12 +2127,16 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 <div class="bg-white rounded-2xl shadow-2xl max-w-xl w-full my-8 border border-slate-200 max-h-[85vh] flex flex-col">
 <div class="flex justify-between items-start gap-3 p-6 pb-3 border-b shrink-0">
 <div class="min-w-0 flex-1">
-<div class="flex flex-wrap items-center gap-1.5"><span class="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-emerald-700 text-white">Answered Ticket</span><span id="vmodal-read-badge" class="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-rose-500 text-white">UNREAD</span></div>
+<div class="flex flex-wrap items-center gap-1.5"><span class="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-emerald-700 text-white">Answered Question</span><span id="vmodal-read-badge" class="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-rose-500 text-white">UNREAD</span></div>
 <h3 id="vmodal-event" class="text-lg font-bold text-slate-900 mt-1 break-all">Event Name</h3>
-<p class="text-[11px] text-slate-400">Asked by: <span id="vmodal-asked" class="font-semibold text-slate-700"></span></p>
-<p class="text-[11px] text-slate-400">Asked at: <span id="vmodal-created" class="font-semibold text-slate-700"></span></p>
-<p class="text-[11px] text-slate-400">Answered by: <span id="vmodal-by-header" class="font-semibold text-slate-700"></span></p>
-<p class="text-[11px] text-slate-400">Answered at: <span id="vmodal-answered" class="font-semibold text-slate-700"></span></p>
+<div class="resolve-review-grid mt-2">
+<div class="resolve-review-item"><span class="resolve-review-label">Asked by</span><span id="vmodal-asked" class="resolve-review-value"></span></div>
+<div class="resolve-review-item"><span class="resolve-review-label">Asked at</span><span id="vmodal-created" class="resolve-review-value"></span></div>
+<div class="resolve-review-item"><span class="resolve-review-label">Answered by</span><span id="vmodal-by-header" class="resolve-review-value"></span></div>
+<div class="resolve-review-item"><span class="resolve-review-label">Answered at</span><span id="vmodal-answered" class="resolve-review-value"></span></div>
+<div class="resolve-review-item"><span class="resolve-review-label">Resolution speed</span><span id="vmodal-speed" class="resolve-review-value"></span></div>
+<div class="resolve-review-item"><span class="resolve-review-label">Case link</span><a id="vmodal-link" href="#" target="_blank" class="resolve-review-link">Open Case Link ↗</a></div>
+</div>
 <p id="vmodal-context" class="text-[11px] font-semibold text-blue-700 mt-1"></p>
 </div>
 <button onclick="closeViewModal()" class="shrink-0 text-slate-400 hover:text-slate-600 font-bold text-xl leading-none">&times;</button>
@@ -2158,18 +2165,18 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
   <div class="flex items-center justify-between gap-3">
     <div>
       <p class="text-[10px] font-bold uppercase tracking-wider text-amber-700">Support Actions</p>
-      <p class="text-[10px] text-slate-500 mt-0.5">Update an answered ticket without losing its history.</p>
+      <p class="text-[10px] text-slate-500 mt-0.5">Update an answered question without losing its history.</p>
     </div>
     <span id="vmodal-current-status" class="text-[10px] font-bold px-2 py-1 rounded bg-white border border-slate-200 text-slate-600">Answered</span>
   </div>
   <div class="flex flex-wrap items-center gap-2">
     <button onclick="toggleAnsweredUpdatePanel()" class="px-3 py-2 rounded-lg text-[11px] font-bold bg-emerald-600 text-white hover:bg-emerald-700">Add Update</button>
     <button onclick="openAnsweredTicketTaskCreator()" class="px-3 py-2 rounded-lg text-[11px] font-bold bg-white text-blue-700 border border-blue-200 hover:bg-blue-50">Add Task</button>
-    <button onclick="toggleAnsweredStatusPanel()" class="px-3 py-2 rounded-lg text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100">Reopen Ticket</button>
+    <button onclick="toggleAnsweredStatusPanel()" class="px-3 py-2 rounded-lg text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100">Reopen Question</button>
   </div>
 
   <div id="vmodal-status-panel" class="hidden bg-white border border-slate-200 rounded-xl p-3 space-y-2">
-    <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500">Reopen Ticket</label>
+    <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500">Reopen Question</label>
     <select id="vmodal-status-select" class="w-full border border-slate-300 rounded-xl p-2.5 text-xs">
       <option value="Open">Active Follow-Up</option>
       <option value="Hold">On Hold</option>
@@ -2177,7 +2184,7 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
     <textarea id="vmodal-status-note" rows="3" class="w-full border border-slate-300 rounded-xl p-2.5 text-xs" placeholder="Reason / follow-up note (required when reopening)"></textarea>
     <div class="flex justify-end gap-2">
       <button onclick="toggleAnsweredStatusPanel(false)" class="px-3 py-1.5 text-[11px] text-slate-500 font-semibold">Cancel</button>
-      <button onclick="submitAnsweredStatusChange()" class="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-indigo-700 text-white">Reopen Ticket</button>
+      <button onclick="submitAnsweredStatusChange()" class="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-indigo-700 text-white">Reopen Question</button>
     </div>
   </div>
 
@@ -2191,7 +2198,7 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
     <p class="text-[10px] text-slate-400">Type @ to mention and notify a team member.</p>
     <label class="flex items-start gap-2 rounded-xl border border-indigo-200 bg-indigo-50/70 p-2.5 cursor-pointer">
       <input id="vmodal-update-needs-look" type="checkbox" onchange="updateAnsweredUpdateActionLabel()" class="mt-0.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
-      <span><span class="block text-[11px] font-bold text-indigo-800">Needs Another Look</span><span class="block text-[10px] text-indigo-600 mt-0.5">Reopen this ticket and return it to the previous Support owner.</span></span>
+      <span><span class="block text-[11px] font-bold text-indigo-800">Needs Another Look</span><span class="block text-[10px] text-indigo-600 mt-0.5">Reopen this question and return it to the previous Support owner.</span></span>
     </label>
     <div class="flex justify-end gap-2">
       <button onclick="toggleAnsweredUpdatePanel(false)" class="px-3 py-1.5 text-[11px] text-slate-500 font-semibold">Cancel</button>
@@ -2201,15 +2208,10 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 
 </div>
 
-<div class="grid grid-cols-2 gap-3 text-[11px] bg-slate-50 p-3 rounded-xl border border-slate-200/80">
-<div><span class="text-slate-400">Answered By:</span> <strong id="vmodal-by" class="text-slate-800"></strong></div>
-<div><span class="text-slate-400">Resolution Speed:</span> <strong id="vmodal-speed" class="text-slate-800"></strong></div>
-<div class="col-span-2 min-w-0"><span class="text-slate-400">Case Link:</span> <a id="vmodal-link" href="#" target="_blank" class="text-blue-600 font-bold underline break-all">Open Case Link &rarr;</a></div>
-</div>
 </div>
 
 <div class="flex flex-wrap justify-between items-center gap-2 p-6 pt-4 border-t shrink-0">
-<div class="flex flex-wrap gap-2"><button id="view-detail-back-btn" onclick="navigateDetailBack()" class="hidden px-4 py-2 rounded-xl text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200">← Back</button><button id="vmodal-reopen-btn" onclick="reopenTicket()" class="hidden bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200/60 px-4 py-2 rounded-xl text-xs font-semibold transition">Reopen Ticket</button></div>
+<div class="flex flex-wrap gap-2"><button id="view-detail-back-btn" onclick="navigateDetailBack()" class="hidden px-4 py-2 rounded-xl text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200">← Back</button><button id="vmodal-reopen-btn" onclick="reopenTicket()" class="hidden bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200/60 px-4 py-2 rounded-xl text-xs font-semibold transition">Reopen Question</button></div>
 <div class="flex gap-2">
 <button id="vmodal-toggle-btn" onclick="toggleReadModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-500 hover:bg-slate-100">Mark as Read</button>
 <button onclick="closeViewModal()" class="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2 rounded-xl text-xs font-bold shadow transition">Close</button>
@@ -2224,7 +2226,7 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 <div class="flex justify-between items-start gap-3 p-6 pb-3 border-b shrink-0">
 <div class="min-w-0 flex-1">
 <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200/60">Admin Edit</span>
-<h3 class="text-base font-bold text-slate-900 mt-1">Edit Ticket Record</h3>
+<h3 class="text-base font-bold text-slate-900 mt-1">Edit Question Record</h3>
 </div>
 <button onclick="closeEditModal()" class="shrink-0 text-slate-400 hover:text-slate-600 font-bold text-lg leading-none">&times;</button>
 </div>
@@ -2279,19 +2281,24 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 <div id="ticket-detail-panel" class="bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col">
 <div class="flex justify-between items-start gap-3 p-4 border-b shrink-0">
 <div class="min-w-0 flex-1">
-<div class="flex flex-wrap items-center gap-1.5"><span class="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-slate-900 text-white">Ticket</span><span id="tdmodal-status-badge" class="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200/60">Open</span></div>
+<div class="flex flex-wrap items-center gap-1.5"><span class="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-slate-900 text-white">Question</span><span id="tdmodal-status-badge" class="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200/60">Open</span></div>
 <h3 id="tdmodal-event" class="text-lg font-bold text-slate-900 mt-1 break-all">Event Name</h3>
-<p class="text-[11px] text-slate-400">Asked by: <span id="tdmodal-asked" class="font-semibold text-slate-700"></span></p>
-<p class="text-[11px] text-slate-400">Asked at: <span id="tdmodal-created" class="font-semibold text-slate-700"></span></p>
-<p class="text-[11px] text-slate-400">Answered by: <span id="tdmodal-answered-by" class="font-semibold text-slate-700"></span></p>
-<p class="text-[11px] text-slate-400">Answered at: <span id="tdmodal-answered-at" class="font-semibold text-slate-700"></span></p>
+<div class="resolve-review-grid mt-2">
+<div class="resolve-review-item"><span class="resolve-review-label">Asked by</span><span id="tdmodal-asked" class="resolve-review-value"></span></div>
+<div class="resolve-review-item"><span class="resolve-review-label">Asked at</span><span id="tdmodal-created" class="resolve-review-value"></span></div>
+<div class="resolve-review-item"><span class="resolve-review-label">Answered by</span><span id="tdmodal-answered-by" class="resolve-review-value"></span></div>
+<div class="resolve-review-item"><span class="resolve-review-label">Answered at</span><span id="tdmodal-answered-at" class="resolve-review-value"></span></div>
+<div class="resolve-review-item"><span class="resolve-review-label">Assigned to</span><span id="tdmodal-assigned" class="resolve-review-value"></span></div>
+<div class="resolve-review-item"><span class="resolve-review-label">Status changed</span><span id="tdmodal-status-changed" class="resolve-review-value"></span></div>
+<div class="resolve-review-item"><span class="resolve-review-label">Case / Event</span><a id="tdmodal-link" href="#" target="_blank" class="resolve-review-link">Open Case Link ↗</a></div>
+</div>
 <p id="tdmodal-context" class="text-[11px] font-semibold text-blue-700 mt-1"></p>
 </div>
-<div class="app-modal-tools" aria-label="Ticket window controls">
-<button type="button" onclick="minimizeWorkModal('ticket-detail-modal')" class="app-modal-tool" title="Minimize" aria-label="Minimize ticket window">—</button>
-<button type="button" onclick="resetWorkModal('ticket-detail-modal')" class="app-modal-tool" title="Reset size" aria-label="Reset ticket window size">↺</button>
-<button type="button" onclick="maximizeWorkModal('ticket-detail-modal')" class="app-modal-tool" title="Maximize" aria-label="Maximize ticket window">□</button>
-<button type="button" onclick="closeTicketDetailModal()" class="app-modal-tool app-modal-tool-close" title="Close" aria-label="Close ticket window">&times;</button>
+<div class="app-modal-tools" aria-label="Question window controls">
+<button type="button" onclick="minimizeWorkModal('ticket-detail-modal')" class="app-modal-tool" title="Minimize" aria-label="Minimize question window">—</button>
+<button type="button" onclick="resetWorkModal('ticket-detail-modal')" class="app-modal-tool" title="Reset size" aria-label="Reset question window size">↺</button>
+<button type="button" onclick="maximizeWorkModal('ticket-detail-modal')" class="app-modal-tool" title="Maximize" aria-label="Maximize question window">□</button>
+<button type="button" onclick="closeTicketDetailModal()" class="app-modal-tool app-modal-tool-close" title="Close" aria-label="Close question window">&times;</button>
 </div>
 </div>
 
@@ -2307,7 +2314,7 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 </div>
 
 <div id="tdmodal-unanswered-note" class="hidden bg-amber-50/60 border border-amber-200/80 text-amber-900 rounded-xl p-3 text-xs font-semibold">
-This ticket has not been answered yet.
+This question has not been answered yet.
 </div>
 
 <div id="tdmodal-hold-banner" class="hidden bg-purple-50/80 border border-purple-200/80 text-purple-900 rounded-xl p-3 text-xs">
@@ -2328,17 +2335,11 @@ This ticket has not been answered yet.
   <div id="tdmodal-task-list" class="border-t border-blue-100 bg-white p-3 space-y-2"></div>
 </div>
 
-<div class="grid grid-cols-2 gap-3 text-[11px] bg-slate-50 p-3 rounded-xl border border-slate-200/80">
-<div><span class="text-slate-400">Answered By:</span> <strong id="tdmodal-by" class="text-slate-800"></strong></div>
-<div><span class="text-slate-400">Assigned To:</span> <strong id="tdmodal-assigned" class="text-slate-800"></strong></div>
-<div><span class="text-slate-400">Status Changed:</span> <strong id="tdmodal-status-changed" class="text-slate-800"></strong></div>
-<div class="col-span-2 min-w-0"><span class="text-slate-400">Case Link:</span> <a id="tdmodal-link" href="#" target="_blank" class="text-blue-600 font-bold underline break-all">Open Case Link &rarr;</a></div>
-</div>
 </div>
 
 <div class="flex flex-wrap justify-between items-center gap-2 p-6 pt-4 border-t shrink-0">
 <div class="flex flex-wrap gap-2"><button id="ticket-detail-back-btn" onclick="navigateDetailBack()" class="hidden px-4 py-2 rounded-xl text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200">← Back</button><button id="tdmodal-add-info-btn" onclick="addInfoFromActiveTicket()" class="hidden px-4 py-2 rounded-xl text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200">Add Information</button><button id="tdmodal-admin-edit-btn" onclick="editActiveTicketRecord()" class="hidden px-4 py-2 rounded-xl text-xs font-semibold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200">Edit Record</button></div>
-<div class="flex gap-2 ml-auto"><button onclick="closeTicketDetailModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-500 hover:bg-slate-100">Close</button><button id="tdmodal-work-btn" onclick="openActiveTicketWorkView()" class="hidden bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-xl text-xs font-bold shadow transition">Work Ticket</button></div>
+<div class="flex gap-2 ml-auto"><button onclick="closeTicketDetailModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-500 hover:bg-slate-100">Close</button><button id="tdmodal-work-btn" onclick="openActiveTicketWorkView()" class="hidden bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-xl text-xs font-bold shadow transition">Work Question</button></div>
 </div>
 </div>
 </div>
@@ -2428,6 +2429,8 @@ const TEAM_FETCH_INTERVAL_MS = 120000;
 let currentDataVersion = null;
 let currentSupervisorDataVersion = null;
 let fullQuestionDataNeedsRefresh = false;
+let answeredInitialFeedLoading = false;
+let answeredInitialFeedInFlight = false;
 let lastSupervisorAuxiliaryRefresh = 0;
 let supervisorRefreshInFlight = false;
 let supervisorRefreshQueued = false;
@@ -3990,6 +3993,8 @@ function finishLogin(member) {
   currentDataVersion = null;
   currentSupervisorDataVersion = null;
   fullQuestionDataNeedsRefresh = false;
+  answeredInitialFeedLoading = false;
+  answeredInitialFeedInFlight = false;
   lastSupervisorAuxiliaryRefresh = 0;
   supervisorRefreshInFlight = false;
   supervisorRefreshQueued = false;
@@ -4035,6 +4040,8 @@ function logoutToLogin() {
   currentDataVersion = null;
   currentSupervisorDataVersion = null;
   fullQuestionDataNeedsRefresh = false;
+  answeredInitialFeedLoading = false;
+  answeredInitialFeedInFlight = false;
   lastSupervisorAuxiliaryRefresh = 0;
   supervisorRefreshInFlight = false;
   supervisorRefreshQueued = false;
@@ -4155,6 +4162,8 @@ function exitAdminTestMode() {
 
 function resetUserSessionDataForIdentitySwitch() {
   currentDataVersion = null;
+  answeredInitialFeedLoading = false;
+  answeredInitialFeedInFlight = false;
   consecutiveNoChanges = 0;
   dataRefreshInFlight = false;
   refreshQueued = false;
@@ -4799,1268 +4808,7 @@ function openQuickUnreadTicket(ticketId){
 function openQuickReportModal(){ quickReportRange='TODAY'; document.getElementById('quick-report-modal').classList.remove('hidden'); const link=document.getElementById('quick-report-support-link'); if(link)link.classList.toggle('hidden',!isSupportUser(currentUser)); setQuickReportRange('TODAY'); }
 function closeQuickReportModal(){ document.getElementById('quick-report-modal').classList.add('hidden'); }
 function setQuickReportRange(range){ quickReportRange=range; document.querySelectorAll('.quick-report-range').forEach(b=>{ const active=b.dataset.quickReport===range; b.className='quick-report-range px-3 py-1.5 rounded-lg border text-xs font-semibold '+(active?'bg-slate-900 text-white border-slate-900':'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'); }); const date=document.getElementById('quick-report-date'); if(date){ date.classList.toggle('hidden',range!=='CUSTOM'); if(range==='CUSTOM'&&!date.value)date.value=cstDateString(new Date()); } renderQuickPersonalReport(); }
-function getQuickReportDateRange(){ if(quickReportRange==='CUSTOM'){ const v=document.getElementById('quick-report-date').value; if(!v)return null; return {start:cstDateBoundary(v,false),end:cstDateBoundary(v,true)}; } const preset=document.getElementById('report-range-preset'); const old=preset?preset.value:null; if(preset)preset.value=quickReportRange; const r=getReportDateRange(); if(preset&&old!==null)preset.value=old; return r; }
-function renderQuickPersonalReport(){ if(!currentUser)return; const range=getQuickReportDateRange(); const email=String(currentUser.email||'').toLowerCase(); const myQuestion=q=>isOwnerOf(q); const answeredByMe=q=>{ const a=String(q.answeredBy||'').trim().toLowerCase(); return a===email || a===String(currentUser.name||'').trim().toLowerCase(); }; const submitted=allQuestions.filter(q=>myQuestion(q)&&inDateRange(q.created,range)).length; const answers=allQuestions.filter(q=>q.sheet==='Answered'&&answeredByMe(q)&&inDateRange(q.answeredDate,range)).length; const taskCreated=allTasks.filter(t=>String(t.createdByEmail||'').toLowerCase()===email&&inDateRange(t.createdAt,range)).length; const taskCompleted=allTasks.filter(t=>(String(t.completedByEmail||'').toLowerCase()===email||(!t.completedByEmail&&String(t.assignedToEmail||'').toLowerCase()===email))&&t.status==='Completed'&&inDateRange(t.completedAt||t.updatedAt,range)).length; const unread=allQuestions.filter(q=>q.sheet==='Answered'&&isOwnerOf(q)&&!q.isRead).length; const activeTasks=allTasks.filter(t=>String(t.assignedToEmail||'').toLowerCase()===email&&isTaskActive(t)).length; const vals={'quick-stat-submitted':submitted,'quick-stat-answered':answers,'quick-stat-task-created':taskCreated,'quick-stat-task-completed':taskCompleted,'quick-stat-unread':unread,'quick-stat-active-tasks':activeTasks}; Object.entries(vals).forEach(([id,v])=>{const el=document.getElementById(id);if(el)el.innerText=v;}); }
-function cstDateBoundary(ymd,end){ const parts=String(ymd).split('-').map(Number); if(parts.length!==3)return null; const noon=new Date(Date.UTC(parts[0],parts[1]-1,parts[2],12,0,0)); return cstDayBoundary(noon,!!end); }
-
-const APP_TAB_NAMES = ['coordinator', 'peer', 'answered', 'all-tickets', 'tasks', 'supervisor', 'reporting', 'team'];
-
-function primaryAreaForTab(name) {
-  if (name === 'peer' || name === 'answered' || name === 'all-tickets' || name === 'tasks') return 'home';
-  if (name === 'supervisor') return 'support';
-  if (name === 'reporting') return 'reports';
-  if (name === 'team') return 'admin';
-  return 'home';
-}
-
-function allowedRoleAwareTab(name) {
-  if (!currentUser) return 'coordinator';
-  if (name === 'peer' && normalizeCategoryClient(currentUser.category || currentUser.role) === 'Admin') return 'coordinator';
-  if (name === 'supervisor' && !isOperationalSupportUser(currentUser)) return 'coordinator';
-  if ((name === 'reporting' || name === 'team') && !isSupportUser(currentUser)) return 'coordinator';
-  return APP_TAB_NAMES.includes(name) ? name : 'coordinator';
-}
-
-function activateTabShell(name) {
-  const area = primaryAreaForTab(name);
-  APP_TAB_NAMES.forEach(t => {
-    const view = document.getElementById('view-' + t);
-    if (view) view.classList.toggle('hidden', t !== name);
-  });
-
-  const primaryTabs = [
-    { id: 'tab-coordinator', area: 'home' },
-    { id: 'tab-supervisor', area: 'support' },
-    { id: 'tab-tasks', area: 'tasks' },
-    { id: 'tab-reporting', area: 'reports' },
-    { id: 'tab-team', area: 'admin' }
-  ];
-  primaryTabs.forEach(item => {
-    const tab = document.getElementById(item.id);
-    if (!tab) return;
-    const active = item.area === area;
-    tab.classList.toggle('text-emerald-400', active);
-    tab.classList.toggle('border-b-2', active);
-    tab.classList.toggle('border-emerald-400', active);
-    tab.classList.toggle('text-slate-400', !active);
-    tab.setAttribute('aria-current', active ? 'page' : 'false');
-  });
-
-  const workspaceSubnav = document.getElementById('workspace-subnavigation');
-  if (workspaceSubnav) workspaceSubnav.classList.toggle('hidden', area !== 'home');
-  const secondaryTabs = [
-    { id: 'subtab-coordinator', tab: 'coordinator' },
-    { id: 'tab-peer', tab: 'peer' },
-    { id: 'tab-answered', tab: 'answered' },
-    { id: 'tab-all-tickets', tab: 'all-tickets' },
-    { id: 'subtab-tasks', tab: 'tasks' }
-  ];
-  secondaryTabs.forEach(item => {
-    const tab = document.getElementById(item.id);
-    if (!tab) return;
-    const active = item.tab === name;
-    tab.classList.toggle('bg-slate-900', active);
-    tab.classList.toggle('text-white', active);
-    tab.classList.toggle('text-slate-600', !active);
-    tab.classList.toggle('hover:bg-slate-100', !active);
-    tab.setAttribute('aria-current', active ? 'page' : 'false');
-  });
-}
-
-function switchTab(name) {
-  name = allowedRoleAwareTab(name);
-  const previousTab = currentTab;
-  if (previousTab === 'tasks' && name !== 'tasks' && taskJourneySessionOpen) exitTaskJourneySession();
-  currentTab = name;
-  activateTabShell(name);
-  if (name === 'answered' && previousTab !== 'answered') prepareAnsweredDefaultView();
-  renderCurrentTab();
-
-  // Feeds skipped while Supervisor Desk is active refresh immediately when
-  // their own data becomes visible.
-  if (name === 'tasks' || name === 'answered' || name === 'reporting') refreshTasksData();
-  if (name === 'peer' || name === 'reporting') refreshPeerQuestionsData();
-
-  // Supervisor Desk uses a small open-question feed. When another tab opens,
-  // reconcile the complete Questions + Answered feed if anything changed
-  // while the user was working in Supervisor Desk.
-  const needsHistoricalData = name === 'answered' || name === 'all-tickets' || name === 'reporting';
-  if (needsHistoricalData && (fullQuestionDataNeedsRefresh || currentDataVersion === null)) {
-    currentDataVersion = null;
-    refreshData();
-  } else if (isSupportUser(currentUser) && (name === 'supervisor' || name === 'coordinator') && previousTab !== name) {
-    // Never wait behind a large Questions + Answered request. Supervisor Desk
-    // has its own independent open-ticket refresh.
-    refreshSupervisorData(false, false);
-  }
-}
-
-function renderCurrentTab() {
-  if (currentTab === 'coordinator') renderCoordinatorQuestions();
-  else if (currentTab === 'peer') renderPeerQuestions();
-  else if (currentTab === 'answered') renderAnsweredTab();
-  else if (currentTab === 'all-tickets') renderAllTickets();
-  else if (currentTab === 'tasks') renderTasks();
-  else if (currentTab === 'supervisor') renderSupervisorDesk();
-  else if (currentTab === 'reporting') renderReporting();
-  else if (currentTab === 'team') renderTeamTable();
-}
-
-function finishRefreshCycle() {
-  dataRefreshInFlight = false;
-  if (!currentUser) return;
-
-  // If another action asked for a refresh while this request was running, do
-  // one immediate follow-up instead of launching overlapping server calls.
-  if (refreshQueued) {
-    refreshQueued = false;
-    if (refreshTimer) clearTimeout(refreshTimer);
-    refreshTimer = setTimeout(refreshData, 0);
-  } else {
-    scheduleNextRefresh();
-  }
-}
-
-function useSupervisorLiveFeed() {
-  // Support's Coordinator Workspace also needs only live/open questions.
-  // Answered history is loaded when an actual history/reporting tab opens.
-  return isSupportUser(currentUser) && (currentTab === 'supervisor' || currentTab === 'coordinator');
-}
-
-function applyQuestionFeedResponse(response, supervisorOnly) {
-  response = response || {};
-  if (response.unchanged) {
-    consecutiveNoChanges++;
-    return false;
-  }
-
-  if (supervisorOnly) {
-    // A slower, older response must never replace newer queue data.
-    if (currentSupervisorDataVersion !== null && Number(response.version) < Number(currentSupervisorDataVersion)) return false;
-    const answered = allQuestions.filter(q => q.sheet === 'Answered');
-    allQuestions = answered.concat(response.data || []);
-    currentSupervisorDataVersion = response.version;
-    fullQuestionDataNeedsRefresh = String(currentDataVersion) !== String(response.version);
-  } else {
-    if (currentDataVersion !== null && Number(response.version) < Number(currentDataVersion)) return false;
-    const responseRows = response.data || [];
-    const responseIsOlderThanQueue = currentSupervisorDataVersion !== null && Number(response.version) < Number(currentSupervisorDataVersion);
-    if (responseIsOlderThanQueue) {
-      // Keep the newer open queue while accepting historical Answered data
-      // from the slower full response.
-      const currentOpen = allQuestions.filter(q => q.sheet === 'Questions Tracker');
-      allQuestions = responseRows.filter(q => q.sheet === 'Answered').concat(currentOpen);
-    } else {
-      allQuestions = responseRows;
-      currentSupervisorDataVersion = response.version;
-    }
-    currentDataVersion = response.version;
-    fullQuestionDataNeedsRefresh = responseIsOlderThanQueue;
-  }
-
-  consecutiveNoChanges = 0;
-  processPersonalAnswerNotifications();
-  processPersonalOpenFollowUpNotifications();
-  updateTickers();
-  renderCurrentTab();
-  return true;
-}
-
-function requestQuestionFeed(supervisorOnly, force, success, failure) {
-  const requestingUser = currentUser;
-  const requestStartedAt = Date.now();
-  const version = force ? null : (supervisorOnly ? currentSupervisorDataVersion : currentDataVersion);
-  const runner = google.script.run.withSuccessHandler(response => {
-    if (currentUser === requestingUser) {
-      recordLoadTiming(supervisorOnly ? 'supervisor' : 'history', response, Date.now() - requestStartedAt);
-      success(response);
-    }
-  }).withFailureHandler(err => {
-    if (currentUser === requestingUser) {
-      recordLoadFailure(supervisorOnly ? 'supervisor' : 'history', err, Date.now() - requestStartedAt);
-      failure(err);
-    }
-  });
-  if (supervisorOnly) runner.getSupervisorQuestionsDataIfChanged(currentUser.email, version);
-  else runner.getQuestionsDataIfChanged(currentUser.email, version);
-}
-
-function recordLoadTiming(kind, response, roundTripMs) {
-  const server = response && response.serverTiming ? response.serverTiming : {};
-  lastLoadTimings[kind] = {
-    roundTripMs: Math.max(0, Number(roundTripMs) || 0),
-    serverMs: Math.max(0, Number(server.totalMs) || 0),
-    authMs: Math.max(0, Number(server.authMs) || 0),
-    dataMs: Math.max(0, Number(server.dataMs) || 0),
-    recordedAt: new Date().toISOString()
-  };
-  console.log('Support Hub load timing', kind, lastLoadTimings[kind]);
-  recordSessionPerformanceMetric(Object.assign({ metric: kind, status: 'success' }, lastLoadTimings[kind]));
-  if (kind === 'supervisor') {
-    const status = document.getElementById('sup-load-status');
-    if (status) status.innerText = 'Open tickets loaded in ' + (lastLoadTimings[kind].roundTripMs / 1000).toFixed(1) + 's (server ' + (lastLoadTimings[kind].serverMs / 1000).toFixed(1) + 's).';
-  }
-}
-
-function performanceMetricLabel(metric) {
-  return ({ supervisor:'Supervisor Desk', history:'Ticket History', tasks:'Tasks', peer:'Peer Questions', 'team-roster':'Team Roster', 'search-server':'Server Search' })[metric] || metric;
-}
-
-function performanceMs(value) {
-  const number = Number(value);
-  return Number.isFinite(number) ? Math.max(0, Math.round(number)) : 0;
-}
-
-function recordSessionPerformanceMetric(entry) {
-  if (!entry || !entry.metric) return;
-  const event = {
-    metric: String(entry.metric),
-    status: entry.status === 'failure' ? 'failure' : 'success',
-    roundTripMs: performanceMs(entry.roundTripMs),
-    serverMs: performanceMs(entry.serverMs),
-    authMs: performanceMs(entry.authMs),
-    dataMs: performanceMs(entry.dataMs),
-    error: String(entry.error || '').slice(0, 300),
-    recordedAt: entry.recordedAt || new Date().toISOString()
-  };
-  sessionPerformanceEvents.push(event);
-  if (sessionPerformanceEvents.length > 150) sessionPerformanceEvents.shift();
-  renderPerformanceRefreshState();
-
-  // Admin Test Mode deliberately suppresses operational telemetry so acting as
-  // another user cannot be mistaken for that person's real browser session.
-  if (!currentUser || adminTestMode || event.metric === 'search-local') return;
-  const isSlow = event.roundTripMs >= PERFORMANCE_SLOW_MS;
-  const baseline = event.status === 'success' && !isSlow && !performanceBaselineSent.has(event.metric);
-  const notable = event.status === 'failure' || isSlow;
-  if (!baseline && !notable) return;
-  const throttleKey = event.metric + ':' + event.status + ':' + (isSlow ? 'slow' : 'normal');
-  const now = Date.now();
-  if (notable && now - Number(performanceLastSentAt.get(throttleKey) || 0) < 60000) return;
-  if (baseline) performanceBaselineSent.add(event.metric);
-  if (notable) performanceLastSentAt.set(throttleKey, now);
-  const payload = Object.assign({}, event, { baseline: baseline, release: APP_RELEASE });
-  const telemetryEmail = currentUser.email;
-  setTimeout(() => {
-    if (!currentUser || currentUser.email !== telemetryEmail) return;
-    google.script.run.withFailureHandler(() => {}).withSuccessHandler(() => {}).recordPerformanceEvent(payload, telemetryEmail);
-  }, 0);
-}
-
-function recordLoadFailure(metric, error, roundTripMs) {
-  recordSessionPerformanceMetric({
-    metric: metric,
-    status: 'failure',
-    roundTripMs: roundTripMs,
-    error: error && error.message ? error.message : String(error || 'Request failed'),
-    recordedAt: new Date().toISOString()
-  });
-}
-
-function summarizePerformanceEvents(events) {
-  const groups = new Map();
-  (events || []).forEach(event => {
-    if (!groups.has(event.metric)) groups.set(event.metric, { metric:event.metric, values:[], failures:0, lastAt:'', lastUser:'' });
-    const group = groups.get(event.metric);
-    group.values.push(performanceMs(event.roundTripMs));
-    if (event.status === 'failure') group.failures++;
-    if (!group.lastAt || event.recordedAt > group.lastAt) group.lastAt = event.recordedAt;
-  });
-  return Array.from(groups.values()).map(group => {
-    const sorted = group.values.slice().sort((a,b) => a-b);
-    const total = sorted.reduce((sum,value) => sum + value, 0);
-    return {
-      metric:group.metric, samples:sorted.length, failures:group.failures,
-      averageMs:sorted.length ? Math.round(total / sorted.length) : 0,
-      p95Ms:sorted.length ? sorted[Math.max(0, Math.ceil(sorted.length * 0.95) - 1)] : 0,
-      maxMs:sorted.length ? sorted[sorted.length - 1] : 0,
-      lastAt:group.lastAt, lastUser:'This browser'
-    };
-  });
-}
-
-function renderPerformanceRefreshState() {
-  const state = document.getElementById('performance-refresh-state');
-  if (!state) return;
-  const active = [];
-  if (supervisorRefreshInFlight) active.push('Supervisor Desk');
-  if (dataRefreshInFlight) active.push('ticket history');
-  if (taskRefreshInFlight) active.push('tasks');
-  if (teamRosterRefreshInFlight) active.push('team roster');
-  const timings = Object.keys(lastLoadTimings).filter(key => lastLoadTimings[key]).map(key => performanceMetricLabel(key) + ': ' + (lastLoadTimings[key].roundTripMs / 1000).toFixed(1) + 's');
-  state.textContent = (active.length ? 'Currently loading: ' + active.join(', ') + '. ' : 'No core request is currently in progress. ') + (timings.length ? 'Latest: ' + timings.join(' | ') : 'No load timing is available yet.');
-  const session = document.getElementById('performance-stat-session');
-  if (session) session.textContent = sessionPerformanceEvents.length;
-}
-
-function renderPerformanceDiagnostics(result) {
-  const data = result || { total:0, slow:0, failures:0, metrics:[], recent:[] };
-  const set = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
-  set('performance-stat-events', data.total || 0);
-  set('performance-stat-slow', data.slow || 0);
-  set('performance-stat-failures', data.failures || 0);
-  set('performance-stat-session', sessionPerformanceEvents.length);
-  renderPerformanceRefreshState();
-
-  const body = document.getElementById('performance-metrics-body');
-  const serverRows = (data.metrics || []).map(row => Object.assign({ scope:'Recorded' }, row));
-  const sessionRows = summarizePerformanceEvents(sessionPerformanceEvents).map(row => Object.assign({ scope:'This session' }, row));
-  const rows = serverRows.concat(sessionRows);
-  if (body) body.innerHTML = rows.length ? rows.map(row => '<tr>' +
-    '<td class="p-3"><span class="px-2 py-0.5 rounded text-[9px] font-bold ' + (row.scope === 'Recorded' ? 'bg-slate-100 text-slate-600' : 'bg-blue-50 text-blue-700') + '">' + esc(row.scope) + '</span></td>' +
-    '<td class="p-3 font-semibold text-slate-800">' + esc(performanceMetricLabel(row.metric)) + '</td>' +
-    '<td class="p-3 text-center">' + Number(row.samples || 0) + '</td>' +
-    '<td class="p-3 text-center font-mono">' + (performanceMs(row.averageMs) / 1000).toFixed(1) + 's</td>' +
-    '<td class="p-3 text-center font-mono">' + (performanceMs(row.p95Ms) / 1000).toFixed(1) + 's</td>' +
-    '<td class="p-3 text-center font-mono">' + (performanceMs(row.maxMs) / 1000).toFixed(1) + 's</td>' +
-    '<td class="p-3 text-center ' + (row.failures ? 'text-rose-700 font-bold' : 'text-slate-500') + '">' + Number(row.failures || 0) + '</td>' +
-    '<td class="p-3 text-slate-500">' + (row.lastAt ? esc(formatCSTDateTime(row.lastAt, { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' })) : '—') + (row.lastUser ? '<div class="text-[9px] text-slate-400">' + esc(row.lastUser) + '</div>' : '') + '</td></tr>').join('') : '<tr><td colspan="8" class="p-5 text-center text-slate-400">No performance samples yet.</td></tr>';
-
-  const recentBody = document.getElementById('performance-recent-body');
-  const recent = (data.recent || []).filter(row => row.status === 'failure' || Number(row.roundTripMs) >= PERFORMANCE_SLOW_MS);
-  if (recentBody) recentBody.innerHTML = recent.length ? recent.map(row => '<tr>' +
-    '<td class="p-3 whitespace-nowrap">' + esc(formatCSTDateTime(row.timestamp, { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' })) + '</td>' +
-    '<td class="p-3">' + esc(row.userName || row.userEmail || '—') + '</td>' +
-    '<td class="p-3 font-semibold">' + esc(performanceMetricLabel(row.metric)) + '</td>' +
-    '<td class="p-3"><span class="font-bold ' + (row.status === 'failure' ? 'text-rose-700' : 'text-amber-700') + '">' + esc(row.status === 'failure' ? 'Failed' : 'Slow') + '</span></td>' +
-    '<td class="p-3 text-center font-mono">' + (performanceMs(row.roundTripMs) / 1000).toFixed(1) + 's</td>' +
-    '<td class="p-3 text-center font-mono">' + (performanceMs(row.serverMs) / 1000).toFixed(1) + 's</td>' +
-    '<td class="p-3 text-slate-500 max-w-xs truncate">' + esc(row.error || '—') + '</td></tr>').join('') : '<tr><td colspan="7" class="p-5 text-center text-slate-400">No slow or failed recorded requests.</td></tr>';
-}
-
-function loadPerformanceDiagnostics() {
-  if (!currentUser || !isAdminUser(currentUser) || performanceDiagnosticsLoading) return;
-  performanceDiagnosticsLoading = true;
-  const body = document.getElementById('performance-metrics-body');
-  if (body) body.innerHTML = '<tr><td colspan="8" class="p-5 text-center text-slate-400">Loading diagnostics...</td></tr>';
-  const adminEmail = (authenticatedAdminUser && authenticatedAdminUser.email) || currentUser.email;
-  google.script.run.withFailureHandler(err => {
-    performanceDiagnosticsLoading = false;
-    if (body) body.innerHTML = '<tr><td colspan="8" class="p-5 text-center text-rose-600">Could not load diagnostics: ' + esc(err && err.message ? err.message : err) + '</td></tr>';
-  }).withSuccessHandler(result => {
-    performanceDiagnosticsLoading = false;
-    renderPerformanceDiagnostics(result);
-  }).getPerformanceDiagnostics(adminEmail);
-}
-
-function clearSessionPerformanceMetrics() {
-  sessionPerformanceEvents = [];
-  loadPerformanceDiagnostics();
-  showToast('This browser session’s performance list was cleared. Recorded Admin diagnostics were not deleted.');
-}
-
-function retryCoreDataLoads() {
-  if (!currentUser) return;
-  showToast('Retrying ticket history, tasks, team roster, and the active queue...');
-  currentDataVersion = null;
-  currentTaskDataVersion = null;
-  lastTeamFetch = 0;
-  historyPrefetchAttempted = false;
-  if (!dataRefreshInFlight) {
-    dataRefreshInFlight = true;
-    requestQuestionFeed(false, true, response => {
-      try { reportingLoadError = ''; applyQuestionFeedResponse(response, false); }
-      finally { finishRefreshCycle(); if (activeAdminWorkspaceKey === 'performance') loadPerformanceDiagnostics(); }
-    }, err => {
-      reportingLoadError = 'Ticket history could not be refreshed. Retry when the current request finishes.';
-      finishRefreshCycle();
-    });
-  }
-  refreshTasksData(true);
-  refreshTeamRoster(true);
-  if (isSupportUser(currentUser)) {
-    currentSupervisorDataVersion = null;
-    refreshSupervisorData(true, false);
-  }
-}
-
-function prefetchHistoricalData() {
-  if (!currentUser || !isSupportUser(currentUser) || currentDataVersion !== null || dataRefreshInFlight || historyPrefetchAttempted) return;
-  historyPrefetchAttempted = true;
-  dataRefreshInFlight = true;
-  refreshTasksData();
-  requestQuestionFeed(false, false, response => {
-    try {
-      reportingLoadError = '';
-      applyQuestionFeedResponse(response, false);
-    } finally { finishRefreshCycle(); }
-  }, err => {
-    console.error('Historical prefetch failed:', err);
-    reportingLoadError = 'Ticket history could not be prefetched. Open Reporting or use Refresh to retry.';
-    finishRefreshCycle();
-  });
-}
-
-function refreshSupervisorAuxiliaryFeeds() {
-  // The notification check still runs every ticket cycle, but only after the
-  // live queue has returned. Tasks and Peer Questions refresh every two
-  // minutes in the background and immediately when their own tab is opened.
-  refreshPersistentNotifications();
-  const now = Date.now();
-  if (now - lastSupervisorAuxiliaryRefresh >= SUPERVISOR_AUXILIARY_INTERVAL_MS) {
-    lastSupervisorAuxiliaryRefresh = now;
-    setTimeout(() => {
-      refreshTasksData();
-      refreshPeerQuestionsData();
-    }, 0);
-  }
-}
-
-function refreshSupervisorData(force, manual) {
-  if (!currentUser || !isSupportUser(currentUser)) return;
-  const loadStatus = document.getElementById('sup-load-status');
-  if (loadStatus && currentSupervisorDataVersion === null) loadStatus.innerText = 'Loading open tickets now...';
-  const icon = manual ? document.getElementById('manual-refresh-icon') : null;
-  if (supervisorRefreshInFlight) {
-    supervisorRefreshQueued = supervisorRefreshQueued || !!force;
-    if (manual) {
-      manualRefreshInFlight = false;
-      if (icon) icon.classList.remove('animate-spin');
-    }
-    return;
-  }
-
-  supervisorRefreshInFlight = true;
-  requestQuestionFeed(true, !!force, response => {
-    supervisorRefreshInFlight = false;
-    if (manual) {
-      manualRefreshInFlight = false;
-      if (icon) icon.classList.remove('animate-spin');
-    }
-    applyQuestionFeedResponse(response, true);
-    refreshSupervisorAuxiliaryFeeds();
-    setTimeout(prefetchHistoricalData, 0);
-    if (supervisorRefreshQueued) {
-      const queuedForce = supervisorRefreshQueued;
-      supervisorRefreshQueued = false;
-      setTimeout(() => refreshSupervisorData(queuedForce, false), 0);
-    } else if (currentUser) {
-      scheduleNextRefresh();
-    }
-  }, err => {
-    supervisorRefreshInFlight = false;
-    if (manual) {
-      manualRefreshInFlight = false;
-      if (icon) icon.classList.remove('animate-spin');
-      showToast('Could not refresh Supervisor Desk: ' + (err && err.message ? err.message : err));
-    } else {
-      console.error('Supervisor Desk refresh failed:', err);
-    }
-    refreshSupervisorAuxiliaryFeeds();
-    if (supervisorRefreshQueued) {
-      const queuedForce = supervisorRefreshQueued;
-      supervisorRefreshQueued = false;
-      setTimeout(() => refreshSupervisorData(queuedForce, false), 0);
-    } else if (currentUser) {
-      scheduleNextRefresh();
-    }
-  });
-}
-
-function refreshData() {
-  if (!currentUser) return;
-  if (useSupervisorLiveFeed()) {
-    refreshSupervisorData(false, false);
-    return;
-  }
-  if (isSupportUser(currentUser) && (currentTab === 'tasks' || currentTab === 'peer' || currentTab === 'team')) {
-    if (currentTab === 'tasks') refreshTasksData();
-    if (currentTab === 'peer') refreshPeerQuestionsData();
-    // Team Setup is the source of truth for Primary/Backup routing. Always
-    // verify it from the server when the page is opened so a Support session
-    // cannot keep displaying a roster cached before an Admin routing change.
-    if (currentTab === 'team') refreshTeamRoster(true);
-    refreshPersistentNotifications();
-    scheduleNextRefresh();
-    return;
-  }
-  if (dataRefreshInFlight) {
-    refreshQueued = true;
-    return;
-  }
-  dataRefreshInFlight = true;
-  const supervisorOnly = useSupervisorLiveFeed();
-
-  // Tasks and Peer Questions have independent versions and are not displayed
-  // in Supervisor Desk. Avoid making those sheet reads compete with the live
-  // ticket queue. They refresh normally as soon as their own tab is opened.
-  if (!supervisorOnly) {
-    refreshTasksData();
-    if (currentTab !== 'reporting') refreshPeerQuestionsData();
-    refreshPersistentNotifications();
-  }
-
-  requestQuestionFeed(supervisorOnly, false, response => {
-    try {
-      reportingLoadError = '';
-      applyQuestionFeedResponse(response, supervisorOnly);
-      if (currentTab === 'reporting' && response && response.unchanged) renderReporting();
-      if (supervisorOnly) refreshSupervisorAuxiliaryFeeds();
-    } finally { finishRefreshCycle(); }
-  }, err => {
-    console.error('Data refresh failed:', err);
-    reportingLoadError = 'Ticket history could not be refreshed. Retry to get current reports.';
-    if (currentTab === 'reporting') renderReporting();
-    if (supervisorOnly) refreshSupervisorAuxiliaryFeeds();
-    finishRefreshCycle();
-  });
-
-  // The roster changes far less often than tickets - only re-fetch it every
-  // couple of minutes to cut redundant sheet reads.
-  refreshTeamRoster(false);
-}
-
-// Adaptive polling: adjusts refresh interval based on activity
-// 30s when active, backs off to 45s then 60s when idle
-function scheduleNextRefresh() {
-  if (refreshTimer) clearTimeout(refreshTimer);
-
-  // Calculate adaptive interval based on consecutive unchanged polls
-  let interval = REFRESH_INTERVAL_MS; // 30000ms base
-  if (consecutiveNoChanges >= 5) {
-    interval = 60000; // 60s after 5 unchanged polls
-  } else if (consecutiveNoChanges >= 3) {
-    interval = 45000; // 45s after 3 unchanged polls
-  }
-
-  refreshTimer = setTimeout(refreshData, interval);
-}
-
-// On-demand refresh for the header button. Cancels whatever poll was
-// scheduled, hits the server immediately, and resets the adaptive backoff
-// (consecutiveNoChanges) since an explicit request means the person wants
-// fast updates right now, not the idle 45-60s cadence.
-function manualRefresh() {
-  if (!currentUser || manualRefreshInFlight) return;
-  manualRefreshInFlight = true;
-  const icon = document.getElementById('manual-refresh-icon');
-  if (icon) icon.classList.add('animate-spin');
-  if (refreshTimer) { clearTimeout(refreshTimer); refreshTimer = null; }
-  if (useSupervisorLiveFeed()) {
-    refreshSupervisorData(true, true);
-    return;
-  }
-  const supervisorOnly = useSupervisorLiveFeed();
-  if (!supervisorOnly) {
-    refreshTasksData();
-    if (currentTab !== 'reporting') refreshPeerQuestionsData();
-    refreshPersistentNotifications();
-  }
-
-  requestQuestionFeed(supervisorOnly, true, response => {
-    manualRefreshInFlight = false;
-    if (icon) icon.classList.remove('animate-spin');
-    try {
-      reportingLoadError = '';
-      applyQuestionFeedResponse(response, supervisorOnly);
-      if (currentTab === 'reporting' && response && response.unchanged) renderReporting();
-      if (supervisorOnly) refreshSupervisorAuxiliaryFeeds();
-    } finally { scheduleNextRefresh(); }
-  }, err => {
-    manualRefreshInFlight = false;
-    if (icon) icon.classList.remove('animate-spin');
-    showToast('Could not refresh: ' + (err && err.message ? err.message : err));
-    if (supervisorOnly) refreshSupervisorAuxiliaryFeeds();
-    scheduleNextRefresh();
-  });
-}
-
-// ----------------------------------------------------------------------------
-// OPTIMISTIC UPDATES
-// ----------------------------------------------------------------------------
-// Supervisor Desk actions (Submit & Move to Answered, Hold, Resume, Assign,
-// Unassign, bulk assign) used to wait on the mutation call to finish, THEN
-// fire a second, separate refreshData() round-trip that re-reads and
-// re-sends the whole ticket list, before the screen changed at all. That
-// double round-trip was the source of the 6-8s lag.
-//
-// These actions now update the local allQuestions array and re-render
-// immediately - the person sees the result of their click instantly - while
-// the real server call runs quietly in the background. If it succeeds, a
-// quiet refreshData() reconciles any server-computed details (exact
-// timestamps, turnaround hours, etc.) without the person waiting on it. If
-// it fails, the optimistic change is rolled back and they're told why.
-function snapshotQuestions() {
-  return JSON.parse(JSON.stringify(allQuestions));
-}
-
-function revertOptimistic(snapshot, errMessage) {
-  allQuestions = snapshot;
-  updateTickers();
-  renderCurrentTab();
-  showToast(errMessage);
-  refreshData();
-}
-
-function updateTickers() {
-  // The Answered Tickets badge is always personal: it means "answers I still
-  // need to review", even when the logged-in user is Support/Admin. Team-wide
-  // review progress belongs in Reporting Analytics instead.
-  const unread = allQuestions.filter(q =>
-    q.sheet === 'Answered' && !q.isRead && isOwnerOf(q)
-  ).length;
-  const unreadEl = document.getElementById('unread-ticker');
-  unreadEl.innerText = unread;
-  unreadEl.classList.toggle('hidden', unread === 0);
-  updateNotificationCenter();
-
-  updateTaskTicker();
-
-  const pending = allQuestions.filter(q => q.sheet === 'Questions Tracker').length;
-  const pendingEl = document.getElementById('pending-ticker');
-  pendingEl.innerText = pending;
-  pendingEl.classList.toggle('hidden', pending === 0);
-}
-
-// ============================================================================
-// SHARED SORT INFRASTRUCTURE
-// ============================================================================
-function onSortHeaderClick(tableKey, column) {
-  const s = sortState[tableKey];
-  if (s.col === column) {
-    s.dir = s.dir === 'asc' ? 'desc' : 'asc';
-  } else {
-    s.col = column;
-    s.dir = 'asc';
-  }
-  if (tableKey === 'answered') answeredTablePageIndex = 0;
-  if (tableKey === 'all') allTicketTablePageIndex = 0;
-  if (tableKey === 'coord') renderCoordinatorQuestions();
-  else if (tableKey === 'answered') renderAnsweredTab();
-  else if (tableKey === 'all') renderAllTickets();
-}
-
-function refreshSortArrows(tableKey) {
-  (SORT_ARROW_MAP[tableKey] || []).forEach(col => {
-    const el = document.getElementById('sort-arrow-' + tableKey + '-' + col);
-    if (!el) return;
-    const s = sortState[tableKey];
-    el.textContent = (s.col === col) ? (s.dir === 'asc' ? ' \u25B2' : ' \u25BC') : '';
-  });
-}
-
-function applySort(list, tableKey) {
-  const s = sortState[tableKey];
-  refreshSortArrows(tableKey);
-  if (!s.col) return list;
-  const col = s.col, dir = s.dir === 'asc' ? 1 : -1;
-  return list.slice().sort((a, b) => {
-    let av, bv;
-    if (col === 'created' || col === 'answeredDate') { av = new Date(a[col] || 0).getTime(); bv = new Date(b[col] || 0).getTime(); }
-    else if (col === 'turnaroundHours' || col === 'hoursElapsed') { av = parseFloat(a[col]) || 0; bv = parseFloat(b[col]) || 0; }
-    else if (col === 'isRead') { av = a.isRead ? 1 : 0; bv = b.isRead ? 1 : 0; }
-    else if (col === 'statusLabel') { av = statusLabelOf(a); bv = statusLabelOf(b); }
-    else { av = String(a[col] || '').toLowerCase(); bv = String(b[col] || '').toLowerCase(); }
-    if (av < bv) return -1 * dir;
-    if (av > bv) return 1 * dir;
-    return 0;
-  });
-}
-
-function changeTicketTablePage(tableKey, change) {
-  if (tableKey === 'answered') {
-    answeredTablePageIndex = Math.max(0, answeredTablePageIndex + change);
-    renderAnsweredTab();
-  } else if (tableKey === 'all') {
-    allTicketTablePageIndex = Math.max(0, allTicketTablePageIndex + change);
-    renderAllTickets();
-  }
-}
-
-function updateTicketTablePagination(tableKey, totalRows, pageIndex) {
-  const idPrefix = tableKey === 'answered' ? 'answered' : 'all-tickets';
-  const start = totalRows ? pageIndex * TICKET_TABLE_PAGE_SIZE + 1 : 0;
-  const end = Math.min(totalRows, (pageIndex + 1) * TICKET_TABLE_PAGE_SIZE);
-  const status = document.getElementById(idPrefix + '-page-status');
-  const previous = document.querySelector('#' + idPrefix + '-pagination button:first-child');
-  const next = document.querySelector('#' + idPrefix + '-pagination button:last-child');
-  if (status) status.innerText = totalRows ? 'Showing ' + start + '–' + end + ' of ' + totalRows + ' tickets' : 'Showing 0 tickets';
-  if (previous) previous.disabled = pageIndex <= 0 || totalRows === 0;
-  if (next) next.disabled = end >= totalRows;
-}
-
-// Headers with an existing data-aware sort keep that behavior. This fills in
-// sorting for the other tables and for tables created later (for example,
-// report drill-downs) without changing their row rendering functions.
-const universalTableSortState = new WeakMap();
-function universalCellSortValue(value) {
-  const text = String(value || '').replace(/\s+/g, ' ').trim();
-  if (!text || text === '—' || text === '-') return { kind: 'empty', value: '' };
-  const dateValue = Date.parse(text);
-  if (!isNaN(dateValue) && /\b\d{1,4}\b/.test(text)) return { kind: 'date', value: dateValue };
-  const numberText = text.replace(/[,\s]/g, '').replace(/(?:hrs?|hours?)$/i, '');
-  if (/^-?\d+(?:\.\d+)?%?$/.test(numberText)) return { kind: 'number', value: parseFloat(numberText) };
-  return { kind: 'text', value: text.toLocaleLowerCase() };
-}
-
-function universalHeaderLabel(header) {
-  const clone = header.cloneNode(true);
-  const indicator = clone.querySelector('.universal-sort-indicator');
-  if (indicator) indicator.remove();
-  return clone.innerText.trim();
-}
-
-function isUniversalSortableHeader(header) {
-  return !!header && !header.hasAttribute('onclick') && !header.querySelector('button, input, select, a') && !!universalHeaderLabel(header);
-}
-
-function sortTableByHeader(table, columnIndex, direction) {
-  const header = table && table.tHead && table.tHead.rows.length ? table.tHead.rows[0].cells[columnIndex] : null;
-  const body = table && table.tBodies && table.tBodies[0];
-  if (!header || !body) return;
-  const rows = Array.from(body.rows).filter(row => row.cells.length > columnIndex);
-  rows.sort((left, right) => {
-    const a = universalCellSortValue(left.cells[columnIndex].innerText);
-    const b = universalCellSortValue(right.cells[columnIndex].innerText);
-    if (a.kind === 'empty' || b.kind === 'empty') return a.kind === b.kind ? 0 : (a.kind === 'empty' ? 1 : -1);
-    if (a.kind === b.kind) {
-      if (a.value < b.value) return direction === 'asc' ? -1 : 1;
-      if (a.value > b.value) return direction === 'asc' ? 1 : -1;
-      return 0;
-    }
-    const comparison = String(a.value).localeCompare(String(b.value), undefined, { numeric: true, sensitivity: 'base' });
-    return direction === 'asc' ? comparison : -comparison;
-  });
-  const currentRows = Array.from(body.rows).filter(row => row.cells.length > columnIndex);
-  if (rows.some((row, index) => row !== currentRows[index])) {
-    const fragment = document.createDocumentFragment();
-    rows.forEach(row => fragment.appendChild(row));
-    body.appendChild(fragment);
-  }
-  Array.from(header.parentElement.cells).forEach(cell => {
-    if (cell !== header) cell.removeAttribute('aria-sort');
-  });
-  header.setAttribute('aria-sort', direction === 'asc' ? 'ascending' : 'descending');
-  const indicator = header.querySelector('.universal-sort-indicator');
-  if (indicator) indicator.textContent = direction === 'asc' ? ' ▲' : ' ▼';
-}
-
-function initUniversalTableSorting() {
-  const markSortableHeaders = root => {
-    if (!root || !root.querySelectorAll) return;
-    const headers = root.matches && root.matches('th') ? [root] : root.querySelectorAll('th');
-    headers.forEach(header => {
-      if (!header.closest('thead')) return;
-      if (!isUniversalSortableHeader(header)) return;
-      header.classList.add('cursor-pointer', 'select-none');
-      header.title = 'Click to sort ascending; click again to sort descending';
-    });
-  };
-  markSortableHeaders(document);
-  document.addEventListener('click', function(event) {
-    const header = event.target.closest && event.target.closest('th');
-    if (!isUniversalSortableHeader(header) || event.target.closest('button, input, select, a')) return;
-    const table = header.closest('table');
-    const row = header.parentElement;
-    if (!table || !table.tBodies.length || !row || !row.closest('thead')) return;
-    const columnIndex = Array.prototype.indexOf.call(row.cells, header);
-    if (columnIndex < 0 || !Array.from(table.tBodies[0].rows).some(item => item.cells.length > columnIndex)) return;
-    const label = universalHeaderLabel(header);
-    if (!label) return;
-    let state = universalTableSortState.get(table);
-    if (!state || state.label !== label || state.columnIndex !== columnIndex) state = { label, columnIndex, direction: 'asc' };
-    else state.direction = state.direction === 'asc' ? 'desc' : 'asc';
-    universalTableSortState.set(table, state);
-    header.classList.add('cursor-pointer', 'select-none');
-    header.title = 'Sort ' + state.direction + 'ending';
-    let indicator = header.querySelector('.universal-sort-indicator');
-    if (!indicator) {
-      indicator = document.createElement('span');
-      indicator.className = 'universal-sort-indicator';
-      header.appendChild(indicator);
-    }
-    sortTableByHeader(table, columnIndex, state.direction);
-  });
-
-  const observer = new MutationObserver(records => {
-    records.forEach(record => {
-      record.addedNodes.forEach(node => {
-        if (node.nodeType === 1) {
-          if (node.matches('th')) markSortableHeaders(node);
-          else markSortableHeaders(node);
-        }
-      });
-      const table = record.target.closest && record.target.closest('table');
-      const state = table && universalTableSortState.get(table);
-      if (!state || !table.tHead || !table.tHead.rows.length) return;
-      const headerRow = table.tHead.rows[0];
-      const matchingHeader = Array.from(headerRow.cells).findIndex(cell => universalHeaderLabel(cell) === state.label);
-      if (matchingHeader >= 0) sortTableByHeader(table, matchingHeader, state.direction);
-      else universalTableSortState.delete(table);
-    });
-  });
-  observer.observe(document.body, { childList: true, subtree: true });
-}
-
-function statusLabelOf(q) {
-  if (q.sheet === 'Answered' || q.status === 'Answered') return 'Answered';
-  if (q.status === 'Hold') return 'On Hold';
-  return 'Open';
-}
-
-function formatEventDateMMDDYYYY(value) {
-  const raw = String(value || '').trim();
-  if (!raw) return '';
-  const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (iso) return iso[2] + '/' + iso[3] + '/' + iso[1];
-  const mdY = raw.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/);
-  if (mdY) return String(mdY[1]).padStart(2,'0') + '/' + String(mdY[2]).padStart(2,'0') + '/' + mdY[3];
-  const d = new Date(raw);
-  if (!isNaN(d.getTime())) {
-    return String(d.getMonth()+1).padStart(2,'0') + '/' + String(d.getDate()).padStart(2,'0') + '/' + d.getFullYear();
-  }
-  return raw;
-}
-
-function ticketContextText(q, includeRouting) {
-  if (!q) return '';
-  const parts = [];
-  const eventRoles = ['Lead Photographer', 'Associate Photographer', 'Lead Videographer', 'Associate Videographer', 'Client 1', 'Client 2'];
-  const talentRole = String(q.talentRole || '').trim();
-  const validRole = eventRoles.find(role => role.toLowerCase() === talentRole.toLowerCase());
-  if (validRole) parts.push('Event Role: ' + validRole);
-  if (q.eventDate) parts.push('Event Date: ' + formatEventDateMMDDYYYY(q.eventDate));
-  if (q.attentionRequested) {
-    const attentionLabel = 'Attention' + (hasActiveAttentionToday(q) ? ' Today' : ' requested');
-    const reason = String(q.attentionReason || '').trim();
-    const isOpaqueReason = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(reason);
-    parts.push(attentionLabel + (reason && !isOpaqueReason ? ': ' + reason : ''));
-  }
-  if (includeRouting && q.routedSupportEmail && String(q.routedSupportEmail).includes('@')) {
-    const routedMember = findOperationalTeamMemberByEmail(q.routedSupportEmail);
-    if (routedMember) parts.push('Originally routed to: ' + routedMember.name);
-  }
-  return parts.join(' · ');
-}
-
-function ticketContextHtml(q) {
-  const details = [];
-  const eventRoles = ['Lead Photographer', 'Associate Photographer', 'Lead Videographer', 'Associate Videographer', 'Client 1', 'Client 2'];
-  const talentRole = String(q && q.talentRole || '').trim();
-  const validRole = eventRoles.find(role => role.toLowerCase() === talentRole.toLowerCase());
-  if (validRole) details.push('<span class="font-semibold text-blue-700">' + esc(validRole) + '</span>');
-  if (q && q.eventDate) details.push('<span class="text-slate-500">' + esc(formatEventDateMMDDYYYY(q.eventDate)) + '</span>');
-  if (q && q.attentionRequested) details.push('<span class="font-bold ' + (hasActiveAttentionToday(q) ? 'text-rose-700' : 'text-slate-500') + '">' + (hasActiveAttentionToday(q) ? 'Attention Today' : 'Attention history') + '</span>');
-  return details.length ? '<div class="mt-1 text-[10px] flex flex-wrap gap-1.5">' + details.join('<span class="text-slate-300">·</span>') + '</div>' : '';
-}
-
-// ============================================================================
-// TAB 1: COORDINATOR WORKSPACE
-// ============================================================================
-
-function toggleCoordinatorEventDate() {
-  const cb = document.getElementById('inp-urgent');
-  const wrap = document.getElementById('coord-event-date-wrap');
-  const input = document.getElementById('inp-event-date');
-  const label = document.getElementById('coord-event-date-label');
-  const optional = document.getElementById('coord-event-date-optional');
-  const required = document.getElementById('coord-event-date-required');
-  const help = document.getElementById('coord-event-date-help');
-  const on = !!(cb && cb.checked);
-
-  // Event Date is always available. Selecting Event this weekend changes it
-  // from optional context into a required, time-sensitive field.
-  if (wrap) wrap.classList.remove('hidden');
-  if (input) {
-    input.required = on;
-    // Do not hard-limit the calendar picker. Dates outside the current week are
-    // allowed after confirmation, so validation happens at submit time.
-    input.min = '';
-    input.max = '';
-    input.classList.toggle('border-amber-400', on);
-    input.classList.toggle('bg-amber-50/40', on);
-  }
-  if (label) {
-    label.classList.toggle('text-amber-700', on);
-    label.classList.toggle('text-slate-500', !on);
-  }
-  if (optional) optional.classList.toggle('hidden', on);
-  if (required) required.classList.toggle('hidden', !on);
-  if (help) help.classList.toggle('hidden', !on);
-}
-
-function addCalendarDaysYmd(ymd, days) {
-  const parts = String(ymd || '').split('-').map(Number);
-  if (parts.length !== 3 || parts.some(n => !Number.isFinite(n))) return '';
-  const d = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2] + Number(days || 0), 12, 0, 0));
-  return d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0') + '-' + String(d.getUTCDate()).padStart(2, '0');
-}
-
-function currentWeekWindow() {
-  const today = todayCSTString();
-  const p = today.split('-').map(Number);
-  const d = new Date(Date.UTC(p[0], p[1] - 1, p[2], 12, 0, 0));
-  const day = d.getUTCDay(); // Sun=0 ... Sat=6 for the Central Time calendar date above.
-  // Support Hub treats the operational week as Monday through Sunday.
-  const mondayOffset = day === 0 ? -6 : 1 - day;
-  const start = addCalendarDaysYmd(today, mondayOffset);
-  return { start: start, end: addCalendarDaysYmd(start, 6) };
-}
-
-function formatWeekendDateShort(ymd) {
-  const p = String(ymd || '').split('-').map(Number);
-  if (p.length !== 3) return ymd || '';
-  const d = new Date(Date.UTC(p[0], p[1] - 1, p[2], 12, 0, 0));
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
-}
-
-async function confirmWeekendDateIfNeeded(eventDate) {
-  const windowRange = currentWeekWindow();
-  if (!eventDate || (eventDate >= windowRange.start && eventDate <= windowRange.end)) return true;
-  return customConfirm(
-    'The selected event date (' + formatWeekendDateShort(eventDate) + ') is outside this week (' +
-      formatWeekendDateShort(windowRange.start) + '–' + formatWeekendDateShort(windowRange.end) + ').\n\n' +
-      'Keep this date anyway? Choose Change Date to go back and update it.',
-    { okLabel: 'Keep Date', cancelLabel: 'Change Date' }
-  );
-}
-function toggleQuickEventDate() {
-  const cb = document.getElementById('quick-question-urgent');
-  const wrap = document.getElementById('quick-event-date-wrap');
-  const input = document.getElementById('quick-question-event-date');
-  const on = !!(cb && cb.checked);
-  if (wrap) wrap.classList.remove('hidden');
-  if (input) {
-    input.required = on;
-    input.min = '';
-    input.max = '';
-  }
-}
-function eventWeekendStatusBadge(q) {
-  if (!q || !q.eventThisWeekend) return '';
-  return '<span class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-md bg-amber-50 text-amber-700 border border-amber-200/70">📅 Event this weekend'+(q.eventDate?' · '+esc(q.eventDate):'')+'</span>';
-}
-function hasActiveAttentionToday(q) {
-  return !!(q && q.attentionToday && (!q.attentionUntil || q.attentionUntil >= todayCSTString()));
-}
-function attentionTodayStatusBadge(q) {
-  if (!hasActiveAttentionToday(q)) return '';
-  const title = q.attentionReason ? ' title="' + esc(q.attentionReason) + '"' : '';
-  return '<span class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-md bg-rose-600 text-white border border-rose-700"' + title + '>Needs Attention Today</span>';
-}
-function recordAttentionFirstReview(q) {
-  if (!q || !hasActiveAttentionToday(q) || q.attentionFirstReviewAt || !isOperationalSupportUser(currentUser)) return;
-  q.attentionFirstReviewAt = new Date().toISOString();
-  q.attentionFirstReviewBy = currentUser.name;
-  google.script.run.withFailureHandler(() => {
-    q.attentionFirstReviewAt = '';
-    q.attentionFirstReviewBy = '';
-  }).markQuestionAttentionReviewed(q.ticketId, currentUser.email);
-}
-function supervisorQuestionPreviewHtml(value) {
-  const raw = String(value || '');
-  const text = stripHtml(raw).replace(/\s+/g, ' ').trim();
-  const hasImage = /<img\b/i.test(raw);
-  const preview = text ? text.slice(0, 240) : (hasImage ? 'Image attached' : '—');
-  return '<div class="text-slate-800 font-medium line-clamp-2">' + esc(preview) + '</div>' +
-    (hasImage ? '<span class="inline-flex mt-1 px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 text-[9px] font-semibold">📷 Image attached</span>' : '');
-}
-
-function supervisorSmartCompare(a,b) {
-  const aa = hasActiveAttentionToday(a) ? 1 : 0;
-  const ba = hasActiveAttentionToday(b) ? 1 : 0;
-  if (aa !== ba) return ba - aa;
-  const af = hasActiveRequesterFlag(a) ? 1 : 0;
-  const bf = hasActiveRequesterFlag(b) ? 1 : 0;
-  if (af !== bf) return bf - af;
-  const aw = a && a.eventThisWeekend ? 1 : 0;
-  const bw = b && b.eventThisWeekend ? 1 : 0;
-  if (aw !== bw) return bw - aw;
-  if (aw && bw) {
-    const ad = String(a.eventDate || '9999-12-31');
-    const bd = String(b.eventDate || '9999-12-31');
-    if (ad !== bd) return ad.localeCompare(bd);
-  }
-  return (parseFloat(b.hoursElapsed) || 0) - (parseFloat(a.hoursElapsed) || 0);
-}
-let supQueueSort = { column: 'smart', direction: 'asc' };
-const supCollapsedSections = new Set();
-function sortSupervisorQueue(column) {
-  if (!column) return;
-  if (supQueueSort.column === column) {
-    supQueueSort.direction = supQueueSort.direction === 'asc' ? 'desc' : 'asc';
-  } else {
-    supQueueSort = { column: column, direction: column === 'waiting' ? 'desc' : 'asc' };
-  }
-  renderSupervisorDesk();
-}
-function supervisorQueueArrow(column) {
-  if (supQueueSort.column !== column) return '';
-  return supQueueSort.direction === 'asc' ? ' ↑' : ' ↓';
-}
-function supervisorQueueSortValue(q,column) {
-  if (column === 'status') return hasActiveAttentionToday(q) ? '0' : (hasActiveRequesterFlag(q) ? '1' : (q.eventThisWeekend ? '2' : (q.isFollowUp ? '3' : (q.status === 'Hold' ? '5' : '4'))));
-  if (column === 'event') return String(q.eventName || '').toLowerCase();
-  if (column === 'question') return stripHtml(q.question || '').toLowerCase();
-  if (column === 'asked') return getUserDisplayName(q.askedBy || '').toLowerCase();
-  if (column === 'waiting') return Number(q.hoursElapsed || 0);
-  return '';
-}
-function applySupervisorQueueSort(list) {
-  const arr = list.slice();
-  if (supQueueSort.column === 'smart') return arr.sort(supervisorSmartCompare);
-  const col = supQueueSort.column;
-  const dir = supQueueSort.direction === 'desc' ? -1 : 1;
-  return arr.sort((a,b) => {
-    const av = supervisorQueueSortValue(a,col);
-    const bv = supervisorQueueSortValue(b,col);
-    if (typeof av === 'number' || typeof bv === 'number') return ((Number(av)||0)-(Number(bv)||0))*dir;
-    return String(av).localeCompare(String(bv))*dir;
-  });
-}
-function toggleSupervisorSection(key) {
-  if (supCollapsedSections.has(key)) supCollapsedSections.delete(key);
-  else supCollapsedSections.add(key);
-  renderSupervisorDesk();
-}
-async function handleQuestionSubmit(e) {
-    e.preventDefault();
-    if (questionSubmitInFlight) return;
-    if ((Number(richImageUploadsInFlight['editor-inp-question']) || 0) > 0) {
-      await customAlert('Please wait for the image upload to finish before submitting the question.');
-      return;
-    }
-  const editorEl = document.getElementById('editor-inp-question');
-  const questionHtml = getRichEditorHtml('editor-inp-question');
-  const questionText = getRichEditorText('editor-inp-question');
-  const eventName = document.getElementById('inp-event').value.trim();
-  const caseLink = document.getElementById('inp-link').value.trim();
-  const isEventThisWeekend = document.getElementById('inp-urgent').checked;
-  const eventDate = document.getElementById('inp-event-date').value || '';
-  const talentRole = document.getElementById('inp-talent-role').value.trim();
-
-  if (!questionText) { await customAlert('Please describe your question before submitting.'); return; }
-  if (questionHtml.length > MAX_SHEET_CELL_CHARS) { await customAlert('This question is too large to save. Please remove an image or shorten the text.'); return; }
-  if (!isValidEventName(eventName)) { await customAlert(EVENT_NAME_INVALID_MSG); return; }
-  if (isEventThisWeekend && !eventDate) { await customAlert('Please add the Event Date. It is required when Event this weekend is selected.'); return; }
-  if (isEventThisWeekend && eventDate) {
-    const keepOutsideWeekend = await confirmWeekendDateIfNeeded(eventDate);
-    if (!keepOutsideWeekend) {
-      const dateInput = document.getElementById('inp-event-date');
-      if (dateInput) { dateInput.focus(); try { dateInput.showPicker && dateInput.showPicker(); } catch (_) {} }
-      return;
-    }
-  }
-  let assignedToEmail = document.getElementById('inp-assigned-email').value;
-  if (!assignedToEmail) {
-    const detectedMember = parseMentionedUser(questionHtml);
-    if (detectedMember) {
-      assignedToEmail = detectedMember.email;
-    }
-  }
-  const btn = document.getElementById('question-submit-btn');
-  if (btn.disabled) return;
-  questionSubmitInFlight = true;
-  btn.disabled = true;
-  btn.innerText = 'Submitting...';
-
-  google.script.run.withFailureHandler(err => {
-    questionSubmitInFlight = false;
-    btn.disabled = false;
-    btn.innerText = 'Submit Question';
-    showToast('Could not submit: ' + (err && err.message ? err.message : err));
-  }).withSuccessHandler(async res => {
-    questionSubmitInFlight = false;
-    btn.disabled = false;
-    btn.innerText = 'Submit Question';
-    if (res && res.duplicate) {
-      await showExistingTicketNotice(res);
-      document.getElementById('question-form').reset();
-      toggleCoordinatorEventDate();
-      editorEl.innerHTML = '';
-      document.getElementById('inp-assigned-email').value = '';
-      closeHomeQuestionComposer();
-      forceQuestionRefreshAfterSubmit();
-      if(createTaskDraftForNewTicket){
-        const existing=(res&&res.existingTicket)||{};
-        setTimeout(()=>resumeCreateTaskAfterNewTicket(existing.ticketId||'', existing),180);
-      }
-      return;
-    }
-    document.getElementById('question-form').reset();
-    toggleCoordinatorEventDate();
-    editorEl.innerHTML = '';
-    document.getElementById('inp-assigned-email').value = '';
-    closeHomeQuestionComposer();
-    // If this was a real, full Salesforce URL and no base URL is configured
-    // yet, this will silently learn it so future links open directly.
-    maybeAutoDetectSalesforceBase(caseLink);
-    if (res && res.forceRefresh) forceQuestionRefreshAfterSubmit();
-    else refreshData();
-    showToast((res && res.automaticAssignment) ? 'Question submitted and routed to ' + getUserDisplayName(res.assignedToEmail) + '.' : 'Question submitted successfully!');
-    if(createTaskDraftForNewTicket && res && res.ticketId){
-      const createdTicket={ticketId:res.ticketId,eventName:eventName,question:questionText};
-      setTimeout(()=>resumeCreateTaskAfterNewTicket(res.ticketId,createdTicket),180);
-    }
-  }).submitQuestion({
-    question: questionHtml,
-    eventName: eventName,
-    caseLink: caseLink,
-    talentRole: talentRole,
-    isEventThisWeekend: isEventThisWeekend,
-    eventDate: eventDate,
-    assignedToEmail: assignedToEmail || "",
-    askedByEmail: currentUser.email
-  });
-}
-
-let homeMetricActions = {};
-let homeListDestinations = {};
-
-function closeHomeCreateMenu() {
-  const menu = document.getElementById('home-create-menu');
-  if (menu) menu.removeAttribute('open');
-}
-
-function openHomeQuestionComposer() {
-  closeHomeCreateMenu();
-  const composer = document.getElementById('home-question-composer');
-  if (!composer) return;
-  composer.classList.remove('hidden');
-  composer.classList.add('flex');
-  document.body.classList.add('overflow-hidden');
-  setTimeout(() => {
-    const editor = document.getElementById('editor-inp-question');
-    if (editor) editor.focus();
-  }, 120);
-}
-
-function closeHomeQuestionComposer() {
-  const composer = document.getElementById('home-question-composer');
-  if (composer) { composer.classList.add('hidden'); composer.classList.remove('flex'); }
-  document.body.classList.remove('overflow-hidden');
-}
-
-function handleHomeQuestionComposerEscape(event) {
-  if (!event || event.key !== 'Escape') return;
-  const composer = document.getElementById('home-question-composer');
-  if (composer && !composer.classList.contains('hidden')) closeHomeQuestionComposer();
-}
-
-function configureHomeQuestionComposer(category) {
-  const composer = document.getElementById('home-question-composer');
-  const launcher = document.getElementById('home-question-launcher');
-  if (launcher) launcher.classList.toggle('hidden', category !== 'Coordinator');
-  if (composer && category !== 'Coordinator' && !composer.classList.contains('hidden')) closeHomeQuestionComposer();
-}
-
-function openHomeMetric(index) {
-  const action = homeMetricActions[index];
-  if (typeof action === 'function') action();
-}
-
-function openHomeListDestination(index) {
-  const action = homeListDestinations[index];
-  if (typeof action === 'function') action();
-}
-
-function configureHomeMetricGroups(category) {
-  const priorityHost = document.getElementById('home-priority-metrics');
-  const taskHost = document.getElementById('home-task-metrics');
-  const priorityHeading = document.getElementById('home-priority-heading');
-  const priorityHelp = document.getElementById('home-priority-help');
-  const taskHeading = document.getElementById('home-task-heading');
-  const taskHelp = document.getElementById('home-task-help');
-  if (!priorityHost || !taskHost) return;
-
-  let priorityIds = [1, 7, 2, 3, 4, 6];
-  let taskIds = [5];
-  let headings = {
-    priority: 'Priority & Tickets',
-    priorityHelp: 'Urgent work, ownership, and queue activity.',
-    task: 'My Tasks',
-    taskHelp: 'Assigned work and recent progress.'
-  };
-
-  if (category === 'Coordinator') {
-    priorityIds = [1, 2, 4, 6];
-    taskIds = [3, 5];
-    headings = {
-      priority: 'Questions & Reviews',
-      priorityHelp: 'Answers to review and questions still moving through Support.',
-      task: 'My Tasks',
-      taskHelp: 'Active work and recently completed milestones.'
-    };
-  } else if (category === 'Admin') {
-    priorityIds = [1, 2, 3, 5, 6];
-    taskIds = [4];
-    headings = {
-      priority: 'Workspace Health',
-      priorityHelp: 'Team setup, routing, and ticket records at a glance.',
-      task: 'Team Tasks',
-      taskHelp: 'Active work across the team.'
-    };
-  }
-
-  priorityIds.forEach(index => {
-    const card = document.getElementById('home-metric-card-' + index);
-    if (card) priorityHost.appendChild(card);
-  });
-  taskIds.forEach(index => {
-    const card = document.getElementById('home-metric-card-' + index);
-    if (card) taskHost.appendChild(card);
-  });
-  if (priorityHeading) priorityHeading.innerText = headings.priority;
-  if (priorityHelp) priorityHelp.innerText = headings.priorityHelp;
-  if (taskHeading) taskHeading.innerText = headings.task;
-  if (taskHelp) taskHelp.innerText = headings.taskHelp;
-}
-
-function setHomeMetric(index, config) {
-  const card = document.getElementById('home-metric-card-' + index);
-  const label = document.getElementById('home-metric-label-' + index);
-  const value = document.getElementById('home-metric-value-' + index);
-  const help = document.getElementById('home-metric-help-' + index);
-  if (!card || !label || !value || !help) return;
-  card.classList.toggle('hidden', config.hidden === true);
-  const tones = {
-    attention: ['bg-rose-50','border-rose-300','ring-1','ring-rose-100'],
-    teamflag: ['bg-orange-50','border-orange-300','ring-1','ring-orange-100'],
-    weekend: ['bg-amber-50','border-amber-300','ring-1','ring-amber-100'],
-    task: ['bg-indigo-50','border-indigo-200','ring-1','ring-indigo-100']
-  };
-  const allToneClasses = [].concat(tones.attention, tones.teamflag, tones.weekend, tones.task);
-  card.classList.remove(...allToneClasses);
-  label.classList.remove('text-rose-700','text-orange-700','text-amber-700','text-indigo-700','text-slate-500');
-  value.classList.remove('text-rose-800','text-orange-800','text-amber-800','text-indigo-900','text-slate-900');
-  help.classList.remove('text-rose-600','text-orange-600','text-amber-600','text-indigo-600','text-slate-400');
-  const tone = config.tone && tones[config.tone] ? config.tone : '';
-  if (tone) card.classList.add(...tones[tone]);
-  label.classList.add(tone === 'attention' ? 'text-rose-700' : tone === 'teamflag' ? 'text-orange-700' : tone === 'weekend' ? 'text-amber-700' : tone === 'task' ? 'text-indigo-700' : 'text-slate-500');
-  value.classList.add(tone === 'attention' ? 'text-rose-800' : tone === 'teamflag' ? 'text-orange-800' : tone === 'weekend' ? 'text-amber-800' : tone === 'task' ? 'text-indigo-900' : 'text-slate-900');
-  help.classList.add(tone === 'attention' ? 'text-rose-600' : tone === 'teamflag' ? 'text-orange-600' : tone === 'weekend' ? 'text-amber-600' : tone === 'task' ? 'text-indigo-600' : 'text-slate-400');
-  label.innerText = config.label || '';
-  value.innerText = Number(config.value || 0);
-  help.innerText = config.help || '';
-  homeMetricActions[index] = config.action || null;
-}
-
-function setHomeListHeader(index, title, help, action) {
-  const titleEl = document.getElementById('home-list-title-' + index);
-  const helpEl = document.getElementById('home-list-help-' + index);
-  const eyebrowEl = document.getElementById('home-list-eyebrow-' + index);
-  if (titleEl) titleEl.innerText = title;
-  if (helpEl) helpEl.innerText = help;
-  if (eyebrowEl) {
-    eyebrowEl.innerText = index === 2 ? 'Tasks' : (title === 'Needs My Review' ? 'Review Queue' : (title === 'Routing Setup' ? 'Admin Attention' : 'Priority Tickets'));
-  }
-  homeListDestinations[index] = action || null;
-}
-
-function renderHomeList(containerId, items, emptyText) {
-  const container = document.getElementById(containerId);
-  if (!container) return;
-  container.innerHTML = '';
-  if (!items.length) {
-    const empty = document.createElement('div');
-    empty.className = 'p-5 text-center text-xs text-slate-400';
-    empty.innerText = emptyText;
-    container.appendChild(empty);
-    return;
-  }
-  items.slice(0, 4).forEach(item => {
-    const button = document.createElement('button');
-    button.type = 'button';
+function getQuickReportDateRange(){ if(quickReportRange==='CUSTOM'){ const v=document.getElementById('quick-report-date').value; if(!v)return null; return {start:cstDateBoundary(v,false),end:cstDateBoundary(v,true)}; } const preset=document.getElementById('report-range-preset'); const old=preset?preset.value:null; if(preset)preset.value=quickReportRange; const r=getReportDateRange(); if(preset&&old!==null)preset.value=old; retu…15499 tokens truncated…'button';
     const rowTone = item.tone === 'attention' ? 'bg-rose-50/70 hover:bg-rose-100/70 border-l-4 border-rose-500' : item.tone === 'teamflag' ? 'bg-orange-50/70 hover:bg-orange-100/70 border-l-4 border-orange-500' : item.tone === 'weekend' ? 'bg-amber-50/70 hover:bg-amber-100/70 border-l-4 border-amber-400' : item.tone === 'task-overdue' ? 'bg-rose-50/50 hover:bg-rose-100/70 border-l-4 border-rose-400' : item.tone === 'task' ? 'bg-indigo-50/40 hover:bg-indigo-100/60 border-l-4 border-indigo-400' : 'hover:bg-slate-50';
     button.className = 'w-full text-left px-4 py-3 transition flex items-start justify-between gap-3 ' + rowTone;
     const text = document.createElement('div');
@@ -6728,7 +5476,9 @@ function renderAnsweredTab() {
 
   if (sorted.length === 0) {
     const personalView = !userIsSupport || scope === 'MINE';
-    if (readFilter === 'UNREAD' && personalView && myUnread === 0 && !search && !askedByFilter && !answeredByFilter && !dateFilter) {
+    if (answeredInitialFeedLoading) {
+      body.innerHTML = '<tr><td colspan="9" class="p-6 text-center text-slate-400">Loading your unread questions…</td></tr>';
+    } else if (readFilter === 'UNREAD' && personalView && myUnread === 0 && !search && !askedByFilter && !answeredByFilter && !dateFilter) {
       body.innerHTML = answeredAllReviewedEmptyState();
     } else {
       body.innerHTML = '<tr><td colspan="9" class="p-6 text-center text-slate-400">No answered questions match current filters.</td></tr>';
@@ -6828,7 +5578,6 @@ async function openViewModal(q) {
   document.getElementById('vmodal-answered').innerText = ticketAuditTimestamp(q.answeredDate);
   document.getElementById('vmodal-question').innerHTML = ensureExternalLinks(q.question || '—');
   document.getElementById('vmodal-answer').innerHTML = ensureExternalLinks(q.answer || 'No answer recorded.');
-  document.getElementById('vmodal-by').innerText = getUserDisplayName(q.answeredBy);
   document.getElementById('vmodal-speed').innerText = q.turnaroundHours + ' Hours' + (q.holdHoursExcluded ? ' (excludes ' + q.holdHoursExcluded.toFixed(1) + ' hrs on hold)' : '');
 
   const linkEl = document.getElementById('vmodal-link');
@@ -6938,7 +5687,7 @@ async function submitAnsweredStatusChange() {
   const note = document.getElementById('vmodal-status-note').value.trim();
   if (!note) { showToast('Please add a reason or follow-up note before reopening.'); return; }
   const label = status === 'Hold' ? 'reopen this ticket and place it On Hold' : 'reopen this ticket as an active Follow-Up';
-  const ok = await customConfirm('Are you sure you want to ' + label + '?', { okLabel: 'Reopen Ticket' });
+  const ok = await customConfirm('Are you sure you want to ' + label + '?', { okLabel: 'Reopen Question' });
   if (!ok) return;
   google.script.run.withFailureHandler(err => {
     showToast('Could not change status: ' + (err && err.message ? err.message : err));
@@ -6991,7 +5740,7 @@ async function reopenTicket() {
   const q = activeViewQuestion;
   const text = await customPrompt(
     'Add the follow-up note. Your name and the current Central Time will be recorded in ticket history.',
-    { placeholder: 'Describe the follow-up question or additional information...', okLabel: 'Reopen Ticket' }
+    { placeholder: 'Describe the follow-up question or additional information...', okLabel: 'Reopen Question' }
   );
   if (!text || !text.trim()) return;
   reopenTicketInFlight = true;
@@ -7398,7 +6147,6 @@ async function openTicketDetail(sheet, ticketId) {
   document.getElementById('tdmodal-answer-section').classList.toggle('hidden', !isAnswered);
   document.getElementById('tdmodal-unanswered-note').classList.toggle('hidden', isAnswered);
   if (isAnswered) document.getElementById('tdmodal-answer').innerHTML = ensureExternalLinks(q.answer || '—');
-  document.getElementById('tdmodal-by').innerText = isAnswered ? getUserDisplayName(q.answeredBy) : '—';
   document.getElementById('tdmodal-assigned').innerText = q.assignedTo ? getUserDisplayName(q.assignedTo) : '—';
   document.getElementById('tdmodal-status-changed').innerText = q.statusChangedAt
     ? formatCSTDateTime(q.statusChangedAt, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) + ' by ' + (q.statusChangedBy || '—')

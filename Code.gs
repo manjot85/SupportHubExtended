@@ -3684,6 +3684,72 @@ function getQuestionsDataIfChanged(requestingEmail, clientVersion) {
   return { unchanged: false, data: records, version: serverVersion, serverTiming: { totalMs: Date.now() - startedAt, authMs: authenticatedAt - startedAt, dataMs: Date.now() - authenticatedAt } };
 }
 
+// Lightweight first paint for the Answered Questions desk. The full history
+// feed is intentionally loaded after this response so its large archive does
+// not delay the user's personal unread review queue.
+function getMyUnreadAnsweredQuestions(requestingEmail) {
+  const startedAt = Date.now();
+  const member = requireAuthenticatedMember(requestingEmail);
+  const authenticatedAt = Date.now();
+  const email = normalizeEmail(member.email || requestingEmail);
+  const name = stripNoraPrefix(String(member.name || '').trim()).toLowerCase();
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_ANSWERED);
+  if (!sheet || sheet.getLastRow() < 2) {
+    return { data: [], version: getDataVersion(), serverTiming: { totalMs: Date.now() - startedAt, authMs: authenticatedAt - startedAt, dataMs: Date.now() - authenticatedAt } };
+  }
+
+  const lastRow = sheet.getLastRow();
+  const rows = sheet.getRange(2, 1, lastRow - 1, A_WIDTH).getValues();
+  const data = [];
+  for (let i = rows.length - 1; i >= 0; i--) {
+    const row = rows[i];
+    const question = String(row[A_COL.QUESTION - 1] || '').trim();
+    if (!question) continue;
+    const askedEmail = normalizeEmail(row[A_COL.ASKED_BY_EMAIL - 1]);
+    const askedName = stripNoraPrefix(String(row[A_COL.ASKED_BY - 1] || '').trim()).toLowerCase();
+    const sameOwner = askedEmail
+      ? (askedEmail === email || emailsRepresentSameWorkspaceIdentity(askedEmail, email))
+      : (askedName && askedName === name);
+    if (!sameOwner || isReadByUser(row[A_COL.READ_BY - 1], email)) continue;
+
+    const compactQuestion = compactRichContentForFeed(question);
+    const compactAnswer = compactRichContentForFeed(row[A_COL.ANSWER - 1]);
+    const ticketId = String(row[A_COL.TICKET_ID - 1] || '').trim();
+    const created = safeIsoDate(row[A_COL.CREATED - 1]);
+    const answered = safeIsoDate(row[A_COL.ANSWERED - 1]);
+    let turnaround = row[A_COL.TURNAROUND - 1];
+    if (turnaround === '' || turnaround === undefined || isNaN(turnaround) || Number(turnaround) < 0) {
+      const diff = (new Date(answered) - new Date(created)) / (1000 * 60 * 60);
+      turnaround = diff > 0 ? diff.toFixed(1) : '0.5';
+    } else {
+      turnaround = Math.abs(Number(turnaround)).toFixed(1);
+    }
+    const firstReadMap = parseFirstReadMap(row[A_COL.FIRST_READ_AT - 1]);
+    const lastUpdated = safeIsoDate(row[A_COL.LAST_UPDATED_AT - 1] || row[A_COL.ANSWERED - 1]);
+    data.push({
+      id: 'A_' + (ticketId || (i + 2)), ticketId: ticketId, sheet: SHEET_ANSWERED,
+      question: compactQuestion.html, answer: compactAnswer.html,
+      contentDeferred: compactQuestion.deferred || compactAnswer.deferred,
+      eventName: String(row[A_COL.EVENT - 1] || '').trim(),
+      askedBy: stripNoraPrefix(String(row[A_COL.ASKED_BY - 1] || '').trim()),
+      askedByEmail: askedEmail, created: created, answeredDate: answered,
+      turnaroundHours: turnaround, holdHoursExcluded: Number(row[A_COL.HOLD_HOURS - 1]) || 0,
+      caseLink: extractCaseId(String(row[A_COL.LINK - 1] || '').trim()),
+      status: String(row[A_COL.STATUS - 1] || STATUS_ANSWERED).trim(),
+      answeredBy: stripNoraPrefix(String(row[A_COL.ANSWERED_BY - 1] || 'Supervisor').trim()),
+      answeredByEmail: normalizeEmail(row[A_COL.ANSWERED_BY_EMAIL - 1]),
+      isRead: false, firstReadAt: firstReadMap[email] || '', lastUpdatedAt: lastUpdated,
+      hasUnreadUpdate: !!row[A_COL.LAST_UPDATED_AT - 1] && new Date(lastUpdated).getTime() > new Date(answered).getTime(),
+      category: normalizeWorkCategory(row[A_COL.WORK_CATEGORY - 1] || inferWorkCategory(question, row[A_COL.EVENT - 1])),
+      eventDate: normalizeEventDate(row[A_COL.EVENT_DATE - 1]),
+      talentRole: String(row[A_COL.TALENT_ROLE - 1] || '').trim(),
+      routedSupportEmail: normalizeEmail(row[A_COL.ROUTED_SUPPORT_EMAIL - 1]),
+      attentionRequested: row[A_COL.ATTENTION_REQUESTED - 1] === true || !!row[A_COL.ATTENTION_SET_AT - 1]
+    });
+  }
+  return { data: data, version: getDataVersion(), serverTiming: { totalMs: Date.now() - startedAt, authMs: authenticatedAt - startedAt, dataMs: Date.now() - authenticatedAt } };
+}
+
 // Fast feed for Supervisor Desk. The desk only displays open questions, so it
 // should not read and transmit the entire Answered history on every queue
 // change. Other tabs continue using getQuestionsDataIfChanged and receive the
