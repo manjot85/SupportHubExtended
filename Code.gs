@@ -3975,17 +3975,49 @@ function getTicketForNavigation(ticketId, requestingEmail) {
   const id = String(ticketId || '').trim();
   if (!id) throw new Error('The linked ticket ID is missing.');
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const qSheet = ss.getSheetByName(SHEET_QUESTIONS);
-  if (qSheet) {
-    const qRow = findRowIndexByTicketId(qSheet, id, Q_COL.TICKET_ID);
-    if (qRow !== -1) return navigationQuestionFromRow(qSheet.getRange(qRow, 1, 1, Q_WIDTH).getValues()[0], SHEET_QUESTIONS, requestingEmail);
-  }
+
+  // Answered is checked first because this function is also used by global
+  // navigation where the caller may only have a Ticket ID. A completed ticket
+  // must resolve to the Answered record if an old/stale Questions row happens
+  // to exist during a move or migration.
   const aSheet = ss.getSheetByName(SHEET_ANSWERED);
   if (aSheet) {
     const aRow = findRowIndexByTicketId(aSheet, id, A_COL.TICKET_ID);
-    if (aRow !== -1) return navigationQuestionFromRow(aSheet.getRange(aRow, 1, 1, A_WIDTH).getValues()[0], SHEET_ANSWERED, requestingEmail);
+    if (aRow !== -1) {
+      return navigationQuestionFromRow(
+        aSheet.getRange(aRow, 1, 1, A_WIDTH).getValues()[0],
+        SHEET_ANSWERED,
+        requestingEmail
+      );
+    }
+  }
+
+  const qSheet = ss.getSheetByName(SHEET_QUESTIONS);
+  if (qSheet) {
+    const qRow = findRowIndexByTicketId(qSheet, id, Q_COL.TICKET_ID);
+    if (qRow !== -1) {
+      return navigationQuestionFromRow(
+        qSheet.getRange(qRow, 1, 1, Q_WIDTH).getValues()[0],
+        SHEET_QUESTIONS,
+        requestingEmail
+      );
+    }
   }
   throw new Error('The linked ticket no longer exists.');
+}
+
+// Dedicated Answered-ticket navigation. The Answered Tickets table uses this
+// endpoint instead of the generic Ticket-ID resolver so a click can never
+// accidentally resolve against the open Questions sheet. It also returns the
+// complete Answered row, including read state and answer metadata, in one
+// server call.
+function getAnsweredTicketForNavigation(ticketId, requestingEmail) {
+  const member = requireAuthenticatedMember(requestingEmail);
+  const target = requireAnsweredRow(ticketId);
+  const row = target.sheet.getRange(target.rowIndex, 1, 1, A_WIDTH).getValues()[0];
+  const record = navigationQuestionFromRow(row, SHEET_ANSWERED, member.email);
+  record.contentDeferred = false;
+  return record;
 }
 
 // ==========================================
