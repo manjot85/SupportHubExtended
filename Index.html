@@ -7,7 +7,7 @@
 <style>
 .table-fixed-layout { table-layout: fixed; width: 100%; }
 .preserve-lines { white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere; }
-/* Belt-and-suspenders: some rendered content (case links, ticket IDs, rich-text
+/* Belt-and-suspenders: some rendered content (case links, question IDs, rich-text
    answers with pasted URLs) can contain long unbroken strings. overflow-wrap:
    anywhere forces a break rather than pushing the modal/page wider than the
    viewport. Applied both to the free-text containers directly and to any
@@ -382,7 +382,7 @@ html { font-size: 16px; }
 </label>
 <label class="flex items-start gap-3 p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer">
 <input id="notif-pref-bell" type="checkbox" class="mt-0.5 w-4 h-4">
-<span><span class="block text-xs font-bold text-slate-800">Notification bell</span><span class="block text-[10px] text-slate-500">Shows your personal unread answered-ticket count in the header bell.</span></span>
+<span><span class="block text-xs font-bold text-slate-800">Notification bell</span><span class="block text-[10px] text-slate-500">Shows your personal unread answered-question count in the header bell.</span></span>
 </label>
 <label class="flex items-start gap-3 p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer">
 <input id="notif-pref-browser" type="checkbox" class="mt-0.5 w-4 h-4">
@@ -394,7 +394,7 @@ html { font-size: 16px; }
 </label>
 <label class="flex items-start gap-3 p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer">
 <input id="notif-pref-email" type="checkbox" class="mt-0.5 w-4 h-4">
-<span><span class="block text-xs font-bold text-slate-800">Email alert</span><span class="block text-[10px] text-slate-500">Sends email only when a ticket or task is assigned or reassigned to you.</span></span>
+<span><span class="block text-xs font-bold text-slate-800">Email alert</span><span class="block text-[10px] text-slate-500">Sends email only when a question or task is assigned or reassigned to you.</span></span>
 </label>
 <p id="notification-pref-error" class="hidden text-xs text-rose-600 font-semibold"></p>
 </div>
@@ -432,6 +432,14 @@ html { font-size: 16px; }
 <div>
 <span id="user-role-tag" class="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-emerald-400 text-slate-950">Coordinator</span>
 </div>
+<details id="home-create-menu" class="relative shrink-0">
+  <summary class="list-none cursor-pointer bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 rounded-md text-[10px] font-bold shadow transition whitespace-nowrap">+ Create</summary>
+  <div class="absolute right-0 mt-2 w-52 bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden text-xs">
+    <button type="button" onclick="closeHomeCreateMenu(); openHomeQuestionComposer()" class="w-full text-left px-4 py-3 hover:bg-slate-50 font-semibold text-slate-800">Ask a Question</button>
+    <button type="button" onclick="closeHomeCreateMenu(); openCreateTaskModal()" class="w-full text-left px-4 py-3 hover:bg-slate-50 font-semibold text-slate-800 border-t border-slate-100">Create a Task</button>
+    <button id="home-create-peer" type="button" onclick="closeHomeCreateMenu(); openPeerCreateModal()" class="hidden w-full text-left px-4 py-3 hover:bg-slate-50 font-semibold text-slate-800 border-t border-slate-100">Ask a Peer Question</button>
+  </div>
+</details>
 <button id="admin-test-tools-btn" onclick="openAdminTestModal()" class="hidden text-[10px] bg-purple-600 hover:bg-purple-500 px-2 py-1 rounded-md text-white font-bold transition" title="Admin development tools">Admin Test</button>
 <div class="relative">
 <button onclick="toggleNotificationPanel(event)" id="notification-bell-btn" title="Notifications" class="relative text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 w-8 h-7 rounded-md flex items-center justify-center transition">
@@ -481,9 +489,9 @@ html { font-size: 16px; }
     <button onclick="switchTab('coordinator')" id="subtab-coordinator" class="px-3 py-1.5 rounded-lg bg-slate-900 text-white whitespace-nowrap">My Questions</button>
     <button onclick="switchTab('peer')" id="tab-peer" class="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 hidden items-center gap-1.5 whitespace-nowrap"><span>Peer Questions</span><span id="peer-ticker" class="hidden bg-emerald-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full">0</span></button>
     <button onclick="switchTab('answered')" id="tab-answered" class="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 flex items-center gap-1.5 whitespace-nowrap">
-      <span>Answered Tickets</span><span id="unread-ticker" class="hidden bg-slate-200 text-slate-600 border border-slate-300 text-[9px] font-bold px-1.5 py-0.5 rounded-full">0</span>
+      <span>Answered Only</span><span id="unread-ticker" class="hidden bg-slate-200 text-slate-600 border border-slate-300 text-[9px] font-bold px-1.5 py-0.5 rounded-full">0</span>
     </button>
-    <button onclick="switchTab('all-tickets')" id="tab-all-tickets" class="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 whitespace-nowrap">All Questions / Tickets</button>
+    <button onclick="switchTab('all-tickets')" id="tab-all-tickets" class="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 whitespace-nowrap">All Questions</button>
     <button onclick="switchTab('tasks')" id="subtab-tasks" class="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 flex items-center gap-1.5 whitespace-nowrap"><span>Tasks</span><span id="task-ticker" class="hidden bg-blue-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full">0</span></button>
   </div>
 </div>
@@ -508,14 +516,7 @@ html { font-size: 16px; }
       <h2 id="home-dashboard-title" class="text-lg font-bold text-slate-900">Welcome back</h2>
       <p id="home-dashboard-subtitle" class="text-xs text-slate-500 mt-1">Your current questions, answers, and tasks in one place.</p>
     </div>
-    <details id="home-create-menu" class="relative shrink-0">
-      <summary class="list-none cursor-pointer bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-md transition">+ Create</summary>
-      <div class="absolute right-0 mt-2 w-52 bg-white border border-slate-200 rounded-xl shadow-xl z-30 overflow-hidden text-xs">
-        <button type="button" onclick="openHomeQuestionComposer()" class="w-full text-left px-4 py-3 hover:bg-slate-50 font-semibold text-slate-800">Ask Support</button>
-        <button type="button" onclick="closeHomeCreateMenu(); openCreateTaskModal()" class="w-full text-left px-4 py-3 hover:bg-slate-50 font-semibold text-slate-800 border-t border-slate-100">Create Task</button>
-        <button id="home-create-peer" type="button" onclick="closeHomeCreateMenu(); openPeerCreateModal()" class="hidden w-full text-left px-4 py-3 hover:bg-slate-50 font-semibold text-slate-800 border-t border-slate-100">Ask a Peer</button>
-      </div>
-    </details>
+
     <button id="home-admin-button" type="button" onclick="switchTab('team')" class="hidden bg-purple-700 hover:bg-purple-800 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-md transition shrink-0">Open Admin Setup</button>
   </div>
 
@@ -531,7 +532,7 @@ html { font-size: 16px; }
     <section id="home-priority-overview" class="xl:col-span-2 bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
       <div class="px-4 py-3 bg-gradient-to-r from-rose-50 via-amber-50 to-white border-b border-slate-100 flex items-center gap-3">
         <span class="w-8 h-8 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center text-sm font-black shrink-0">!</span>
-        <div><h3 id="home-priority-heading" class="text-sm font-bold text-slate-900">Priority &amp; Tickets</h3><p id="home-priority-help" class="text-[10px] text-slate-500 mt-0.5">Urgent work, ownership, and queue activity.</p></div>
+        <div><h3 id="home-priority-heading" class="text-sm font-bold text-slate-900">Priority Questions</h3><p id="home-priority-help" class="text-[10px] text-slate-500 mt-0.5">Urgent work, ownership, and queue activity.</p></div>
       </div>
       <div id="home-priority-metrics" class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2 p-3">
         <button id="home-metric-card-1" onclick="openHomeMetric(1)" class="bg-white border border-slate-200 rounded-xl p-3 text-left hover:border-rose-300 hover:shadow-sm transition"><p id="home-metric-label-1" class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Loading</p><p id="home-metric-value-1" class="text-2xl font-bold text-slate-900 mt-1">0</p><p id="home-metric-help-1" class="text-[9px] text-slate-400 mt-0.5"></p></button>
@@ -554,7 +555,7 @@ html { font-size: 16px; }
 
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
     <div id="home-list-panel-1" class="bg-white border border-slate-200 border-t-4 border-t-rose-400 rounded-2xl overflow-hidden shadow-sm">
-      <div class="px-4 py-3 bg-gradient-to-r from-rose-50/80 via-amber-50/50 to-white border-b border-slate-100 flex items-center justify-between gap-3"><div><p id="home-list-eyebrow-1" class="text-[9px] font-black uppercase tracking-[0.16em] text-rose-600 mb-0.5">Priority tickets</p><h3 id="home-list-title-1" class="text-sm font-bold text-slate-800">Priority items</h3><p id="home-list-help-1" class="text-[10px] text-slate-500">Items that need your next action.</p></div><button id="home-list-action-1" onclick="openHomeListDestination(1)" class="text-[11px] font-bold text-rose-700 hover:text-rose-900">View all →</button></div>
+      <div class="px-4 py-3 bg-gradient-to-r from-rose-50/80 via-amber-50/50 to-white border-b border-slate-100 flex items-center justify-between gap-3"><div><p id="home-list-eyebrow-1" class="text-[9px] font-black uppercase tracking-[0.16em] text-rose-600 mb-0.5">Priority questions</p><h3 id="home-list-title-1" class="text-sm font-bold text-slate-800">Priority items</h3><p id="home-list-help-1" class="text-[10px] text-slate-500">Items that need your next action.</p></div><button id="home-list-action-1" onclick="openHomeListDestination(1)" class="text-[11px] font-bold text-rose-700 hover:text-rose-900">View all →</button></div>
       <div id="home-list-1" class="divide-y divide-slate-100"></div>
     </div>
     <div id="home-list-panel-2" class="bg-white border border-indigo-200 border-t-4 border-t-indigo-500 rounded-2xl overflow-hidden shadow-sm">
@@ -635,12 +636,12 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
 <div>
 <h2 class="text-base font-bold text-slate-800">My Active Submitted Questions</h2>
-<p class="text-xs text-slate-500">Tracking open tickets submitted by <span id="log-filter-user" class="font-semibold text-slate-700"></span></p>
+<p class="text-xs text-slate-500">Tracking open questions submitted by <span id="log-filter-user" class="font-semibold text-slate-700"></span></p>
 </div>
 <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
 <input type="text" id="coord-search" oninput="renderCoordinatorQuestions()" placeholder="Search active..." class="border border-slate-300 px-3 py-1.5 rounded-lg text-xs outline-none focus:ring-1 focus:ring-emerald-500">
 <select id="coord-updates-filter" onchange="renderCoordinatorQuestions()" class="border border-slate-300 px-2 py-1.5 rounded-lg text-xs outline-none">
-<option value="ALL">All Tickets</option>
+<option value="ALL">All Questions</option>
 <option value="UPDATES">Has Updates Only</option>
 </select>
 <input type="date" id="coord-date-filter" onchange="renderCoordinatorQuestions()" class="border border-slate-300 px-2 py-1.5 rounded-lg text-xs outline-none">
@@ -688,12 +689,12 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80">
 <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
 <div>
-<h2 class="text-base font-bold text-slate-800">Answered Tickets Desk</h2>
+<h2 class="text-base font-bold text-slate-800">Answered Only</h2>
 <p id="answered-subtitle" class="text-xs text-slate-500">Review supervisor answers and resolution turnaround times</p>
 </div>
 <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
 <select id="answered-scope-filter" onchange="renderAnsweredTab()" class="border border-slate-300 px-3 py-1.5 rounded-lg text-xs outline-none focus:ring-1 focus:ring-emerald-500 font-semibold">
-<option value="ALL">All Answered Tickets</option>
+<option value="ALL">Answered Only</option>
 <option value="MINE">My Questions Only</option>
 <option value="INTERNAL" id="answered-scope-internal-opt" class="hidden">Internal Support Questions Only</option>
 </select>
@@ -728,7 +729,7 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
   <button id="answered-card-total" type="button" onclick="applyMyAnsweredCardFilter('ALL')" class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-left hover:border-slate-400 hover:shadow-sm transition focus:outline-none focus:ring-2 focus:ring-slate-300">
     <p class="text-[10px] font-bold uppercase tracking-wider text-slate-500">My Answered Total</p>
     <p id="answered-my-total" class="text-2xl font-bold text-slate-900 mt-1">0</p>
-    <p class="text-[10px] text-slate-500 mt-0.5">Click to show all your answered tickets</p>
+    <p class="text-[10px] text-slate-500 mt-0.5">Click to show all your answered questions</p>
   </button>
 </div>
 
@@ -751,7 +752,7 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 </table>
 </div>
 <div class="flex items-center justify-between gap-3 border-t border-slate-100 px-3 py-2 text-xs" id="answered-pagination">
-  <span id="answered-page-status" class="text-slate-500">Showing 0 tickets</span>
+  <span id="answered-page-status" class="text-slate-500">Showing 0 questions</span>
   <div class="flex gap-2"><button type="button" onclick="changeTicketTablePage('answered', -1)" class="rounded border border-slate-300 px-3 py-1 text-slate-700 disabled:opacity-40">Previous</button><button type="button" onclick="changeTicketTablePage('answered', 1)" class="rounded border border-slate-300 px-3 py-1 text-slate-700 disabled:opacity-40">Next</button></div>
 </div>
 </div>
@@ -762,12 +763,12 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80">
 <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
 <div>
-<h2 class="text-base font-bold text-slate-800">Global Ticket Feed</h2>
+<h2 class="text-base font-bold text-slate-800">Global Question Feed</h2>
 <p class="text-xs text-slate-500">Live stream of all questions and resolution activity</p>
 </div>
 <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
 <select id="all-type-filter" onchange="renderAllTickets()" class="border border-slate-300 px-3 py-1.5 rounded-lg text-xs outline-none focus:ring-1 focus:ring-emerald-500 font-medium">
-<option value="ALL">All Tickets</option>
+<option value="ALL">All Questions</option>
 <option value="QUESTIONS">Open Questions Only</option>
 <option value="ANSWERED">Answered Only</option>
 </select>
@@ -784,7 +785,7 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 <table class="table-fixed-layout text-left text-xs">
 <thead>
 <tr class="bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
-<th id="all-admin-select-th" class="hidden p-3 w-10 text-center"><input id="all-admin-select-visible" type="checkbox" onclick="event.stopPropagation();toggleAdminSelectVisibleTickets(this.checked)" aria-label="Select all visible tickets"></th>
+<th id="all-admin-select-th" class="hidden p-3 w-10 text-center"><input id="all-admin-select-visible" type="checkbox" onclick="event.stopPropagation();toggleAdminSelectVisibleTickets(this.checked)" aria-label="Select all visible questions"></th>
 <th class="p-3 w-36 cursor-pointer select-none hover:text-slate-700" onclick="onSortHeaderClick('all','eventName')">EVENT<span id="sort-arrow-all-eventName"></span></th>
 <th class="p-3 cursor-pointer select-none" onclick="onSortHeaderClick('all','question')">QUESTION<span id="sort-arrow-all-question"></span></th>
 <th class="p-3 w-36 cursor-pointer select-none hover:text-slate-700" onclick="onSortHeaderClick('all','askedBy')">ASKED BY<span id="sort-arrow-all-askedBy"></span></th>
@@ -800,7 +801,7 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 </table>
 </div>
 <div class="flex items-center justify-between gap-3 border-t border-slate-100 px-3 py-2 text-xs" id="all-tickets-pagination">
-  <span id="all-tickets-page-status" class="text-slate-500">Showing 0 tickets</span>
+  <span id="all-tickets-page-status" class="text-slate-500">Showing 0 questions</span>
   <div class="flex gap-2"><button type="button" onclick="changeTicketTablePage('all', -1)" class="rounded border border-slate-300 px-3 py-1 text-slate-700 disabled:opacity-40">Previous</button><button type="button" onclick="changeTicketTablePage('all', 1)" class="rounded border border-slate-300 px-3 py-1 text-slate-700 disabled:opacity-40">Next</button></div>
 </div>
 </div>
@@ -839,7 +840,7 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 <!-- "All" Filter Card - Smaller, Full Width, Prominent -->
 <button id="sup-kpi-card-all" onclick="supKpiClick('all')" class="relative w-full bg-white rounded-lg border border-slate-200 shadow-sm py-1.5 px-3 text-center hover:border-slate-300 hover:shadow transition-all duration-150 group mb-3">
 <span id="sup-kpi-badge-all" class="hidden absolute -top-1.5 -right-1.5 bg-blue-600 text-white text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full shadow-sm">Active</span>
-<p class="text-[10px] font-bold uppercase tracking-wider text-slate-600 group-hover:text-slate-700">All Tickets</p>
+<p class="text-[10px] font-bold uppercase tracking-wider text-slate-600 group-hover:text-slate-700">All Questions</p>
 <p id="sup-kpi-all" class="text-lg font-bold text-slate-800 mt-0.5">0</p>
 </button>
 
@@ -1064,7 +1065,7 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
   <div class="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 mb-5">
     <div>
       <h2 class="text-base font-bold text-slate-800">Reporting Analytics</h2>
-      <p class="text-xs text-slate-500">Answer performance, answered-ticket review progress, and task follow-through. All dates follow Central Time.</p>
+      <p class="text-xs text-slate-500">Answer performance, answered-question review progress, and task follow-through. All dates follow Central Time.</p>
     </div>
     <div class="flex flex-wrap items-center gap-2">
       <select id="report-range-preset" onchange="handleReportRangeChange()" class="border border-slate-300 px-2 py-1.5 rounded-lg text-xs outline-none">
@@ -1093,7 +1094,7 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
       <p id="stat-unanswered" class="text-3xl font-bold text-slate-900 mt-1">0</p>
     </button>
     <button onclick="showReportDetail('answered')" class="bg-emerald-50/70 border border-emerald-200 rounded-xl p-4 text-left hover:border-emerald-400 hover:shadow-sm transition">
-      <p class="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Resolved Tickets</p>
+      <p class="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Resolved Questions</p>
       <p id="stat-answered" class="text-3xl font-bold text-slate-900 mt-1">0</p>
     </button>
     <button onclick="showReportDetail('currently-read')" class="bg-blue-50/70 border border-blue-200 rounded-xl p-4 text-left hover:border-blue-400 hover:shadow-sm transition">
@@ -1200,7 +1201,7 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 
       <div class="grid grid-cols-1 xl:grid-cols-2 border-t border-slate-200">
         <div class="overflow-x-auto xl:border-r border-slate-200">
-          <div class="px-4 pt-4 pb-2"><h4 class="text-xs font-bold text-slate-800">Questions by Category</h4><p class="text-[10px] text-slate-500">Click a number to open the matching tickets.</p></div>
+          <div class="px-4 pt-4 pb-2"><h4 class="text-xs font-bold text-slate-800">Questions by Category</h4><p class="text-[10px] text-slate-500">Click a number to open the matching questions.</p></div>
           <table class="min-w-full text-left text-xs">
             <thead><tr class="bg-slate-50 text-slate-500 font-bold border-y border-slate-200"><th class="p-3">CATEGORY</th><th class="p-3 text-center">QUESTIONS</th><th class="p-3 text-center">TEAM MEMBERS</th><th class="p-3 text-center">SHARE</th></tr></thead>
             <tbody id="report-category-volume-body" class="divide-y divide-slate-100"></tbody>
@@ -1281,7 +1282,7 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
     <button type="button" onclick="toggleReportSection('report-peer-section')" class="w-full flex items-center justify-between bg-slate-50 px-4 py-3 text-left hover:bg-slate-100 transition">
       <div>
         <h3 class="text-sm font-bold text-slate-800">Peer Guidance</h3>
-        <p class="text-[10px] text-slate-500">A light-touch view of Peer Question usage. This is intended to understand collaboration and unresolved guidance, not to turn Peer Questions into a formal ticket queue.</p>
+        <p class="text-[10px] text-slate-500">A light-touch view of Peer Question usage. This is intended to understand collaboration and unresolved guidance, not to turn Peer Questions into a formal question queue.</p>
       </div>
       <span class="text-slate-400 text-xs">Show / Hide</span>
     </button>
@@ -1306,7 +1307,7 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
     <button type="button" onclick="toggleReportSection('report-support-section')" class="w-full flex items-center justify-between bg-slate-50 px-4 py-3 text-left hover:bg-slate-100 transition">
       <div>
         <h3 class="text-sm font-bold text-slate-800">Answered By: Workload &amp; Answer Speed</h3>
-        <p class="text-[10px] text-slate-500">Click any number to open the matching tickets.</p>
+        <p class="text-[10px] text-slate-500">Click any number to open the matching questions.</p>
       </div>
       <span class="text-slate-400 text-xs">Show / Hide</span>
     </button>
@@ -1326,7 +1327,7 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
   <div id="report-review-card" class="report-workspace-card hidden border border-slate-200 rounded-xl mb-5 overflow-hidden">
     <button type="button" onclick="toggleReportSection('report-review-section')" class="w-full flex items-center justify-between bg-slate-50 px-4 py-3 text-left hover:bg-slate-100 transition">
       <div>
-        <h3 class="text-sm font-bold text-slate-800">Answered Ticket Review Progress</h3>
+        <h3 class="text-sm font-bold text-slate-800">Answered Question Review Progress</h3>
         <p class="text-[10px] text-slate-500">Tracks the original asker. Current read state and first-ever review are kept separately.</p>
       </div>
       <span class="text-slate-400 text-xs">Show / Hide</span>
@@ -1393,10 +1394,10 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
     <div class="flex items-start justify-between gap-3"><div><p class="text-sm font-bold text-slate-800">Performance &amp; Stability</p><p class="text-[11px] text-slate-500 mt-1">Review load times, slow requests, failures, and current refresh state.</p></div><span class="text-rose-600 group-hover:translate-x-0.5 transition">→</span></div>
   </button>
   <button id="admin-menu-connections" type="button" onclick="openAdminWorkspace('connections')" class="admin-menu-admin-only group hidden bg-white border border-slate-200 rounded-xl p-4 text-left hover:border-cyan-300 hover:bg-cyan-50/40 hover:shadow-sm transition">
-    <div class="flex items-start justify-between gap-3"><div><p class="text-sm font-bold text-slate-800">Connections</p><p class="text-[11px] text-slate-500 mt-1">Configure the Salesforce base URL used by ticket links.</p></div><span class="text-cyan-600 group-hover:translate-x-0.5 transition">→</span></div>
+    <div class="flex items-start justify-between gap-3"><div><p class="text-sm font-bold text-slate-800">Connections</p><p class="text-[11px] text-slate-500 mt-1">Configure the Salesforce base URL used by question links.</p></div><span class="text-cyan-600 group-hover:translate-x-0.5 transition">→</span></div>
   </button>
   <button id="admin-menu-notifications" type="button" onclick="openAdminWorkspace('notifications')" class="admin-menu-admin-only group hidden bg-white border border-slate-200 rounded-xl p-4 text-left hover:border-indigo-300 hover:bg-indigo-50/40 hover:shadow-sm transition">
-    <div class="flex items-start justify-between gap-3"><div><p class="text-sm font-bold text-slate-800">Notification Controls</p><p class="text-[11px] text-slate-500 mt-1">Control actionable Task and Ticket notifications by title or selected team members.</p></div><span class="text-indigo-600 group-hover:translate-x-0.5 transition">→</span></div>
+    <div class="flex items-start justify-between gap-3"><div><p class="text-sm font-bold text-slate-800">Notification Controls</p><p class="text-[11px] text-slate-500 mt-1">Control actionable Task and Question notifications by title or selected team members.</p></div><span class="text-indigo-600 group-hover:translate-x-0.5 transition">→</span></div>
   </button>
 </div>
 
@@ -1421,7 +1422,7 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 <!-- PERFORMANCE & STABILITY (Admin-only) -->
 <div id="performance-diagnostics-card" class="admin-workspace-card hidden bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80">
   <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 mb-4">
-    <div><h2 class="text-base font-bold text-slate-800">Performance &amp; Stability</h2><p class="text-xs text-slate-500">Uses one normal sample per core feed, plus slow and failed requests. No ticket or answer content is recorded.</p></div>
+    <div><h2 class="text-base font-bold text-slate-800">Performance &amp; Stability</h2><p class="text-xs text-slate-500">Uses one normal sample per core feed, plus slow and failed requests. No question or answer content is recorded.</p></div>
     <div class="flex flex-wrap gap-2">
       <button type="button" onclick="loadPerformanceDiagnostics()" class="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-xl text-xs font-bold">Refresh Diagnostics</button>
       <button type="button" onclick="retryCoreDataLoads()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-xs font-bold">Retry Core Data</button>
@@ -1507,10 +1508,10 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 <div class="overflow-x-auto rounded-xl border border-slate-200 mb-5 max-h-72 overflow-y-auto"><table class="min-w-full text-left text-xs"><thead class="sticky top-0 bg-slate-50 z-10"><tr class="text-slate-500 font-bold border-b"><th class="p-3 w-12"><input id="admin-notif-select-all" type="checkbox" onchange="selectVisibleAdminNotificationMembers(this.checked)"></th><th class="p-3">TEAM MEMBER</th><th class="p-3">TITLE</th><th class="p-3">CURRENT ALERTS</th></tr></thead><tbody id="admin-notif-member-body" class="divide-y divide-slate-100"><tr><td colspan="4" class="p-5 text-center text-slate-400">Open Notification Controls to load the team.</td></tr></tbody></table></div>
 <div class="border-t border-slate-100 pt-5"><p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-3">Apply these notifications to selected members</p><div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-2">
 <label class="flex items-start gap-2 rounded-xl border border-slate-200 p-3"><input id="admin-notif-task-assigned" type="checkbox" checked class="mt-0.5"><span><b class="block text-[11px] text-slate-800">New Task Assigned</b><span class="text-[9px] text-slate-500">New assignment or reassignment</span></span></label>
-<label class="flex items-start gap-2 rounded-xl border border-slate-200 p-3"><input id="admin-notif-ticket-new" type="checkbox" checked class="mt-0.5"><span><b class="block text-[11px] text-slate-800">New Ticket</b><span class="text-[9px] text-slate-500">New/routed ticket assignment</span></span></label>
-<label class="flex items-start gap-2 rounded-xl border border-slate-200 p-3"><input id="admin-notif-ticket-hold" type="checkbox" checked class="mt-0.5"><span><b class="block text-[11px] text-slate-800">Ticket On Hold</b><span class="text-[9px] text-slate-500">Ticket moved to Hold</span></span></label>
-<label class="flex items-start gap-2 rounded-xl border border-slate-200 p-3"><input id="admin-notif-ticket-resumed" type="checkbox" checked class="mt-0.5"><span><b class="block text-[11px] text-slate-800">Resume From Hold</b><span class="text-[9px] text-slate-500">Ticket resumed to active work</span></span></label>
-<label class="flex items-start gap-2 rounded-xl border border-slate-200 p-3"><input id="admin-notif-ticket-answered" type="checkbox" checked class="mt-0.5"><span><b class="block text-[11px] text-slate-800">Ticket Answered</b><span class="text-[9px] text-slate-500">Answer available for the asker</span></span></label></div>
+<label class="flex items-start gap-2 rounded-xl border border-slate-200 p-3"><input id="admin-notif-ticket-new" type="checkbox" checked class="mt-0.5"><span><b class="block text-[11px] text-slate-800">New Question</b><span class="text-[9px] text-slate-500">New/routed question assignment</span></span></label>
+<label class="flex items-start gap-2 rounded-xl border border-slate-200 p-3"><input id="admin-notif-ticket-hold" type="checkbox" checked class="mt-0.5"><span><b class="block text-[11px] text-slate-800">Question On Hold</b><span class="text-[9px] text-slate-500">Question moved to Hold</span></span></label>
+<label class="flex items-start gap-2 rounded-xl border border-slate-200 p-3"><input id="admin-notif-ticket-resumed" type="checkbox" checked class="mt-0.5"><span><b class="block text-[11px] text-slate-800">Resume From Hold</b><span class="text-[9px] text-slate-500">Question resumed to active work</span></span></label>
+<label class="flex items-start gap-2 rounded-xl border border-slate-200 p-3"><input id="admin-notif-ticket-answered" type="checkbox" checked class="mt-0.5"><span><b class="block text-[11px] text-slate-800">Question Answered</b><span class="text-[9px] text-slate-500">Answer available for the asker</span></span></label></div>
 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-4"><p id="admin-notif-selected-count" class="text-[11px] text-slate-500">0 members selected</p><button id="admin-notif-apply-btn" type="button" onclick="applyAdminNotificationControls()" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-sm">Apply to Selected</button></div></div>
 </div>
 
@@ -1659,7 +1660,7 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
       <div>
         <p class="text-[10px] uppercase tracking-wider font-bold text-rose-700">@unread</p>
         <h3 class="text-base font-bold text-slate-900">My Unread Answers <span id="quick-unread-count" class="text-slate-400"></span></h3>
-        <p class="text-xs text-slate-500 mt-1">Your unread answered tickets. Open any item here without changing tabs.</p>
+        <p class="text-xs text-slate-500 mt-1">Your unread answered questions. Open any item here without changing tabs.</p>
       </div>
       <button onclick="closeQuickUnreadModal()" class="text-xl text-slate-400 hover:text-slate-700">&times;</button>
     </div>
@@ -1730,23 +1731,23 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
     <div id="task-create-ticket-search-wrap">
       <div class="flex items-center justify-between gap-3">
         <div>
-          <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Related Ticket <span class="normal-case font-medium text-slate-400">(optional)</span></label>
-          <p class="text-[9px] text-slate-400 mt-0.5">Connect this Task to an existing Support Hub ticket only when one already exists.</p>
+          <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Related Question <span class="normal-case font-medium text-slate-400">(optional)</span></label>
+          <p class="text-[9px] text-slate-400 mt-0.5">Connect this Task to an existing Support Hub question only when one already exists.</p>
         </div>
-        <button id="task-create-add-ticket-btn" type="button" onclick="openCreateTaskRelatedTicketSearch()" class="shrink-0 px-3 py-2 rounded-xl border border-blue-200 bg-blue-50 text-blue-700 text-[10px] font-bold hover:bg-blue-100">+ Add Related Ticket</button>
+        <button id="task-create-add-ticket-btn" type="button" onclick="openCreateTaskRelatedTicketSearch()" class="shrink-0 px-3 py-2 rounded-xl border border-blue-200 bg-blue-50 text-blue-700 text-[10px] font-bold hover:bg-blue-100">+ Add Related Question</button>
       </div>
       <div id="task-create-ticket-selected" class="hidden mt-2 rounded-xl border border-blue-200 bg-blue-50/60 px-3 py-2 text-xs"></div>
       <div id="task-create-ticket-search-panel" class="hidden mt-2 rounded-xl border border-slate-200 bg-slate-50/70 p-3">
         <div class="flex items-center justify-between gap-3 mb-2">
           <div>
-            <p class="text-[10px] font-bold text-slate-700">Find an existing Support Hub ticket</p>
-            <p class="text-[9px] text-slate-400 mt-0.5">Search by Event, question details, keywords, Ticket ID, asker, category, assignee, or Salesforce link.</p>
+            <p class="text-[10px] font-bold text-slate-700">Find an existing Support Hub question</p>
+            <p class="text-[9px] text-slate-400 mt-0.5">Search by Event, question details, keywords, Question ID, asker, category, assignee, or Salesforce link.</p>
           </div>
           <button type="button" onclick="closeCreateTaskRelatedTicketSearch()" class="shrink-0 text-[10px] font-bold text-slate-500 hover:text-slate-800">Close</button>
         </div>
-        <input id="task-create-ticket-search" type="text" autocomplete="off" oninput="handleCreateTaskTicketSearch()" class="w-full border border-slate-300 bg-white p-2.5 rounded-xl text-xs outline-none focus:ring-2 focus:ring-blue-500" placeholder="Event, question, keywords, Ticket ID, or Salesforce link">
+        <input id="task-create-ticket-search" type="text" autocomplete="off" oninput="handleCreateTaskTicketSearch()" class="w-full border border-slate-300 bg-white p-2.5 rounded-xl text-xs outline-none focus:ring-2 focus:ring-blue-500" placeholder="Event, question, keywords, Question ID, or Salesforce link">
         <div id="task-create-ticket-search-results" class="hidden mt-1 max-h-56 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg"></div>
-        <p id="task-create-ticket-search-status" class="text-[9px] text-slate-400 mt-1">Type at least 2 characters to search Support Hub tickets.</p>
+        <p id="task-create-ticket-search-status" class="text-[9px] text-slate-400 mt-1">Type at least 2 characters to search Support Hub questions.</p>
       </div>
       <input id="task-create-related-ticket-id" type="hidden">
     </div>
@@ -1769,7 +1770,7 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 
         </div>
         <h3 id="task-modal-title" class="task-top-title font-bold text-slate-900 break-words">Task</h3>
-        <button id="task-modal-related-ticket-top" type="button" onclick="openRelatedTicketFromTask()" class="hidden mt-1.5 text-left text-[10px] font-semibold text-blue-700 hover:text-blue-900 hover:underline">From Related Ticket: <span id="task-modal-related-ticket-top-title">Open ticket</span> <span aria-hidden="true">↗</span></button>
+        <button id="task-modal-related-ticket-top" type="button" onclick="openRelatedTicketFromTask()" class="hidden mt-1.5 text-left text-[10px] font-semibold text-blue-700 hover:text-blue-900 hover:underline">From Related Question: <span id="task-modal-related-ticket-top-title">Open question</span> <span aria-hidden="true">↗</span></button>
       </div>
       <div class="app-modal-tools" aria-label="Task window controls">
         <button type="button" onclick="minimizeWorkModal('task-detail-modal')" class="app-modal-tool" title="Minimize" aria-label="Minimize task window">—</button>
@@ -1853,21 +1854,21 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
     <div id="task-modal-linked-answer-row" class="hidden bg-blue-50/50 border border-blue-200 rounded-xl p-3">
       <div class="flex items-start justify-between gap-3">
         <div class="min-w-0 flex-1">
-          <p class="text-[10px] font-bold uppercase tracking-wider text-blue-700">Related Ticket</p>
-          <p id="task-modal-linked-ticket-title" class="text-xs font-bold text-slate-800 mt-1 break-words">Related ticket</p>
-          <p id="task-modal-linked-ticket-meta" class="text-[10px] text-slate-500 mt-0.5 break-words">Loading ticket details...</p>
+          <p class="text-[10px] font-bold uppercase tracking-wider text-blue-700">Related Question</p>
+          <p id="task-modal-linked-ticket-title" class="text-xs font-bold text-slate-800 mt-1 break-words">Related question</p>
+          <p id="task-modal-linked-ticket-meta" class="text-[10px] text-slate-500 mt-0.5 break-words">Loading question details...</p>
         </div>
         <div class="flex items-center gap-3 shrink-0">
-          <button onclick="openLinkedQuestionFromTask()" class="text-[11px] font-bold text-blue-700 hover:text-blue-900 underline">View Ticket &rarr;</button>
+          <button onclick="openLinkedQuestionFromTask()" class="text-[11px] font-bold text-blue-700 hover:text-blue-900 underline">View Question &rarr;</button>
         </div>
       </div>
     </div>
     <div id="task-modal-ticket-connect-row" class="bg-blue-50/30 border border-blue-200 rounded-xl p-3">
       <div class="flex items-start justify-between gap-3 mb-2">
-        <div><p class="text-[10px] font-bold uppercase tracking-wider text-blue-700">Parent Ticket</p><p class="text-[10px] text-slate-500 mt-0.5">Connect this task to one Support Hub ticket. Once connected, that ticket remains the parent for this task and its follow-up tasks.</p></div>
+        <div><p class="text-[10px] font-bold uppercase tracking-wider text-blue-700">Parent Question</p><p class="text-[10px] text-slate-500 mt-0.5">Connect this task to one Support Hub question. Once connected, that question remains the parent for this task and its follow-up tasks.</p></div>
       </div>
       <div class="relative">
-        <input id="task-modal-ticket-search-input" type="text" autocomplete="off" oninput="handleTaskRelatedTicketSearch()" onfocus="handleTaskRelatedTicketSearch()" class="w-full border border-blue-200 bg-white p-2.5 rounded-xl text-xs outline-none focus:ring-2 focus:ring-blue-400" placeholder="Search related tickets...">
+        <input id="task-modal-ticket-search-input" type="text" autocomplete="off" oninput="handleTaskRelatedTicketSearch()" onfocus="handleTaskRelatedTicketSearch()" class="w-full border border-blue-200 bg-white p-2.5 rounded-xl text-xs outline-none focus:ring-2 focus:ring-blue-400" placeholder="Search related questions...">
         <div id="task-modal-ticket-search-results" class="hidden absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-50 max-h-64 overflow-y-auto"></div>
       </div>
       <p id="task-modal-ticket-search-status" class="text-[10px] text-slate-400 mt-1.5">Type at least 2 characters to search.</p>
@@ -2481,7 +2482,7 @@ const ADMIN_WORKSPACES = {
   login: { cardIds: ['login-access-card'], title: 'Login Access', subtitle: 'Review recorded Workspace login results and access status.', adminOnly: true },
   connections: { cardIds: ['sf-config-card'], title: 'Connections', subtitle: 'Configure the Salesforce domain used to open Case and Event links.', adminOnly: true },
   performance: { cardIds: ['performance-diagnostics-card'], title: 'Performance & Stability', subtitle: 'Review load times, slow requests, failures, and retry the core data feeds.', adminOnly: true },
-  notifications: { cardIds: ['notification-controls-card'], title: 'Notification Controls', subtitle: 'Apply actionable Task and Ticket notification rules by title or selected team members.', adminOnly: true }
+  notifications: { cardIds: ['notification-controls-card'], title: 'Notification Controls', subtitle: 'Apply actionable Task and Question notification rules by title or selected team members.', adminOnly: true }
 };
 
 // Supervisor Desk state
@@ -2819,7 +2820,7 @@ function imageAttachmentContext(editorId) {
   if (editorId === 'modal-answer-input') return { context: 'Supervisor Answer', recordId: activeModalTicketId || '' };
   if (editorId === 'task-modal-update-input') return { context: 'Task Update', recordId: activeTask ? activeTask.taskId : '' };
   if (editorId === 'task-edit-instructions') return { context: 'Task Instructions', recordId: activeTask ? activeTask.taskId : '' };
-  if (editorId === 'vmodal-update-text') return { context: 'Answered Ticket Update', recordId: activeViewQuestion ? activeViewQuestion.ticketId : '' };
+  if (editorId === 'vmodal-update-text') return { context: 'Answered Question Update', recordId: activeViewQuestion ? activeViewQuestion.ticketId : '' };
   if (editorId === 'peer-reply-text') return { context: 'Peer Question Reply', recordId: activePeerQuestion ? activePeerQuestion.id : '' };
   if (editorId === 'peer-question-text') return { context: 'Peer Question', recordId: '' };
   if (editorId === 'task-create-instructions' || editorId === 'modal-followup-task-instructions') return { context: 'New Task', recordId: '' };
@@ -3371,7 +3372,7 @@ function categorySuggestionContext(selectId) {
 
   if (selectId === 'modal-followup-task-category') return { context: 'Answer Follow-up Task', recordId: activeModalTicketId || '' };
   if (selectId === 'task-edit-category') return { context: 'Task Edit', recordId: activeTask ? activeTask.taskId : '' };
-  if (selectId === 'edit-work-category') return { context: 'Admin Ticket Edit', recordId: activeEditRecord ? activeEditRecord.ticketId : '' };
+  if (selectId === 'edit-work-category') return { context: 'Admin Question Edit', recordId: activeEditRecord ? activeEditRecord.ticketId : '' };
   if (selectId === 'task-create-category') return { context: 'New Task', recordId: createTaskParentContext ? createTaskParentContext.parentId || '' : '' };
   return { context: 'Work Category', recordId: '' };
 }
@@ -3520,7 +3521,7 @@ function showHoldReasonAlert(ticketId) {
 
 // Returns true if a Questions-Tracker record has any supervisor/support
 // activity worth flagging to the coordinator who submitted it (on hold, or
-// an assignment note left by whoever is working the ticket).
+// an assignment note left by whoever is working the question).
 function questionHasUpdate(q) {
   if (!q) return false;
   const onHold = q.status === 'Hold';
@@ -3540,7 +3541,7 @@ function getLatestActivityText(q) {
     const latest = entries[entries.length - 1];
     if (latest) parts.push('Latest Supervisor Note:\n' + latest);
   }
-  if (!parts.length) return 'No updates yet on this ticket.';
+  if (!parts.length) return 'No updates yet on this question.';
   return parts.join('\n\n');
 }
 
@@ -3550,7 +3551,7 @@ function showLatestUpdateAlert(ticketId) {
 
 async function openTicketUpdateDetails(ticketId) {
   const q = allQuestions.find(r => r.sheet === 'Questions Tracker' && String(r.ticketId) === String(ticketId));
-  if (!q) { showToast('This ticket could not be found. Refreshing...'); refreshData(); return; }
+  if (!q) { showToast('This question could not be found. Refreshing...'); refreshData(); return; }
   await openTicketDetail(q.sheet, q.ticketId);
   setTimeout(() => {
     const notes = document.getElementById('tdmodal-notes-container');
@@ -4013,7 +4014,7 @@ function finishLogin(member) {
   pendingEmailDeepLink = readSupportHubDeepLink();
 
   if (support) {
-    // Give operational users the small open-ticket feed first. A large
+    // Give operational users the small open-question feed first. A large
     // historical request is started only when the active tab actually needs
     // Answered history or reporting detail.
     refreshSupervisorData(true, false);
@@ -4284,9 +4285,9 @@ function getGlobalReportSearchItems(query) {
   ];
   if (support) {
     defs.push(
-      { type:'report', title:'Reporting Analytics', meta:'Full ticket, answer, review, and task reporting', keywords:'report reporting analytics dashboard metrics tickets answers tasks performance', run:()=>switchTab('reporting') },
+      { type:'report', title:'Reporting Analytics', meta:'Full question, answer, review, and task reporting', keywords:'report reporting analytics dashboard metrics questions answers tasks performance', run:()=>switchTab('reporting') },
       { type:'report', title:'Task Performance', meta:'Assigned, pending, overdue, completed, completion rate', keywords:'task performance report assigned pending overdue completed completion', run:()=>openReportFromSearch('tasks') },
-      { type:'report', title:'Answer Review & Follow-up Progress', meta:'Answer reading and follow-up tasks from answered tickets', keywords:'answer read review follow up progress report task outstanding overdue completed', run:()=>openReportFromSearch('followup') },
+      { type:'report', title:'Answer Review & Follow-up Progress', meta:'Answer reading and follow-up tasks from answered questions', keywords:'answer read review follow up progress report task outstanding overdue completed', run:()=>openReportFromSearch('followup') },
       { type:'report', title:'Support Answer Workload', meta:'Answers completed and average answer time', keywords:'support answer workload speed average report answered', run:()=>openReportFromSearch('support') },
       { type:'report', title:'Question Routing & Coverage', meta:'Routed questions, open ownership, and cross-team Support help', keywords:'routing primary backup support ownership coverage helped others', run:()=>openReportFromSearch('routing') },
       { type:'report', title:'Category & Question Insights', meta:'Categories, repeated themes, FAQ candidates, and training needs', keywords:'category question insight faq training repeated themes report', run:()=>openReportFromSearch('category') },
@@ -4300,7 +4301,7 @@ function getGlobalReportSearchItems(query) {
       { type:'team', title:'Login Access Monitor', meta:'Workspace login success/failure status', keywords:'login access authentication workspace admin report monitor', run:()=>openAdminFromSearch('login') },
       { type:'team', title:'Salesforce Connection', meta:'Salesforce base URL for Case and Event links', keywords:'salesforce connection base url domain setup', run:()=>openAdminFromSearch('connections') },
       { type:'team', title:'Performance & Stability', meta:'Load times, slow requests, failures, and safe data retry', keywords:'admin performance stability diagnostics slow load failure retry telemetry', run:()=>openAdminFromSearch('performance') },
-      { type:'team', title:'Notification Controls', meta:'Manage actionable Task and Ticket notifications by title or team member', keywords:'admin notification alerts task ticket title bulk team', run:()=>openAdminFromSearch('notifications') }
+      { type:'team', title:'Notification Controls', meta:'Manage actionable Task and Question notifications by title or team member', keywords:'admin notification alerts task question title bulk team', run:()=>openAdminFromSearch('notifications') }
     );
   }
   return defs.filter(r=>quickSearchIncludes(query,[r.title,r.meta,r.keywords]));
@@ -4333,7 +4334,7 @@ function rebuildGlobalSearchIndexIfNeeded() {
     const status=q.sheet==='Answered'?'Answered':(q.status==='Hold'?'On Hold':(q.isFollowUp?'Follow-Up':'Open'));
     index.push(makeGlobalSearchIndexItem({
       type:'ticket',id:q.ticketId,ticketId:q.ticketId,sheet:q.sheet,
-      title:q.eventName||stripHtml(q.question).slice(0,90)||q.ticketId||'Ticket',
+      title:q.eventName||stripHtml(q.question).slice(0,90)||q.ticketId||'Question',
       meta:status+' · '+(q.category||'General / Other')+' · Asked by '+getUserDisplayName(q.askedBy)+(q.assignedTo?' · Assigned to '+getUserDisplayName(q.assignedTo):''),
       detail:stripHtml(q.question).slice(0,130),
       _sortAt:new Date(q.lastUpdatedAt||q.answeredDate||q.created||0).getTime()||0
@@ -4403,7 +4404,7 @@ function searchLoadedSupportHub(rawQuery,page) {
   };
 }
 function globalSearchTypeLabel(type,count) {
-  if(type==='ticket') return pluralQuickSearch(count,'Ticket');
+  if(type==='ticket') return pluralQuickSearch(count,'Question');
   if(type==='task') return pluralQuickSearch(count,'Task');
   if(type==='peer') return pluralQuickSearch(count,'Peer Question','Peer Questions');
   if(type==='team') return pluralQuickSearch(count,'Team Member','Team Members');
@@ -4433,7 +4434,7 @@ function renderGlobalSearchResponse(rawQuery,response) {
   quickGlobalSearchMeta=response||{};
   quickCommandActiveIndex=0;
   if(!quickGlobalSearchResults.length){
-    menu.innerHTML='<div class="quick-search-empty">No Tickets, Peer Questions, Tasks, Team Members, or Reports found for <strong>'+esc(String(rawQuery||''))+'</strong>.'+(response&&response.historyIncomplete?' <button type="button" class="ml-1 underline font-semibold text-blue-700" onclick="requestServerGlobalSearch(quickGlobalSearchQuery,1)">Search full history now</button>':'')+'</div>';
+    menu.innerHTML='<div class="quick-search-empty">No Questions, Peer Questions, Tasks, Team Members, or Reports found for <strong>'+esc(String(rawQuery||''))+'</strong>.'+(response&&response.historyIncomplete?' <button type="button" class="ml-1 underline font-semibold text-blue-700" onclick="requestServerGlobalSearch(quickGlobalSearchQuery,1)">Search full history now</button>':'')+'</div>';
     menu.classList.remove('hidden');
     return;
   }
@@ -4458,7 +4459,7 @@ function renderGlobalSearchResponse(rawQuery,response) {
       flatIndex++;
     });
   });
-  if(response&&response.historyIncomplete) html+='<div class="px-3 py-2 text-[10px] text-blue-700 bg-blue-50 border-t border-blue-100">Showing records already loaded in this session. Full ticket history is loading in the background. <button type="button" class="underline font-semibold" onclick="requestServerGlobalSearch(quickGlobalSearchQuery,1)">Search full history now</button></div>';
+  if(response&&response.historyIncomplete) html+='<div class="px-3 py-2 text-[10px] text-blue-700 bg-blue-50 border-t border-blue-100">Showing records already loaded in this session. Full question history is loading in the background. <button type="button" class="underline font-semibold" onclick="requestServerGlobalSearch(quickGlobalSearchQuery,1)">Search full history now</button></div>';
   if(response&&response.capped) html+='<div class="px-3 py-2 text-[10px] text-amber-700 bg-amber-50 border-t border-amber-100">This is a broad search. Add another word to narrow the complete history.</div>';
   if(response&&(response.hasPrevious||response.hasMore)) html+='<div class="flex items-center justify-between gap-3 px-3 py-2 border-t border-slate-200 bg-slate-50">'+
     '<button type="button" class="text-[11px] font-semibold text-blue-700 disabled:text-slate-300" '+(response.hasPrevious?'onclick="changeGlobalSearchPage(-1)"':'disabled')+'>← Previous</button>'+
@@ -4496,7 +4497,7 @@ function requestServerGlobalSearch(rawQuery,page) {
   quickGlobalSearchMode='server';
   quickGlobalSearchQuery=raw;
   quickGlobalSearchPage=requestPage;
-  menu.innerHTML='<div class="quick-search-empty">Searching the complete ticket history…</div>';
+  menu.innerHTML='<div class="quick-search-empty">Searching the complete question history…</div>';
   menu.classList.remove('hidden');
   const searchStartedAt=Date.now();
   google.script.run.withSuccessHandler(response=>{
@@ -4599,14 +4600,14 @@ function closeQuickQuestionModal(){ document.getElementById('quick-question-moda
 function existingTicketMessage(response){
   const ticket=(response&&response.existingTicket)||{};
   const status=ticket.status||((ticket.sheet==='Answered')?'Answered':'Open');
-  let message='This ticket already exists and was not submitted again.';
-  if(ticket.ticketId) message+='\n\nTicket ID: '+ticket.ticketId;
+  let message='This question already exists and was not submitted again.';
+  if(ticket.ticketId) message+='\n\nQuestion ID: '+ticket.ticketId;
   if(status) message+='\nStatus: '+status;
   if(ticket.askedBy) message+='\nOriginally submitted by: '+getUserDisplayName(ticket.askedBy);
   if(String(status).toLowerCase()==='answered'){
-    message+='\n\nOpen the existing ticket in Answered Tickets or Global Search, then use Reopen Ticket to add new notes and return it to Support.';
+    message+='\n\nOpen the existing question in Answered Only or Global Search, then use Reopen Question to add new notes and return it to Support.';
   }else{
-    message+='\n\nOpen the existing ticket from Coordinator Workspace, Supervisor Desk, or Global Search.';
+    message+='\n\nOpen the existing question from Coordinator Workspace, Supervisor Desk, or Global Search.';
   }
   return message;
 }
@@ -4749,12 +4750,12 @@ async function quickDeskSubmitAnswer(ticketId){
   google.script.run.withFailureHandler(err=>{quickDeskBusyTicketId=null;if(btn){btn.disabled=false;btn.innerText='Submit Answer';}showToast('Could not submit answer: '+(err&&err.message?err.message:err));refreshData();}).withSuccessHandler(res=>{quickDeskBusyTicketId=null;showToast('Answer submitted successfully!');quickDeskExpandedTicketId=null;refreshData();setTimeout(renderQuickMyDesk,350);if(res&&res.task)refreshTasksData(true);}).answerQuestion(ticketId,ansHtml,currentUser.email,currentUser.name,null);
 }
 async function quickDeskHold(ticketId){
-  const reason=await customPrompt('Why is this ticket going on hold?',{placeholder:'e.g. Waiting on client reply...'}); if(reason===null)return; if(!reason.trim()){await customAlert('A hold reason is required.');return;}
-  google.script.run.withFailureHandler(err=>{showToast('Could not hold: '+(err&&err.message?err.message:err));refreshData();}).withSuccessHandler(()=>{showToast('Ticket placed on hold.');refreshData();setTimeout(renderQuickMyDesk,350);}).holdQuestion(ticketId,reason.trim(),currentUser.email);
+  const reason=await customPrompt('Why is this question going on hold?',{placeholder:'e.g. Waiting on client reply...'}); if(reason===null)return; if(!reason.trim()){await customAlert('A hold reason is required.');return;}
+  google.script.run.withFailureHandler(err=>{showToast('Could not hold: '+(err&&err.message?err.message:err));refreshData();}).withSuccessHandler(()=>{showToast('Question placed on hold.');refreshData();setTimeout(renderQuickMyDesk,350);}).holdQuestion(ticketId,reason.trim(),currentUser.email);
 }
 async function quickDeskResume(ticketId){
-  const ok=await customConfirm('Resume this ticket from hold?',{okLabel:'Resume'}); if(!ok)return;
-  google.script.run.withFailureHandler(err=>{showToast('Could not resume: '+(err&&err.message?err.message:err));refreshData();}).withSuccessHandler(()=>{showToast('Ticket resumed.');refreshData();setTimeout(renderQuickMyDesk,350);}).resumeQuestion(ticketId,currentUser.email);
+  const ok=await customConfirm('Resume this question from hold?',{okLabel:'Resume'}); if(!ok)return;
+  google.script.run.withFailureHandler(err=>{showToast('Could not resume: '+(err&&err.message?err.message:err));refreshData();}).withSuccessHandler(()=>{showToast('Question resumed.');refreshData();setTimeout(renderQuickMyDesk,350);}).resumeQuestion(ticketId,currentUser.email);
 }
 async function quickDeskReassign(ticketId){
   const id=cssSafeId(ticketId), select=document.getElementById('quick-desk-assignee-'+id); if(!select||!select.value){await customAlert('Choose a Support user.');return;}
@@ -4794,7 +4795,7 @@ function renderQuickUnreadList(){
     const answerPreview=stripHtml(q.answer||'').slice(0,170);
     return '<button type="button" onclick="openQuickUnreadTicket(\''+esc(q.ticketId)+'\')" class="w-full text-left border border-slate-200 rounded-xl p-4 hover:border-rose-300 hover:bg-rose-50/30 transition">'+
       '<div class="flex items-start justify-between gap-3">'+
-        '<div class="min-w-0"><div class="flex items-center gap-2"><span class="text-[9px] font-black text-white bg-rose-500 rounded px-1.5 py-0.5">UNREAD</span><p class="text-xs font-bold text-slate-900 truncate">'+esc(q.eventName||'Answered ticket')+'</p></div>'+
+        '<div class="min-w-0"><div class="flex items-center gap-2"><span class="text-[9px] font-black text-white bg-rose-500 rounded px-1.5 py-0.5">UNREAD</span><p class="text-xs font-bold text-slate-900 truncate">'+esc(q.eventName||'Answered question')+'</p></div>'+
         '<p class="text-[11px] text-slate-600 mt-2 line-clamp-2">'+esc(answerPreview||'Open to review the answer.')+'</p>'+
         '<p class="text-[10px] text-slate-400 mt-2">Answered by '+esc(getUserDisplayName(q.answeredBy||'Support'))+' · '+esc(when)+'</p></div>'+
         '<span class="text-[11px] font-bold text-blue-600 whitespace-nowrap">Review →</span>'+
@@ -4803,7 +4804,7 @@ function renderQuickUnreadList(){
 }
 function openQuickUnreadTicket(ticketId){
   const q=allQuestions.find(item=>item.sheet==='Answered'&&String(item.ticketId)===String(ticketId)&&isOwnerOf(item));
-  if(!q){ showToast('That answered ticket is no longer available.'); renderQuickUnreadList(); return; }
+  if(!q){ showToast('That answered question is no longer available.'); renderQuickUnreadList(); return; }
   closeQuickUnreadModal();
   openViewModal(q);
 }
@@ -4903,7 +4904,7 @@ function switchTab(name) {
     else refreshData();
   } else if (isSupportUser(currentUser) && (name === 'supervisor' || name === 'coordinator') && previousTab !== name) {
     // Never wait behind a large Questions + Answered request. Supervisor Desk
-    // has its own independent open-ticket refresh.
+    // has its own independent open-question refresh.
     refreshSupervisorData(false, false);
   }
 }
@@ -5041,12 +5042,12 @@ function recordLoadTiming(kind, response, roundTripMs) {
   recordSessionPerformanceMetric(Object.assign({ metric: kind, status: 'success' }, lastLoadTimings[kind]));
   if (kind === 'supervisor') {
     const status = document.getElementById('sup-load-status');
-    if (status) status.innerText = 'Open tickets loaded in ' + (lastLoadTimings[kind].roundTripMs / 1000).toFixed(1) + 's (server ' + (lastLoadTimings[kind].serverMs / 1000).toFixed(1) + 's).';
+    if (status) status.innerText = 'Open questions loaded in ' + (lastLoadTimings[kind].roundTripMs / 1000).toFixed(1) + 's (server ' + (lastLoadTimings[kind].serverMs / 1000).toFixed(1) + 's).';
   }
 }
 
 function performanceMetricLabel(metric) {
-  return ({ supervisor:'Supervisor Desk', history:'Ticket History', tasks:'Tasks', peer:'Peer Questions', 'team-roster':'Team Roster', 'search-server':'Server Search' })[metric] || metric;
+  return ({ supervisor:'Supervisor Desk', history:'Question History', tasks:'Tasks', peer:'Peer Questions', 'team-roster':'Team Roster', 'search-server':'Server Search' })[metric] || metric;
 }
 
 function performanceMs(value) {
@@ -5127,7 +5128,7 @@ function renderPerformanceRefreshState() {
   if (!state) return;
   const active = [];
   if (supervisorRefreshInFlight) active.push('Supervisor Desk');
-  if (dataRefreshInFlight) active.push('ticket history');
+  if (dataRefreshInFlight) active.push('question history');
   if (taskRefreshInFlight) active.push('tasks');
   if (teamRosterRefreshInFlight) active.push('team roster');
   const timings = Object.keys(lastLoadTimings).filter(key => lastLoadTimings[key]).map(key => performanceMetricLabel(key) + ': ' + (lastLoadTimings[key].roundTripMs / 1000).toFixed(1) + 's');
@@ -5194,7 +5195,7 @@ function clearSessionPerformanceMetrics() {
 
 function retryCoreDataLoads() {
   if (!currentUser) return;
-  showToast('Retrying ticket history, tasks, team roster, and the active queue...');
+  showToast('Retrying question history, tasks, team roster, and the active queue...');
   currentDataVersion = null;
   currentTaskDataVersion = null;
   lastTeamFetch = 0;
@@ -5205,7 +5206,7 @@ function retryCoreDataLoads() {
       try { reportingLoadError = ''; applyQuestionFeedResponse(response, false); }
       finally { finishRefreshCycle(); if (activeAdminWorkspaceKey === 'performance') loadPerformanceDiagnostics(); }
     }, err => {
-      reportingLoadError = 'Ticket history could not be refreshed. Retry when the current request finishes.';
+      reportingLoadError = 'Question history could not be refreshed. Retry when the current request finishes.';
       finishRefreshCycle();
     });
   }
@@ -5229,7 +5230,7 @@ function prefetchHistoricalData() {
     } finally { finishRefreshCycle(); }
   }, err => {
     console.error('Historical prefetch failed:', err);
-    reportingLoadError = 'Ticket history could not be prefetched. Open Reporting or use Refresh to retry.';
+    reportingLoadError = 'Question history could not be prefetched. Open Reporting or use Refresh to retry.';
     finishRefreshCycle();
   });
 }
@@ -5252,7 +5253,7 @@ function refreshSupervisorAuxiliaryFeeds() {
 function refreshSupervisorData(force, manual) {
   if (!currentUser || !isSupportUser(currentUser)) return;
   const loadStatus = document.getElementById('sup-load-status');
-  if (loadStatus && currentSupervisorDataVersion === null) loadStatus.innerText = 'Loading open tickets now...';
+  if (loadStatus && currentSupervisorDataVersion === null) loadStatus.innerText = 'Loading open questions now...';
   const icon = manual ? document.getElementById('manual-refresh-icon') : null;
   if (supervisorRefreshInFlight) {
     supervisorRefreshQueued = supervisorRefreshQueued || !!force;
@@ -5342,7 +5343,7 @@ function refreshData() {
     } finally { finishRefreshCycle(); }
   }, err => {
     console.error('Data refresh failed:', err);
-    reportingLoadError = 'Ticket history could not be refreshed. Retry to get current reports.';
+    reportingLoadError = 'Question history could not be refreshed. Retry to get current reports.';
     if (currentTab === 'reporting') renderReporting();
     if (supervisorOnly) refreshSupervisorAuxiliaryFeeds();
     finishRefreshCycle();
@@ -5436,7 +5437,7 @@ function revertOptimistic(snapshot, errMessage) {
 }
 
 function updateTickers() {
-  // The Answered Tickets badge is always personal: it means "answers I still
+  // The Answered Only badge is always personal: it means "answers I still
   // need to review", even when the logged-in user is Support/Admin. Team-wide
   // review progress belongs in Reporting Analytics instead.
   const unread = allQuestions.filter(q =>
@@ -5517,7 +5518,7 @@ function updateTicketTablePagination(tableKey, totalRows, pageIndex) {
   const status = document.getElementById(idPrefix + '-page-status');
   const previous = document.querySelector('#' + idPrefix + '-pagination button:first-child');
   const next = document.querySelector('#' + idPrefix + '-pagination button:last-child');
-  if (status) status.innerText = totalRows ? 'Showing ' + start + '–' + end + ' of ' + totalRows + ' tickets' : 'Showing 0 tickets';
+  if (status) status.innerText = totalRows ? 'Showing ' + start + '–' + end + ' of ' + totalRows + ' question' + (totalRows === 1 ? '' : 's') : 'Showing 0 questions';
   if (previous) previous.disabled = pageIndex <= 0 || totalRows === 0;
   if (next) next.disabled = end >= totalRows;
 }
@@ -6009,7 +6010,7 @@ function configureHomeMetricGroups(category) {
   let priorityIds = [1, 7, 2, 3, 4, 6];
   let taskIds = [5];
   let headings = {
-    priority: 'Priority & Tickets',
+    priority: 'Priority Questions',
     priorityHelp: 'Urgent work, ownership, and queue activity.',
     task: 'My Tasks',
     taskHelp: 'Assigned work and recent progress.'
@@ -6029,7 +6030,7 @@ function configureHomeMetricGroups(category) {
     taskIds = [4];
     headings = {
       priority: 'Workspace Health',
-      priorityHelp: 'Team setup, routing, and ticket records at a glance.',
+      priorityHelp: 'Team setup, routing, and question records at a glance.',
       task: 'Team Tasks',
       taskHelp: 'Active work across the team.'
     };
@@ -6085,7 +6086,7 @@ function setHomeListHeader(index, title, help, action) {
   if (titleEl) titleEl.innerText = title;
   if (helpEl) helpEl.innerText = help;
   if (eyebrowEl) {
-    eyebrowEl.innerText = index === 2 ? 'Tasks' : (title === 'Needs My Review' ? 'Review Queue' : (title === 'Routing Setup' ? 'Admin Attention' : 'Priority Tickets'));
+    eyebrowEl.innerText = index === 2 ? 'Tasks' : (title === 'Needs My Review' ? 'Review Queue' : (title === 'Routing Setup' ? 'Admin Attention' : 'Priority Questions'));
   }
   homeListDestinations[index] = action || null;
 }
@@ -6272,7 +6273,7 @@ function renderSupportHomeDashboard() {
   setHomeMetric(1, { label: 'Attention Needed Today', value: attention.length, help: 'Assigned to me', tone: 'attention', action: () => openMySupportQueueFilter('attention') });
   setHomeMetric(7, { label: 'Flagged by Team', value: teamFlagsForHome.length, help: isAssistantManagerUser(currentUser) ? 'Team escalations' : 'Assigned to me', tone: 'teamflag', action: () => openSupportTeamFlagQueue() });
   setHomeMetric(2, { label: 'Event This Weekend', value: weekend.length, help: 'Assigned to me', tone: 'weekend', action: () => openMySupportQueueFilter('weekend') });
-  setHomeMetric(3, { label: 'Assigned to Me', value: mine.length, help: 'All my tickets', action: () => openMySupportQueueFilter('all') });
+  setHomeMetric(3, { label: 'Assigned to Me', value: mine.length, help: 'All my questions', action: () => openMySupportQueueFilter('all') });
   setHomeMetric(4, { label: 'Follow-Up', value: followUps.length, help: 'Assigned to me', action: () => openMySupportQueueFilter('followup') });
   setHomeMetric(5, { label: 'My Active Tasks', value: activeTasks.length, help: 'Assigned to me', tone: 'task', action: () => openMyTaskView('ACTIVE') });
   setHomeMetric(6, { label: 'On Hold', value: onHold.length, help: 'Assigned to me', action: () => openMySupportQueueFilter('hold') });
@@ -6287,10 +6288,10 @@ function renderSupportHomeDashboard() {
   const listTitle = isAssistantManagerUser(currentUser) ? 'Priority Queue' : 'My Priority Queue';
   const listHelp = isAssistantManagerUser(currentUser)
     ? 'Attention, team flags, weekend, and your assigned follow-up work.'
-    : 'Attention, team flags, weekend, follow-up, on-hold, and other tickets assigned to you.';
+    : 'Attention, team flags, weekend, follow-up, on-hold, and other questions assigned to you.';
   setHomeListHeader(1, listTitle, listHelp, () => openMySupportQueueFilter('all'));
   setHomeListHeader(2, 'My Active Tasks', 'Tasks currently assigned to you.', () => openMyTaskView('ACTIVE'));
-  renderHomeList('home-list-1', priority.slice(0, 4).map(q => homeTicketListItem(q, true)), 'No priority tickets right now.');
+  renderHomeList('home-list-1', priority.slice(0, 4).map(q => homeTicketListItem(q, true)), 'No priority questions right now.');
   renderHomeList('home-list-2', activeTasks.sort((a, b) => String(a.dueDate || '').localeCompare(String(b.dueDate || ''))).map(homeTaskListItem), 'No active tasks assigned to you.');
 }
 
@@ -6303,9 +6304,9 @@ function renderAdminHomeDashboard() {
 
   setHomeMetric(1, { label: 'Active Team', value: activeTeam.length, help: 'Team Setup', action: () => switchTab('team') });
   setHomeMetric(2, { label: 'Routing Not Set', value: missingRouting.length, help: 'Coordinator profiles', action: () => switchTab('team') });
-  setHomeMetric(3, { label: 'Open Tickets', value: open.length, help: 'Maintenance view', action: () => switchTab('all-tickets') });
+  setHomeMetric(3, { label: 'Open Questions', value: open.length, help: 'Maintenance view', action: () => switchTab('all-tickets') });
   setHomeMetric(4, { label: 'Active Tasks', value: activeTasks.length, help: 'Team tasks', tone: 'task', action: () => switchTab('tasks') });
-  setHomeMetric(5, { label: 'Answered Tickets', value: answered.length, help: 'Historical records', action: () => switchTab('answered') });
+  setHomeMetric(5, { label: 'Answered Questions', value: answered.length, help: 'Historical records', action: () => switchTab('answered') });
   setHomeMetric(6, { hidden: true });
   setHomeMetric(7, { hidden: true });
 
@@ -6341,7 +6342,7 @@ function renderMyWorkDashboard() {
     renderAdminHomeDashboard();
   } else if (isOperationalSupportUser(currentUser)) {
     if (role) role.innerText = '';
-    if (subtitle) subtitle.innerText = 'Your assigned queue, priority tickets, and active tasks.';
+    if (subtitle) subtitle.innerText = 'Your assigned queue, priority questions, and active tasks.';
     renderSupportHomeDashboard();
   } else {
     if (role) role.innerText = '';
@@ -6470,14 +6471,14 @@ function renderCoordinatorQuestions() {
 }
 
 async function addUpdateToQuestion(ticketId) {
-  const text = await customPrompt('Add more info to this ticket (visible to whoever answers it):', { placeholder: 'Type your update...' });
+  const text = await customPrompt('Add more info to this question (visible to whoever answers it):', { placeholder: 'Type your update...' });
   if (!text || !text.trim()) return;
 
   google.script.run.withFailureHandler(err => {
     showToast('Could not add update: ' + (err && err.message ? err.message : err));
   }).withSuccessHandler(() => {
     refreshData();
-    showToast('Update added to ticket.');
+    showToast('Update added to question.');
   }).addQuestionUpdate(ticketId, text.trim(), currentUser.email);
 }
 
@@ -6485,9 +6486,9 @@ async function addUpdateToQuestion(ticketId) {
 // TAB 2: ANSWERED TICKETS
 // ============================================================================
 function prepareAnsweredDefaultView() {
-  // Every fresh visit to Answered Tickets starts as the logged-in person's
+  // Every fresh visit to Answered Only starts as the logged-in person's
   // personal review queue: questions asked by that user that are still unread.
-  // Support users can still switch the scope to All Answered Tickets after the
+  // Support users can still switch the scope to All Answered Only after the
   // page opens, but the default should never expose the whole team's unread list.
   const scopeEl = document.getElementById('answered-scope-filter');
   const searchEl = document.getElementById('answered-search');
@@ -6516,7 +6517,7 @@ function answeredAllReviewedEmptyState() {
       '<div class="mx-auto w-11 h-11 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xl font-black shadow-sm">✓</div>' +
       '<p class="mt-3 text-sm font-bold text-slate-900">Great job! You have reviewed all your Support answers.</p>' +
       '<p class="mt-1 text-xs text-slate-500">There are no unread answers waiting for you right now.</p>' +
-      '<button type="button" onclick="applyMyAnsweredCardFilter(\'ALL\')" class="mt-4 px-4 py-2 rounded-lg bg-white border border-emerald-300 text-emerald-800 text-xs font-bold hover:bg-emerald-100 transition">View All Answered Tickets</button>' +
+      '<button type="button" onclick="applyMyAnsweredCardFilter(\'ALL\')" class="mt-4 px-4 py-2 rounded-lg bg-white border border-emerald-300 text-emerald-800 text-xs font-bold hover:bg-emerald-100 transition">View All Answered Questions</button>' +
     '</div>' +
   '</td></tr>';
 }
@@ -6805,12 +6806,12 @@ function renderAnsweredTab() {
 
 function markAllAnsweredAsRead() {
   // Bulk review is personal for every role. A supervisor viewing the global
-  // Answered Tickets list must never mark coordinators' tickets as reviewed.
+  // Answered Only list must never mark coordinators' tickets as reviewed.
   const affected = allQuestions.filter(q =>
     q.sheet === 'Answered' && !q.isRead && isOwnerOf(q)
   );
   if (affected.length === 0) {
-    showToast('All of your answered tickets are already marked as read.');
+    showToast('All of your answered questions are already marked as read.');
     return;
   }
 
@@ -6838,7 +6839,7 @@ function ensureFullTicketContent(q) {
     }).withSuccessHandler(res => {
       ticketContentRequests.delete(key);
       if (!res || !res.success) {
-        reject(new Error('The full ticket content could not be loaded.'));
+        reject(new Error('The full question content could not be loaded.'));
         return;
       }
       const stored = allQuestions.find(row => row.sheet === q.sheet && row.ticketId === q.ticketId) || q;
@@ -6857,10 +6858,10 @@ function ensureFullTicketContent(q) {
 
 async function openViewModal(q) {
   if (q && q.contentDeferred) {
-    showToast('Opening full ticket details...');
+    showToast('Opening full question details...');
     try { q = await ensureFullTicketContent(q); }
     catch (err) {
-      showToast('Could not open ticket details: ' + (err && err.message ? err.message : err));
+      showToast('Could not open question details: ' + (err && err.message ? err.message : err));
       return;
     }
   }
@@ -6941,10 +6942,10 @@ function openAnsweredTicketTaskCreator() {
   closeViewModal();
   // Answered tickets use the exact same clean Create Task workflow as active
   // tickets. The Ticket is the parent only. Do not invoke the legacy
-  // answered-ticket/task prefill path.
+  // answered-question/task prefill path.
   openCreateTaskModal('Question', q.ticketId, {
     category: q.category || 'General / Other',
-    parentLabel: q.ticketId || 'Ticket'
+    parentLabel: q.ticketId || 'Question'
   }, { launchSource: 'ticket' });
 }
 
@@ -6962,7 +6963,7 @@ function openAnswerModalTaskCreator() {
 
   openCreateTaskModal('Question', ticketId, {
     category: category,
-    parentLabel: ticketId || 'Ticket'
+    parentLabel: ticketId || 'Question'
   }, { launchSource: 'ticket' });
 }
 function toggleAnsweredStatusPanel(force) {
@@ -6981,7 +6982,7 @@ async function submitAnsweredStatusChange() {
   const status = document.getElementById('vmodal-status-select').value;
   const note = document.getElementById('vmodal-status-note').value.trim();
   if (!note) { showToast('Please add a reason or follow-up note before reopening.'); return; }
-  const label = status === 'Hold' ? 'reopen this ticket and place it On Hold' : 'reopen this ticket as an active Follow-Up';
+  const label = status === 'Hold' ? 'reopen this question and place it On Hold' : 'reopen this question as an active Follow-Up';
   const ok = await customConfirm('Are you sure you want to ' + label + '?', { okLabel: 'Reopen Question' });
   if (!ok) return;
   google.script.run.withFailureHandler(err => {
@@ -6990,7 +6991,7 @@ async function submitAnsweredStatusChange() {
     closeViewModal();
     currentDataVersion = null;
     refreshData();
-    showToast(status === 'Hold' ? 'Ticket reopened and placed On Hold. The asker has been notified.' : 'Ticket reopened as a Follow-Up. The asker has been notified.');
+    showToast(status === 'Hold' ? 'Question reopened and placed On Hold. The asker has been notified.' : 'Question reopened as a Follow-Up. The asker has been notified.');
   }).reopenAnsweredTicket(activeViewQuestion.ticketId, note, currentUser.email, status);
 }
 
@@ -7015,7 +7016,7 @@ function submitAnsweredTicketUpdate() {
     btn.disabled = false; updateAnsweredUpdateActionLabel();
     const reopened = !!(res && res.ticketId && needsAnotherLook);
     const owner = res && res.assignedToName ? ' and returned to ' + res.assignedToName : '';
-    showToast(reopened ? 'Update added and ticket reopened' + owner + '.' : 'Update added. The asker has been notified.');
+    showToast(reopened ? 'Update added and question reopened' + owner + '.' : 'Update added. The asker has been notified.');
     toggleAnsweredUpdatePanel(false);
     const id = activeViewQuestion.ticketId;
     closeViewModal();
@@ -7031,29 +7032,29 @@ function submitAnsweredTicketUpdate() {
 let reopenTicketInFlight = false;
 async function reopenTicket() {
   if (!activeViewQuestion) return;
-  if (reopenTicketInFlight) { showToast('This ticket is already being reopened.'); return; }
+  if (reopenTicketInFlight) { showToast('This question is already being reopened.'); return; }
   const q = activeViewQuestion;
   const text = await customPrompt(
-    'Add the follow-up note. Your name and the current Central Time will be recorded in ticket history.',
+    'Add the follow-up note. Your name and the current Central Time will be recorded in question history.',
     { placeholder: 'Describe the follow-up question or additional information...', okLabel: 'Reopen Question' }
   );
   if (!text || !text.trim()) return;
   reopenTicketInFlight = true;
-  showToast('Reopening ticket...');
+  showToast('Reopening question...');
   google.script.run.withFailureHandler(err => {
     reopenTicketInFlight = false;
-    customAlert('The ticket was not reopened.\n\n' + (err && err.message ? err.message : err));
+    customAlert('The question was not reopened.\n\n' + (err && err.message ? err.message : err));
   }).withSuccessHandler(res => {
     reopenTicketInFlight = false;
     if (!res || res.success !== true) {
-      customAlert('The ticket was not reopened because the server did not confirm the update. Please refresh and try again.');
+      customAlert('The question was not reopened because the server did not confirm the update. Please refresh and try again.');
       return;
     }
     closeViewModal();
     currentDataVersion = null;
     refreshData();
     const owner = res && res.assignedToName ? ' and returned to ' + res.assignedToName : '';
-    showToast('Ticket reopened as a follow-up' + owner + '. The note was added to ticket history.');
+    showToast('Question reopened as a follow-up' + owner + '. The note was added to question history.');
   }).reopenAnsweredTicket(q.ticketId, text.trim(), currentUser.email);
 }
 
@@ -7147,22 +7148,23 @@ function toggleAdminSelectVisibleTickets(checked) {
 }
 async function deleteSelectedAdminTickets() {
   if (!currentUser || !isAdminUser(currentUser)) {
-    await customAlert('Only Admin accounts can bulk delete tickets.');
+    await customAlert('Only Admin accounts can bulk delete questions.');
     return;
   }
   const records = Array.from(adminSelectedTicketKeys).map(parseAdminTicketSelectionKey).filter(r => r.ticketId && (r.sheet === 'Questions Tracker' || r.sheet === 'Answered'));
   if (!records.length) {
-    await customAlert('Select at least one ticket to delete.');
+    await customAlert('Select at least one question to delete.');
     return;
   }
-  const confirmed = await customConfirm('Delete ' + records.length + ' selected ticket' + (records.length === 1 ? '' : 's') + '? Each record will be moved to "Deleted Records" first.', { okLabel: 'Delete Selected', danger: true });
+  const confirmed = await customConfirm('Delete ' + records.length + ' selected question' + (records.length === 1 ? '' : 's') + '? Each record will be moved to "Deleted Records" first.', { okLabel: 'Delete Selected', danger: true });
   if (!confirmed) return;
   google.script.run.withFailureHandler(err => {
-    showToast('Could not bulk delete tickets: ' + (err && err.message ? err.message : err));
+    showToast('Could not bulk delete questions: ' + (err && err.message ? err.message : err));
   }).withSuccessHandler(res => {
     adminSelectedTicketKeys.clear();
     updateAdminTicketBulkUi();
-    showToast(((res && res.deletedCount) || records.length) + ' ticket(s) deleted.');
+    const deletedCount = (res && res.deletedCount) || records.length;
+    showToast(deletedCount + ' question' + (deletedCount === 1 ? '' : 's') + ' deleted.');
     refreshData();
   }).adminBulkDeleteTickets(records, currentUser.email);
 }
@@ -7267,7 +7269,7 @@ function renderAllTickets() {
   updateAdminTicketBulkUi();
 
   if (sorted.length === 0) {
-    body.innerHTML = '<tr><td colspan="' + (isAdmin ? 10 : 9) + '" class="p-6 text-center text-slate-400">No ticket records found.</td></tr>';
+    body.innerHTML = '<tr><td colspan="' + (isAdmin ? 10 : 9) + '" class="p-6 text-center text-slate-400">No question records found.</td></tr>';
     return;
   }
 
@@ -7288,7 +7290,7 @@ function renderAllTickets() {
     const weekendTag = q.eventThisWeekend ? '<div class="mt-1">' + eventWeekendStatusBadge(q) + '</div>' : '';
     const ticketKey = adminTicketSelectionKey(q.sheet, q.ticketId);
     tr.innerHTML =
-      '<td class="p-3 text-center ' + (isAdmin ? '' : 'hidden') + '"><input type="checkbox" ' + (adminSelectedTicketKeys.has(ticketKey) ? 'checked' : '') + ' onclick="event.stopPropagation()" onchange="toggleAdminTicketSelection(\'' + esc(q.sheet) + '\',\'' + esc(q.ticketId) + '\',this.checked)" aria-label="Select ticket"></td>' +
+      '<td class="p-3 text-center ' + (isAdmin ? '' : 'hidden') + '"><input type="checkbox" ' + (adminSelectedTicketKeys.has(ticketKey) ? 'checked' : '') + ' onclick="event.stopPropagation()" onchange="toggleAdminTicketSelection(\'' + esc(q.sheet) + '\',\'' + esc(q.ticketId) + '\',this.checked)" aria-label="Select question"></td>' +
       '<td class="p-3 font-semibold text-slate-800 truncate">' + esc(q.eventName || '—') + internalTag + weekendTag + '</td>' +
       '<td class="p-3 text-slate-700 truncate">' + q.question + '</td>' +
       '<td class="p-3 text-slate-700 font-medium truncate">' + esc(getUserDisplayName(q.askedBy)) + '</td>' +
@@ -7351,12 +7353,12 @@ function createRelatedTaskFromActiveTicket() {
   // Ticket -> Add Task uses the exact same Create Task model. The Ticket is
   // only the parent connection. Do not carry Ticket Event / Client / Talent /
   // CR / TR, Relationship, Related Link, title, instructions, or assignee
-  // values into the new Task. Category is the one intentional Ticket-derived
+  // values into the new Task. Category is the one intentional Question-derived
   // value because it is based on the Ticket's detected category/keywords and
   // remains editable in the Task form.
   openCreateTaskModal('Question', q.ticketId, {
     category: q.category || 'General / Other',
-    parentLabel: q.ticketId || 'Ticket'
+    parentLabel: q.ticketId || 'Question'
   }, { launchSource: 'ticket' });
 }
 function openRelatedTaskFromTicketDetail(taskId) {
@@ -7390,31 +7392,31 @@ async function openTicketDetail(sheet, ticketId) {
     const id=String(ticketId||'').trim();
     if(!id||navigationTicketRequests.has(id))return;
     navigationTicketRequests.add(id);
-    showToast('Opening ticket...');
+    showToast('Opening question...');
     google.script.run.withSuccessHandler(ticket=>{
       navigationTicketRequests.delete(id);
-      if(!ticket||!ticket.ticketId){showToast('This ticket could not be found.');return;}
+      if(!ticket||!ticket.ticketId){showToast('This question could not be found.');return;}
       mergeNavigationQuestions([ticket]);
       openTicketDetail(ticket.sheet,ticket.ticketId);
     }).withFailureHandler(err=>{
       navigationTicketRequests.delete(id);
-      showToast('Could not open ticket: '+(err&&err.message?err.message:err));
+      showToast('Could not open question: '+(err&&err.message?err.message:err));
     }).getTicketForNavigation(id,currentUser.email);
     return;
   }
   if (q.contentDeferred) {
-    showToast('Opening full ticket details...');
+    showToast('Opening full question details...');
     try { q = await ensureFullTicketContent(q); }
-    catch (err) { showToast('Could not open ticket details: ' + (err && err.message ? err.message : err)); return; }
+    catch (err) { showToast('Could not open question details: ' + (err && err.message ? err.message : err)); return; }
   }
   if (q.sheet === 'Questions Tracker') recordAttentionFirstReview(q);
 
   activeTicketDetailQuestion = q.sheet === 'Answered' ? null : q;
   resetWorkModal('ticket-detail-modal');
 
-  // One answered-ticket experience everywhere in Support Hub. This ensures
+  // One answered-question experience everywhere in Support Hub. This ensures
   // Support/Admin see the same update/task/status actions whether the record
-  // was opened from Answered Tickets, Global Search, reports, Tasks, or any
+  // was opened from Answered Only, Global Search, reports, Tasks, or any
   // other view that calls openTicketDetail().
   if (q.sheet === 'Answered') { openViewModal(q); return; }
 
@@ -7510,10 +7512,10 @@ async function openEditModal(q) {
     return;
   }
   if (q && q.contentDeferred) {
-    showToast('Opening full ticket details...');
+    showToast('Opening full question details...');
     try { q = await ensureFullTicketContent(q); }
     catch (err) {
-      showToast('Could not open ticket details: ' + (err && err.message ? err.message : err));
+      showToast('Could not open question details: ' + (err && err.message ? err.message : err));
       return;
     }
   }
@@ -8133,7 +8135,7 @@ function renderSupervisorDesk() {
       const checked = supSelected.has(q.ticketId) ? ' checked' : '';
 
       html +=
-        '<tr title="Click to open ticket actions" class="sup-row cursor-pointer ' + (hasActiveAttentionToday(q) ? 'bg-rose-50/60 border-l-4 border-rose-500' : (hasActiveRequesterFlag(q) ? 'bg-orange-50/70 border-l-4 border-orange-500' : (q.eventThisWeekend ? 'bg-amber-50/60 border-l-4 border-amber-400' : (isMine ? 'bg-emerald-50/15' : '')))) + '" onclick="if(!event.target.closest(\'button\') && !event.target.closest(\'input\') && !event.target.closest(\'a\')) openAnswerModal(\'' + esc(q.ticketId) + '\')">' +
+        '<tr title="Click to open question actions" class="sup-row cursor-pointer ' + (hasActiveAttentionToday(q) ? 'bg-rose-50/60 border-l-4 border-rose-500' : (hasActiveRequesterFlag(q) ? 'bg-orange-50/70 border-l-4 border-orange-500' : (q.eventThisWeekend ? 'bg-amber-50/60 border-l-4 border-amber-400' : (isMine ? 'bg-emerald-50/15' : '')))) + '" onclick="if(!event.target.closest(\'button\') && !event.target.closest(\'input\') && !event.target.closest(\'a\')) openAnswerModal(\'' + esc(q.ticketId) + '\')">' +
           '<td class="p-3.5 text-center" onclick="event.stopPropagation()">' +
             '<input type="checkbox" class="w-3.5 h-3.5 accent-slate-800 rounded border-slate-300" onchange="toggleSupSelect(\'' + esc(q.ticketId) + '\', this.checked)"' + checked + '>' +
           '</td>' +
@@ -8151,7 +8153,7 @@ function renderSupervisorDesk() {
   });
 
   if (total === 0) {
-    container.innerHTML = '<div class="bg-white rounded-xl border border-slate-200/80 p-10 text-center text-slate-400 text-sm">No open tickets match the current filters. 🎉</div>';
+    container.innerHTML = '<div class="bg-white rounded-xl border border-slate-200/80 p-10 text-center text-slate-400 text-sm">No open questions match the current filters. 🎉</div>';
   }
 }
 
@@ -8186,7 +8188,7 @@ function unassignTicket(ticketId) {
   if (q) {
     q.assignedTo = '';
     renderCurrentTab();
-    showToast('Ticket returned to the shared queue.');
+    showToast('Question returned to the shared queue.');
   }
 
   google.script.run.withFailureHandler(err => {
@@ -8197,7 +8199,7 @@ function unassignTicket(ticketId) {
 }
 
 async function holdTicket(ticketId) {
-  const reason = await customPrompt('Why is this ticket going on hold?', { placeholder: 'e.g. Waiting on client reply...' });
+  const reason = await customPrompt('Why is this question going on hold?', { placeholder: 'e.g. Waiting on client reply...' });
   if (reason === null) return;
   if (!reason.trim()) { await customAlert('A hold reason is required.'); return; }
 
@@ -8215,7 +8217,7 @@ async function holdTicket(ticketId) {
     }
     q.isFollowUp = false;
     renderCurrentTab();
-    showToast('Ticket placed on hold.');
+    showToast('Question placed on hold.');
   }
 
   google.script.run.withFailureHandler(err => {
@@ -8226,7 +8228,7 @@ async function holdTicket(ticketId) {
 }
 
 async function resumeTicket(ticketId) {
-  const confirmed = await customConfirm('Resume this ticket from hold?', { okLabel: 'Resume' });
+  const confirmed = await customConfirm('Resume this question from hold?', { okLabel: 'Resume' });
   if (!confirmed) return;
 
   const snapshot = snapshotQuestions();
@@ -8236,7 +8238,7 @@ async function resumeTicket(ticketId) {
     q.holdReason = '';
     q.holdSince = '';
     renderCurrentTab();
-    showToast('Ticket resumed.');
+    showToast('Question resumed.');
   }
 
   google.script.run.withFailureHandler(err => {
@@ -8267,10 +8269,10 @@ function clearSupSelection() {
 
 async function submitBulkAssign() {
   const assignee = document.getElementById('sup-bulk-assignee').value;
-  if (!assignee) { await customAlert('Choose who to assign the selected tickets to.'); return; }
+  if (!assignee) { await customAlert('Choose who to assign the selected questions to.'); return; }
   const ids = Array.from(supSelected);
   const assigneeName = getUserDisplayName(assignee);
-  const notes = await customPrompt('Assign ' + ids.length + ' selected ticket(s) to ' + assigneeName + '? You can add an optional note (shown in the question details).', { placeholder: 'Optional note...', okLabel: 'Assign' });
+  const notes = await customPrompt('Assign ' + ids.length + ' selected question' + (ids.length === 1 ? '' : 's') + ' to ' + assigneeName + '? You can add an optional note (shown in the question details).', { placeholder: 'Optional note...', okLabel: 'Assign' });
   if (notes === null) return;
 
   const snapshot = snapshotQuestions();
@@ -8289,7 +8291,7 @@ async function submitBulkAssign() {
   supSelected.clear();
   updateTickers();
   renderCurrentTab();
-  showToast('Assigned ' + ids.length + ' ticket(s).');
+  showToast('Assigned ' + ids.length + ' question' + (ids.length === 1 ? '' : 's') + '.');
 
   google.script.run.withFailureHandler(err => {
     revertOptimistic(snapshot, 'Bulk assign failed: ' + (err && err.message ? err.message : err));
@@ -8301,11 +8303,11 @@ async function submitBulkAssign() {
 async function openAnswerModal(ticketId) {
   setAnswerSubmitBusy(false);
   let q = allQuestions.find(r => r.sheet === 'Questions Tracker' && r.ticketId === ticketId);
-  if (!q) { showToast('This ticket is no longer open. Refreshing...'); refreshData(); return; }
+  if (!q) { showToast('This question is no longer open. Refreshing...'); refreshData(); return; }
   if (q.contentDeferred) {
-    showToast('Opening full ticket details...');
+    showToast('Opening full question details...');
     try { q = await ensureFullTicketContent(q); }
-    catch (err) { showToast('Could not open ticket details: ' + (err && err.message ? err.message : err)); return; }
+    catch (err) { showToast('Could not open question details: ' + (err && err.message ? err.message : err)); return; }
   }
   recordAttentionFirstReview(q);
   activeModalTicketId = ticketId;
@@ -8387,7 +8389,7 @@ async function openAnswerModal(ticketId) {
   const taskCategory = document.getElementById('modal-followup-task-category');
   const taskRelatedName = document.getElementById('modal-followup-task-related-name');
   const taskRelatedLink = document.getElementById('modal-followup-task-related-link');
-  if (taskTitle) taskTitle.value = 'Follow-up: ' + (q.eventName || 'Support Hub ticket');
+  if (taskTitle) taskTitle.value = 'Follow-up: ' + (q.eventName || 'Support Hub question');
   clearRichEditor('modal-followup-task-instructions');
   if (taskDue) taskDue.value = nextBusinessTaskDueDate();
   fillWorkCategorySelect('modal-followup-task-category', q.category || 'General / Other');
@@ -8404,7 +8406,7 @@ async function acknowledgeRequesterFlag() {
   if (!isOperationalSupportUser(currentUser) || !activeModalTicketId) return;
   const q = allQuestions.find(r => r.sheet === 'Questions Tracker' && r.ticketId === activeModalTicketId);
   if (!q || !hasActiveRequesterFlag(q)) return;
-  const ok = await customConfirm('Acknowledge this team flag? The ticket will stay open and assigned as-is, but it will leave the active Flagged by Team priority queue.', { okLabel: 'Acknowledge' });
+  const ok = await customConfirm('Acknowledge this team flag? The question will stay open and assigned as-is, but it will leave the active Flagged by Team priority queue.', { okLabel: 'Acknowledge' });
   if (!ok) return;
   google.script.run.withFailureHandler(err => {
     showToast('Could not acknowledge the team flag: ' + (err && err.message ? err.message : err));
@@ -9069,7 +9071,7 @@ function closeCreateTaskRelatedTicketSearch(){
   if(!createTaskSelectedTicket && btn)btn.classList.remove('hidden');
   if(input)input.value='';
   if(results){results.innerHTML='';results.classList.add('hidden');}
-  if(status)status.innerText='Type at least 2 characters to search Support Hub tickets.';
+  if(status)status.innerText='Type at least 2 characters to search Support Hub questions.';
 }
 function resetCreateTaskTicketSearch(){
   if(createTaskTicketSearchTimer)clearTimeout(createTaskTicketSearchTimer);
@@ -9080,7 +9082,7 @@ function resetCreateTaskTicketSearch(){
   const selected=document.getElementById('task-create-ticket-selected'); if(selected){selected.innerHTML='';selected.classList.add('hidden');}
   const panel=document.getElementById('task-create-ticket-search-panel'); if(panel)panel.classList.add('hidden');
   const btn=document.getElementById('task-create-add-ticket-btn'); if(btn)btn.classList.remove('hidden');
-  const status=document.getElementById('task-create-ticket-search-status'); if(status)status.innerText='Type at least 2 characters to search Support Hub tickets.';
+  const status=document.getElementById('task-create-ticket-search-status'); if(status)status.innerText='Type at least 2 characters to search Support Hub questions.';
 }
 function handleCreateTaskTicketSearch(){
   if(!currentUser||createTaskParentContext)return;
@@ -9092,10 +9094,10 @@ function handleCreateTaskTicketSearch(){
   if(query.length<2){
     createTaskTicketSearchResults=[];
     if(results){results.innerHTML='';results.classList.add('hidden');}
-    if(status)status.innerText='Type at least 2 characters to search Support Hub tickets.';
+    if(status)status.innerText='Type at least 2 characters to search Support Hub questions.';
     return;
   }
-  if(status)status.innerText='Searching Support Hub tickets...';
+  if(status)status.innerText='Searching Support Hub questions...';
   createTaskTicketSearchTimer=setTimeout(()=>runCreateTaskTicketSearch(query),120);
 }
 function runCreateTaskTicketSearch(query){
@@ -9103,8 +9105,8 @@ function runCreateTaskTicketSearch(query){
   const needle=String(query||'').trim();
   const box=document.getElementById('task-create-ticket-search-results');
   const status=document.getElementById('task-create-ticket-search-status');
-  if(box){box.innerHTML='<div class="px-3 py-3 text-xs text-slate-400">Searching all Support Hub tickets…</div>';box.classList.remove('hidden');}
-  if(status)status.innerText='Searching open and answered tickets…';
+  if(box){box.innerHTML='<div class="px-3 py-3 text-xs text-slate-400">Searching all Support Hub questions…</div>';box.classList.remove('hidden');}
+  if(status)status.innerText='Searching open and answered questions…';
   google.script.run.withSuccessHandler(res=>{
     if(serial!==createTaskTicketSearchSerial)return;
     const input=document.getElementById('task-create-ticket-search');
@@ -9112,22 +9114,22 @@ function runCreateTaskTicketSearch(query){
     createTaskTicketSearchResults=(res&&Array.isArray(res.results))?res.results:[];
     if(!createTaskTicketSearchResults.length){
       if(box){
-        box.innerHTML='<div class="p-3"><p class="text-xs font-bold text-slate-700">No matching Support Hub ticket found.</p><p class="text-[10px] text-slate-500 mt-1">That is okay. A related ticket is optional and this Task can still be created normally.</p><div class="flex justify-end mt-3"><button type="button" onclick="closeCreateTaskRelatedTicketSearch()" class="px-3 py-1.5 rounded-lg border border-slate-300 text-[10px] font-bold text-slate-600 hover:bg-slate-50">Close search</button></div></div>';
+        box.innerHTML='<div class="p-3"><p class="text-xs font-bold text-slate-700">No matching Support Hub question found.</p><p class="text-[10px] text-slate-500 mt-1">That is okay. A related question is optional and this Task can still be created normally.</p><div class="flex justify-end mt-3"><button type="button" onclick="closeCreateTaskRelatedTicketSearch()" class="px-3 py-1.5 rounded-lg border border-slate-300 text-[10px] font-bold text-slate-600 hover:bg-slate-50">Close search</button></div></div>';
         box.classList.remove('hidden');
       }
-      if(status)status.innerText='No matching ticket found.';
+      if(status)status.innerText='No matching question found.';
       return;
     }
     if(box){
-      box.innerHTML=createTaskTicketSearchResults.map((item,i)=>'<button type="button" onclick="selectCreateTaskRelatedTicket('+i+')" class="w-full text-left px-3 py-2.5 border-b border-slate-100 last:border-b-0 hover:bg-blue-50"><div class="flex items-center justify-between gap-2"><p class="text-xs font-bold text-slate-800 truncate">'+esc(item.title||item.eventName||'Ticket')+'</p><span class="text-[9px] font-bold '+(String(item.sheet||'')==='Answered'?'text-emerald-700':'text-blue-700')+'">'+(String(item.sheet||'')==='Answered'?'Answered':'Open')+'</span></div><p class="text-[10px] text-slate-500 mt-0.5">'+esc(item.meta||item.ticketId||'')+'</p>'+(item.preview||item.detail?'<p class="text-[10px] text-slate-400 mt-1 line-clamp-2">'+esc(item.preview||item.detail||'')+'</p>':'')+'</button>').join('');
+      box.innerHTML=createTaskTicketSearchResults.map((item,i)=>'<button type="button" onclick="selectCreateTaskRelatedTicket('+i+')" class="w-full text-left px-3 py-2.5 border-b border-slate-100 last:border-b-0 hover:bg-blue-50"><div class="flex items-center justify-between gap-2"><p class="text-xs font-bold text-slate-800 truncate">'+esc(item.title||item.eventName||'Question')+'</p><span class="text-[9px] font-bold '+(String(item.sheet||'')==='Answered'?'text-emerald-700':'text-blue-700')+'">'+(String(item.sheet||'')==='Answered'?'Answered':'Open')+'</span></div><p class="text-[10px] text-slate-500 mt-0.5">'+esc(item.meta||item.ticketId||'')+'</p>'+(item.preview||item.detail?'<p class="text-[10px] text-slate-400 mt-1 line-clamp-2">'+esc(item.preview||item.detail||'')+'</p>':'')+'</button>').join('');
       box.classList.remove('hidden');
     }
-    if(status)status.innerText=(res&&res.capped?'Showing the best matching tickets. Refine your search if needed.':'Select a ticket to connect it as the parent ticket.');
+    if(status)status.innerText=(res&&res.capped?'Showing the best matching questions. Refine your search if needed.':'Select a question to connect it as the parent question.');
   }).withFailureHandler(err=>{
     if(serial!==createTaskTicketSearchSerial)return;
     createTaskTicketSearchResults=[];
-    if(box){box.innerHTML='<div class="px-3 py-3 text-xs text-rose-600">Could not search tickets. Please try again.</div>';box.classList.remove('hidden');}
-    if(status)status.innerText='Ticket search failed. You can still create the Task without a related ticket.';
+    if(box){box.innerHTML='<div class="px-3 py-3 text-xs text-rose-600">Could not search questions. Please try again.</div>';box.classList.remove('hidden');}
+    if(status)status.innerText='Question search failed. You can still create the Task without a related question.';
   }).searchRelatedTickets(currentUser.email,needle,12);
 }
 function continueCreateTaskWithoutTicket(){
@@ -9136,7 +9138,7 @@ function continueCreateTaskWithoutTicket(){
   const input=document.getElementById('task-create-ticket-search');if(input)input.value='';
   const box=document.getElementById('task-create-ticket-search-results');if(box)box.classList.add('hidden');
   const selected=document.getElementById('task-create-ticket-selected');if(selected)selected.classList.add('hidden');
-  const status=document.getElementById('task-create-ticket-search-status');if(status)status.innerText='No related ticket selected. This Task can be created without one.';
+  const status=document.getElementById('task-create-ticket-search-status');if(status)status.innerText='No related question selected. This Task can be created without one.';
 }
 let createTaskDraftForNewTicket=null;
 function captureCreateTaskDraftForTicket(){
@@ -9167,7 +9169,7 @@ function startNewTicketFromCreateTask(){
     const taskText=(draft.instructions||'').trim();
     editor.innerHTML=(draft.title?'<p><strong>Task context:</strong> '+esc(draft.title)+'</p>':'')+(taskText||'');
   }
-  showToast('Create the Support ticket. After it saves, your Task draft will reopen and link to it automatically.');
+  showToast('Create the Support question. After it saves, your Task draft will reopen and link to it automatically.');
 }
 function resumeCreateTaskAfterNewTicket(ticketId, ticketInfo){
   const draft=createTaskDraftForNewTicket;if(!draft)return;
@@ -9176,8 +9178,8 @@ function resumeCreateTaskAfterNewTicket(ticketId, ticketInfo){
   setCreateTaskCategory(draft.category||'None');
   const item={
     ticketId:String(ticketId||''),
-    title:(ticketInfo&&ticketInfo.eventName)||draft.relatedClientTalent||draft.title||'Related ticket',
-    meta:'Connected as parent ticket',
+    title:(ticketInfo&&ticketInfo.eventName)||draft.relatedClientTalent||draft.title||'Related question',
+    meta:'Connected as parent question',
     detail:(ticketInfo&&ticketInfo.question)||''
   };
   createTaskTicketSearchResults=[item];
@@ -9189,10 +9191,10 @@ function selectCreateTaskRelatedTicket(index){
   const id=document.getElementById('task-create-related-ticket-id');if(id)id.value=item.ticketId;
   const input=document.getElementById('task-create-ticket-search');if(input)input.value='';
   const box=document.getElementById('task-create-ticket-search-results');if(box)box.classList.add('hidden');
-  const selected=document.getElementById('task-create-ticket-selected');if(selected){selected.innerHTML='<div class="flex items-start justify-between gap-3"><div class="min-w-0"><p class="font-bold text-blue-900">'+esc(item.title||'Related ticket')+'</p><p class="text-[10px] text-blue-700 mt-0.5">'+esc(item.meta||'Connected as parent ticket')+'</p></div><div class="flex items-center gap-2 shrink-0"><button type="button" onclick="openCreateTaskRelatedTicketSearch()" class="text-[10px] font-bold text-blue-700 hover:underline">Change</button><button type="button" onclick="clearCreateTaskRelatedTicket()" class="text-[10px] font-bold text-slate-500 hover:text-rose-600">Remove</button></div></div>';selected.classList.remove('hidden');}
+  const selected=document.getElementById('task-create-ticket-selected');if(selected){selected.innerHTML='<div class="flex items-start justify-between gap-3"><div class="min-w-0"><p class="font-bold text-blue-900">'+esc(item.title||'Related question')+'</p><p class="text-[10px] text-blue-700 mt-0.5">'+esc(item.meta||'Connected as parent question')+'</p></div><div class="flex items-center gap-2 shrink-0"><button type="button" onclick="openCreateTaskRelatedTicketSearch()" class="text-[10px] font-bold text-blue-700 hover:underline">Change</button><button type="button" onclick="clearCreateTaskRelatedTicket()" class="text-[10px] font-bold text-slate-500 hover:text-rose-600">Remove</button></div></div>';selected.classList.remove('hidden');}
   const panel=document.getElementById('task-create-ticket-search-panel');if(panel)panel.classList.add('hidden');
   const addBtn=document.getElementById('task-create-add-ticket-btn');if(addBtn)addBtn.classList.add('hidden');
-  const status=document.getElementById('task-create-ticket-search-status');if(status)status.innerText='Related ticket selected.';
+  const status=document.getElementById('task-create-ticket-search-status');if(status)status.innerText='Related question selected.';
 }
 function clearCreateTaskRelatedTicket(){resetCreateTaskTicketSearch();}
 
@@ -9229,7 +9231,7 @@ function openCreateTaskModal(parentType, parentId, defaults, launchOptions) {
   const createDue = document.getElementById('task-create-due');
   if (createDue) createDue.value = defaults.dueDate || nextBusinessTaskDueDate();
   const banner=document.getElementById('task-create-parent-banner'), label=document.getElementById('task-create-parent-label');
-  if(banner&&label){ banner.classList.toggle('hidden',!createTaskParentContext); label.innerText=createTaskParentContext ? ((createTaskParentContext.parentType==='Task'?'Task: ':'Related Ticket: ')+(defaults.parentLabel||createTaskParentContext.parentId)) : ''; }
+  if(banner&&label){ banner.classList.toggle('hidden',!createTaskParentContext); label.innerText=createTaskParentContext ? ((createTaskParentContext.parentType==='Task'?'Task: ':'Related Question: ')+(defaults.parentLabel||createTaskParentContext.parentId)) : ''; }
   const ticketWrap=document.getElementById('task-create-ticket-search-wrap'); if(ticketWrap)ticketWrap.classList.toggle('hidden',!!createTaskParentContext);
   // A Ticket-launched Task must remain a clean Create Task form. Explicitly
   // clear every user-entered Task field after browser/form reset and defaults
@@ -9747,7 +9749,7 @@ function openTaskDetail(taskId) {
   const linkedTicketId = String(t.relatedTicketId || ((String(t.parentType || '').toLowerCase() === 'question') ? t.parentId : '') || '').trim();
   activeTask.relatedTicketId = linkedTicketId;
   const relatedTopBtn=document.getElementById('task-modal-related-ticket-top'); if(relatedTopBtn)relatedTopBtn.classList.toggle('hidden',!linkedTicketId);
-  const relatedTopTitle=document.getElementById('task-modal-related-ticket-top-title'); if(relatedTopTitle&&linkedTicketId)relatedTopTitle.innerText='Loading ticket...';
+  const relatedTopTitle=document.getElementById('task-modal-related-ticket-top-title'); if(relatedTopTitle&&linkedTicketId)relatedTopTitle.innerText='Loading question...';
   resetTaskRelatedTicketSearchUi();
   syncTaskTicketConnectionUi(activeTask);
   const parentTaskRow = document.getElementById('task-modal-parent-task-row');
@@ -9992,10 +9994,10 @@ function taskActivitySummary(item) {
     return 'Created task' + (d.assignedTo ? ' and assigned it to ' + getUserDisplayName(d.assignedTo) : '') + '.';
   }
   if (item.action === 'TASK_CREATE_FROM_ANSWER') {
-    return 'Created follow-up task from an answered ticket' + (d.assignedTo ? ' and assigned it to ' + getUserDisplayName(d.assignedTo) : '') + '.';
+    return 'Created follow-up task from an answered question' + (d.assignedTo ? ' and assigned it to ' + getUserDisplayName(d.assignedTo) : '') + '.';
   }
   if (item.action === 'TASK_CREATE_FROM_ANSWERED') {
-    return 'Created another related task from this answered ticket' + (d.assignedTo ? ' and assigned it to ' + getUserDisplayName(d.assignedTo) : '') + '.';
+    return 'Created another related task from this answered question' + (d.assignedTo ? ' and assigned it to ' + getUserDisplayName(d.assignedTo) : '') + '.';
   }
   if (item.action === 'TASK_CHILD_CREATE') {
     return 'Created follow-up task “' + (d.childTitle || d.childTaskId || 'Follow-up task') + '”' + (d.assignedTo ? ' and assigned it to ' + getUserDisplayName(d.assignedTo) : '') + '.';
@@ -10052,7 +10054,7 @@ function taskTicketDisplayFromQuestion(q) {
   const answered = String(q.sheet || '').toLowerCase().indexOf('answered') !== -1;
   let status = answered ? 'Answered' : (q.status || 'Open');
   if (!answered && q.isFollowUp) status = 'Follow-Up';
-  const title = q.eventName || stripHtml(q.question || '').slice(0, 100) || 'Related ticket';
+  const title = q.eventName || stripHtml(q.question || '').slice(0, 100) || 'Related question';
   const askedBy = q.askedBy || 'Unknown';
   const category = q.category || 'General / Other';
   return {
@@ -10069,9 +10071,9 @@ function renderTaskRelatedTicketSummary(display) {
   const metaEl = document.getElementById('task-modal-linked-ticket-meta');
   const topBtn = document.getElementById('task-modal-related-ticket-top');
   const topTitle = document.getElementById('task-modal-related-ticket-top-title');
-  const title = display && display.title ? display.title : 'Related ticket';
+  const title = display && display.title ? display.title : 'Related question';
   if (titleEl) titleEl.innerText = title;
-  if (metaEl) metaEl.innerText = display && display.meta ? display.meta : 'Open the related ticket to review details.';
+  if (metaEl) metaEl.innerText = display && display.meta ? display.meta : 'Open the related question to review details.';
   if (topTitle) topTitle.innerText = title;
   if (topBtn) topBtn.classList.toggle('hidden', !(activeTask && activeTask.relatedTicketId));
 }
@@ -10088,13 +10090,13 @@ function resolveTaskRelatedTicketSummary(task) {
     renderTaskRelatedTicketSummary(task._relatedTicketDisplay);
     return;
   }
-  renderTaskRelatedTicketSummary({ title: 'Related ticket', meta: 'Loading ticket details...' });
+  renderTaskRelatedTicketSummary({ title: 'Related question', meta: 'Loading question details...' });
   const requestedTaskId = String(task.taskId || '');
   const requestedTicketId = String(task.relatedTicketId || '');
   google.script.run.withSuccessHandler(ticket => {
     if (!activeTask || String(activeTask.taskId || '') !== requestedTaskId || String(activeTask.relatedTicketId || '') !== requestedTicketId) return;
     if (!ticket || !ticket.ticketId) {
-      renderTaskRelatedTicketSummary({ title: 'Related ticket', meta: 'Ticket details are unavailable.' });
+      renderTaskRelatedTicketSummary({ title: 'Related question', meta: 'Question details are unavailable.' });
       return;
     }
     const idx = allQuestions.findIndex(q => String(q.ticketId) === String(ticket.ticketId));
@@ -10103,7 +10105,7 @@ function resolveTaskRelatedTicketSummary(task) {
     renderTaskRelatedTicketSummary(activeTask._relatedTicketDisplay);
   }).withFailureHandler(() => {
     if (activeTask && String(activeTask.taskId || '') === requestedTaskId && String(activeTask.relatedTicketId || '') === requestedTicketId) {
-      renderTaskRelatedTicketSummary({ title: 'Related ticket', meta: 'Open the ticket to review details.' });
+      renderTaskRelatedTicketSummary({ title: 'Related question', meta: 'Open the question to review details.' });
     }
   }).getTicketForNavigation(requestedTicketId, currentUser.email);
 }
@@ -10145,7 +10147,7 @@ function handleTaskRelatedTicketSearch() {
     if (status) status.innerText = 'Type at least 2 characters to search.';
     return;
   }
-  if (status) status.innerText = 'Searching open and answered tickets...';
+  if (status) status.innerText = 'Searching open and answered questions...';
   taskRelatedTicketSearchTimer = setTimeout(() => runTaskRelatedTicketSearch(query), 280);
 }
 
@@ -10159,28 +10161,28 @@ function runTaskRelatedTicketSearch(query) {
     if (!input || String(input.value || '').trim() !== query) return;
     taskRelatedTicketSearchResults = res && Array.isArray(res.results) ? res.results : [];
     if (!taskRelatedTicketSearchResults.length) {
-      if (resultsBox) { resultsBox.innerHTML = '<div class="px-3 py-3 text-xs text-slate-400">No matching tickets found.</div>'; resultsBox.classList.remove('hidden'); }
-      if (status) status.innerText = 'No matching related tickets found.';
+      if (resultsBox) { resultsBox.innerHTML = '<div class="px-3 py-3 text-xs text-slate-400">No matching questions found.</div>'; resultsBox.classList.remove('hidden'); }
+      if (status) status.innerText = 'No matching related questions found.';
       return;
     }
     if (resultsBox) {
       resultsBox.innerHTML = taskRelatedTicketSearchResults.map((item, index) => {
         const current = activeTask && String(activeTask.relatedTicketId || '') === String(item.ticketId || '');
         return '<button type="button" onclick="selectTaskRelatedTicketSearchResult(' + index + ')" class="w-full text-left px-3 py-2.5 border-b border-slate-100 last:border-b-0 hover:bg-blue-50 transition">' +
-          '<div class="flex items-start justify-between gap-2"><div class="min-w-0 flex-1"><p class="text-xs font-bold text-slate-800 break-words">' + esc(item.title || 'Ticket') + '</p>' +
+          '<div class="flex items-start justify-between gap-2"><div class="min-w-0 flex-1"><p class="text-xs font-bold text-slate-800 break-words">' + esc(item.title || 'Question') + '</p>' +
           '<p class="text-[10px] text-slate-500 mt-0.5 break-words">' + esc(item.meta || '') + '</p>' +
           (item.detail ? '<p class="text-[10px] text-slate-400 mt-1 line-clamp-2 break-words">' + esc(item.detail) + '</p>' : '') +
           '</div>' + (current ? '<span class="shrink-0 text-[9px] font-bold uppercase bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">Current</span>' : '') + '</div></button>';
       }).join('');
       resultsBox.classList.remove('hidden');
     }
-    if (status) status.innerText = 'Select a ticket to connect it to this task.';
+    if (status) status.innerText = 'Select a question to connect it to this task.';
   }).withFailureHandler(err => {
     if (serial !== taskRelatedTicketSearchSerial) return;
     taskRelatedTicketSearchResults = [];
     if (resultsBox) { resultsBox.innerHTML = ''; resultsBox.classList.add('hidden'); }
-    if (status) status.innerText = 'Could not search tickets. Please try again.';
-    showToast('Could not search related tickets: ' + (err && err.message ? err.message : err));
+    if (status) status.innerText = 'Could not search questions. Please try again.';
+    showToast('Could not search related questions: ' + (err && err.message ? err.message : err));
   }).searchRelatedTickets(currentUser.email, query, 10);
 }
 
@@ -10190,7 +10192,7 @@ function selectTaskRelatedTicketSearchResult(index) {
   if (String(activeTask.relatedTicketId || '') === String(item.ticketId)) {
     const resultsBox = document.getElementById('task-modal-ticket-search-results');
     if (resultsBox) resultsBox.classList.add('hidden');
-    showToast('This ticket is already related to the task.');
+    showToast('This question is already related to the task.');
     return;
   }
   saveTaskTicketConnection(item.ticketId, item);
@@ -10202,9 +10204,9 @@ function saveTaskTicketConnection(ticketId, selectedDisplay) {
   if (!cleanTicketId) return;
   const status = document.getElementById('task-modal-ticket-search-status');
   const resultsBox = document.getElementById('task-modal-ticket-search-results');
-  if (status) status.innerText = 'Connecting related ticket...';
+  if (status) status.innerText = 'Connecting related question...';
   google.script.run.withSuccessHandler(res => {
-    if (!res || !res.task) { if (status) status.innerText = 'The related ticket was not saved.'; return; }
+    if (!res || !res.task) { if (status) status.innerText = 'The related question was not saved.'; return; }
     const updated = res.task;
     const idx = allTasks.findIndex(t => String(t.taskId) === String(updated.taskId));
     if (idx === -1) allTasks.push(updated); else allTasks[idx] = Object.assign({}, allTasks[idx], updated);
@@ -10215,11 +10217,11 @@ function saveTaskTicketConnection(ticketId, selectedDisplay) {
     const input = document.getElementById('task-modal-ticket-search-input');
     if (input) input.value = '';
     if (resultsBox) { resultsBox.innerHTML = ''; resultsBox.classList.add('hidden'); }
-    if (status) status.innerText = 'Parent ticket connected.';
-    showToast('Parent ticket connected to this task and its task journey.');
+    if (status) status.innerText = 'Parent question connected.';
+    showToast('Parent question connected to this task and its task journey.');
   }).withFailureHandler(err => {
-    if (status) status.innerText = 'Could not connect the related ticket.';
-    showToast('Could not connect related ticket: ' + (err && err.message ? err.message : err));
+    if (status) status.innerText = 'Could not connect the related question.';
+    showToast('Could not connect related question: ' + (err && err.message ? err.message : err));
   }).setTaskRelatedTicket(activeTask.taskId, cleanTicketId, currentUser.email, { status: activeTask.status, updatedAt: activeTask.updatedAt || '' });
 }
 
@@ -10231,10 +10233,10 @@ function openLinkedQuestionFromTask() {
     const ticketId=String(activeTask.relatedTicketId||'').trim();
     if(!ticketId||navigationTicketRequests.has(ticketId)) return;
     navigationTicketRequests.add(ticketId);
-    showToast('Opening related ticket...');
+    showToast('Opening related question...');
     google.script.run.withSuccessHandler(ticket=>{
       navigationTicketRequests.delete(ticketId);
-      if(!ticket||!ticket.ticketId){showToast('The related ticket could not be found.');return;}
+      if(!ticket||!ticket.ticketId){showToast('The related question could not be found.');return;}
       const idx=allQuestions.findIndex(r=>String(r.ticketId)===String(ticket.ticketId));
       if(idx===-1) allQuestions.push(ticket); else allQuestions[idx]=Object.assign({},allQuestions[idx],ticket);
       if (activeTask) pushDetailNavigation({type:'task',id:activeTask.taskId});
@@ -10242,7 +10244,7 @@ function openLinkedQuestionFromTask() {
       openTicketDetail(ticket.sheet,ticket.ticketId);
     }).withFailureHandler(err=>{
       navigationTicketRequests.delete(ticketId);
-      showToast('Could not open related ticket: '+(err&&err.message?err.message:err));
+      showToast('Could not open related question: '+(err&&err.message?err.message:err));
     }).getTicketForNavigation(ticketId,currentUser.email);
     return;
   }
@@ -10648,7 +10650,7 @@ function renderCategoryQuestionInsights(range) {
   const top = insights.categories[0];
   const setText = (id, value) => { const el = document.getElementById(id); if (el) el.innerText = value; };
   setText('stat-top-category', top ? top.category : 'No data');
-  setText('stat-top-category-count', (top ? top.count : 0) + ' question(s)');
+  setText('stat-top-category-count', pluralQuickSearch(top ? top.count : 0, 'question'));
   setText('stat-repeated-themes', insights.repeated.length);
   setText('stat-faq-candidates', insights.faq.length);
   setText('stat-training-needs', insights.training.length);
@@ -10699,7 +10701,7 @@ function renderReporting() {
   const ready = currentDataVersion !== null && currentTaskDataVersion !== null;
   const status = document.getElementById('report-load-status');
   const timingText = reportLoadTimingText();
-  if (status) status.innerText = reportingLoadError || (!ready ? 'Loading ticket history and tasks now. Reports will appear when both are ready.' : (fullQuestionDataNeedsRefresh ? 'Updating ticket history. Showing the last loaded reports.' : 'Ticket history and tasks loaded' + timingText + '. Choose a report below.'));
+  if (status) status.innerText = reportingLoadError || (!ready ? 'Loading question history and tasks now. Reports will appear when both are ready.' : (fullQuestionDataNeedsRefresh ? 'Updating question history. Showing the last loaded reports.' : 'Question history and tasks loaded' + timingText + '. Choose a report below.'));
   document.getElementById('report-content').classList.toggle('hidden', !ready);
   document.getElementById('report-retry').classList.toggle('hidden', !reportingLoadError);
   if (!ready) return;
@@ -10860,7 +10862,7 @@ function renderReportBreakdown(answeredRecords) {
   refreshReportBreakdownArrows();
 
   if (!rows.length) {
-    body.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-slate-400">No answered tickets in this range.</td></tr>';
+    body.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-slate-400">No answered questions in this range.</td></tr>';
     return;
   }
 
@@ -10910,7 +10912,7 @@ function renderReviewProgress(answeredRecords) {
   }).sort((a, b) => b.currentUnread - a.currentUnread || a.name.localeCompare(b.name));
 
   if (!rows.length) {
-    body.innerHTML = '<tr><td colspan="8" class="p-6 text-center text-slate-400">No answered tickets in this range.</td></tr>';
+    body.innerHTML = '<tr><td colspan="8" class="p-6 text-center text-slate-400">No answered questions in this range.</td></tr>';
     return;
   }
 
@@ -10922,12 +10924,12 @@ function renderReviewProgress(answeredRecords) {
     tr.innerHTML =
       '<td class="p-3 font-semibold text-slate-800">' + esc(r.name) + '</td>' +
       '<td class="p-3 text-slate-500">' + esc(r.title || '') + '</td>' +
-      '<td class="p-3 text-center">' + numBtn('owner-all', r.total, 'Show all answered tickets for this person') + '</td>' +
-      '<td class="p-3 text-center">' + numBtn('owner-read', r.currentRead, 'Show currently read tickets') + '</td>' +
-      '<td class="p-3 text-center">' + numBtn('owner-unread', r.currentUnread, 'Show currently unread tickets') + '</td>' +
-      '<td class="p-3 text-center">' + numBtn('owner-reviewed', r.everReviewed, 'Show tickets reviewed at least once') + '</td>' +
-      '<td class="p-3 text-center">' + numBtn('owner-reviewed', Math.round(r.reviewPct) + '%', 'Show tickets reviewed at least once') + '</td>' +
-      '<td class="p-3 text-center">' + numBtn('owner-reviewed', formatHoursCompact(r.avgFirst), 'Show reviewed tickets and first-review speed') + '</td>';
+      '<td class="p-3 text-center">' + numBtn('owner-all', r.total, 'Show all answered questions for this person') + '</td>' +
+      '<td class="p-3 text-center">' + numBtn('owner-read', r.currentRead, 'Show currently read questions') + '</td>' +
+      '<td class="p-3 text-center">' + numBtn('owner-unread', r.currentUnread, 'Show currently unread questions') + '</td>' +
+      '<td class="p-3 text-center">' + numBtn('owner-reviewed', r.everReviewed, 'Show questions reviewed at least once') + '</td>' +
+      '<td class="p-3 text-center">' + numBtn('owner-reviewed', Math.round(r.reviewPct) + '%', 'Show questions reviewed at least once') + '</td>' +
+      '<td class="p-3 text-center">' + numBtn('owner-reviewed', formatHoursCompact(r.avgFirst), 'Show reviewed questions and first-review speed') + '</td>';
     body.appendChild(tr);
   });
 }
@@ -11325,9 +11327,9 @@ function showReportDetail(type, key) {
   if (!panel || !head || !body) return;
 
   const labels = {
-    unanswered: 'Open Questions', answered: 'Resolved Tickets', 'currently-read': 'Currently Read by Original Asker',
+    unanswered: 'Open Questions', answered: 'Resolved Questions', 'currently-read': 'Currently Read by Original Asker',
     'currently-unread': 'Currently Unread by Original Asker', 'ever-reviewed': 'Reviewed at Least Once',
-    'answered-by': 'Answered by Support Staff', 'owner-all': 'Answered Tickets for Team Member',
+    'answered-by': 'Answered by Support Staff', 'owner-all': 'Answered Questions for Team Member',
     'owner-read': 'Currently Read for Team Member', 'owner-unread': 'Currently Unread for Team Member',
     'owner-reviewed': 'Reviewed at Least Once for Team Member',
     'task-active': 'Active Tasks', 'task-completed': 'Completed Tasks', 'task-overdue': 'Overdue Tasks',
@@ -11342,10 +11344,12 @@ function showReportDetail(type, key) {
   const isTaskReport = String(type).startsWith('task-') || String(type).startsWith('followup-');
   const isQuestionInsight = type === 'question-category' || type === 'question-theme';
   if (subtitle) {
-    const suffix = type === 'question-category' ? ' ticket(s) in ' + key + '. Click a row to verify the question and answer.'
-      : type === 'question-theme' ? ' similar ticket(s). Review the originals before using the FAQ or training recommendation.'
-      : (isTaskReport ? ' task(s). Click a row to view the full task.' : ' ticket(s). Click a row to view the full ticket.');
-    subtitle.innerText = records.length + suffix;
+    const questionCount = pluralQuickSearch(records.length, 'question');
+    const taskCount = pluralQuickSearch(records.length, 'task');
+    const suffix = type === 'question-category' ? questionCount + ' in ' + key + '. Click a row to verify the question and answer.'
+      : type === 'question-theme' ? pluralQuickSearch(records.length, 'similar question') + '. Review the originals before using the FAQ or training recommendation.'
+      : (isTaskReport ? taskCount + '. Click a row to view the full task.' : questionCount + '. Click a row to view the full question.');
+    subtitle.innerText = suffix;
   }
   activateReportDetailWorkspace(labels[type] || 'Report Details', records.length + ' matching record' + (records.length === 1 ? '' : 's') + ' in the selected date range.');
   panel.classList.remove('hidden');
@@ -11438,7 +11442,7 @@ function adminWorkspaceCards() {
 
 let adminNotificationMembers = [];
 let adminNotificationSelected = new Set();
-function notificationEventSummary(events){const e=events||{},a=[];if(e.taskAssigned!==false)a.push('Task Assigned');if(e.ticketNew!==false)a.push('Ticket New');if(e.ticketOnHold!==false)a.push('On Hold');if(e.ticketResumed!==false)a.push('Resumed');if(e.ticketAnswered!==false)a.push('Answered');return a.length?a.join(' · '):'All disabled';}
+function notificationEventSummary(events){const e=events||{},a=[];if(e.taskAssigned!==false)a.push('Task Assigned');if(e.ticketNew!==false)a.push('Question New');if(e.ticketOnHold!==false)a.push('On Hold');if(e.ticketResumed!==false)a.push('Resumed');if(e.ticketAnswered!==false)a.push('Answered');return a.length?a.join(' · '):'All disabled';}
 function loadAdminNotificationControls(){if(!currentUser||!isAdminUser(currentUser))return;const body=document.getElementById('admin-notif-member-body');if(body)body.innerHTML='<tr><td colspan="4" class="p-5 text-center text-slate-400">Loading notification controls...</td></tr>';google.script.run.withFailureHandler(err=>{if(body)body.innerHTML='<tr><td colspan="4" class="p-5 text-center text-rose-600">Could not load notification controls.</td></tr>';showToast('Could not load notification controls: '+(err&&err.message?err.message:err));}).withSuccessHandler(res=>{adminNotificationMembers=(res&&res.members)||[];adminNotificationSelected=new Set();const title=document.getElementById('admin-notif-title-filter');if(title)title.innerHTML='<option value="">All Titles</option>'+((res&&res.titles)||[]).map(t=>'<option value="'+esc(t)+'">'+esc(t)+'</option>').join('');renderAdminNotificationMembers();}).getAdminNotificationControlData(currentUser.email);}
 function filteredAdminNotificationMembers(){const title=String(document.getElementById('admin-notif-title-filter')?.value||'').toLowerCase(),search=String(document.getElementById('admin-notif-search')?.value||'').trim().toLowerCase();return(adminNotificationMembers||[]).filter(m=>(!title||String(m.title||'').toLowerCase()===title)&&(!search||[m.name,m.email,m.title,m.category].join(' ').toLowerCase().includes(search)));}
 function renderAdminNotificationMembers(){const body=document.getElementById('admin-notif-member-body');if(!body)return;const visible=filteredAdminNotificationMembers();body.innerHTML=visible.length?visible.map(m=>'<tr class="hover:bg-slate-50"><td class="p-3"><input type="checkbox" data-email="'+esc(m.email)+'" '+(adminNotificationSelected.has(String(m.email).toLowerCase())?'checked':'')+' onchange="toggleAdminNotificationMember(this)"></td><td class="p-3"><p class="font-bold text-slate-800">'+esc(m.name)+'</p><p class="text-[9px] text-slate-400">'+esc(m.email)+'</p></td><td class="p-3 text-slate-600">'+esc(m.title||'—')+'</td><td class="p-3 text-[10px] text-slate-500">'+esc(notificationEventSummary(m.events))+'</td></tr>').join(''):'<tr><td colspan="4" class="p-5 text-center text-slate-400">No team members match this filter.</td></tr>';updateAdminNotificationSelectedCount();}
@@ -11764,10 +11768,10 @@ function processPersonalOpenFollowUpNotifications() {
   const newlyReopened = openFollowUps.filter(q => !knownPersonalOpenFollowUpIds.has(String(q.ticketId || q.id)) && String(q.statusChangedBy || '').toLowerCase() !== String(currentUser.name || '').toLowerCase());
   knownPersonalOpenFollowUpIds = ids;
   newlyReopened.forEach(q => {
-    if (notificationPrefs.toast) showToast('Your ticket was reopened as a follow-up by ' + (getUserDisplayName(q.statusChangedBy || 'Support')) + '.');
+    if (notificationPrefs.toast) showToast('Your question was reopened as a follow-up by ' + (getUserDisplayName(q.statusChangedBy || 'Support')) + '.');
     if (notificationPrefs.sound) playNotificationSound();
     if (notificationPrefs.browser) {
-      try { if (Notification.permission === 'granted') new Notification('Support Hub: Ticket reopened', { body: q.eventName || 'A ticket was reopened as a follow-up.' }); } catch (e) {}
+      try { if (Notification.permission === 'granted') new Notification('Support Hub: Question reopened', { body: q.eventName || 'A question was reopened as a follow-up.' }); } catch (e) {}
     }
   });
 }
@@ -11787,7 +11791,7 @@ function showAnswerToast(q) {
   toast.innerHTML =
     '<div class="flex items-start justify-between gap-3">' +
       '<div><p class="font-bold">New answer received</p>' +
-      '<p class="text-slate-300 mt-1">' + esc(q.eventName || 'Answered ticket') + '</p>' +
+      '<p class="text-slate-300 mt-1">' + esc(q.eventName || 'Answered question') + '</p>' +
       '<p class="text-[10px] text-slate-400 mt-1">Answered by ' + esc(getUserDisplayName(q.answeredBy || 'Support')) + '</p></div>' +
       '<button class="text-slate-400 hover:text-white font-bold">✕</button>' +
     '</div>' +
@@ -11956,7 +11960,7 @@ function openMentionNotification(notificationId) {
 
   const q = allQuestions.find(r => String(r.ticketId) === String(item.ticketId));
   if (!q) {
-    showToast('The mentioned ticket is not currently available in your view.');
+    showToast('The mentioned question is not currently available in your view.');
     return;
   }
   openTicketDetail(q.sheet, q.ticketId);
@@ -11996,7 +12000,7 @@ function updateNotificationCenter() {
     const suppressedClear = document.getElementById('clear-read-notifications-btn');
     if (suppressedCount) { suppressedCount.innerText = '0'; suppressedCount.classList.add('hidden'); suppressedCount.classList.remove('flex'); }
     if (suppressedBell) suppressedBell.classList.add('hidden');
-    if (suppressedList) suppressedList.innerHTML = '<div class="p-5 text-center text-xs text-slate-400">Ticket notifications are kept with the operational profile.</div>';
+    if (suppressedList) suppressedList.innerHTML = '<div class="p-5 text-center text-xs text-slate-400">Question notifications are kept with the operational profile.</div>';
     if (suppressedClear) suppressedClear.classList.add('hidden');
     return;
   }
@@ -12086,7 +12090,7 @@ function updateNotificationCenter() {
         : '<span class="text-[9px] ' + (isAttentionToday ? 'text-rose-700' : (isTeamFlag ? 'text-orange-700' : 'text-blue-600')) + ' font-black">' + (isAttentionToday ? 'NEEDS ATTENTION TODAY' : (isTeamFlag ? 'FLAGGED BY TEAM' : (isQuestionRouting ? 'NEW ASSIGNMENT' : 'NEW MENTION'))) + '</span>';
       return "<button onclick=\"openMentionNotification('" + esc(n.notificationId) + "')\" class=\"w-full text-left px-4 py-3 border-b border-slate-100 hover:bg-slate-50 " + bg + "\">" +
         '<div class="flex items-center justify-between gap-2">' + badge + '<span class="text-[9px] text-slate-400">' + esc(formatCSTDateTime(n.createdAt, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })) + '</span></div>' +
-        '<p class="text-xs font-semibold text-slate-800 truncate mt-1">' + esc(n.eventName || 'Support Hub ticket') + '</p>' +
+        '<p class="text-xs font-semibold text-slate-800 truncate mt-1">' + esc(n.eventName || 'Support Hub question') + '</p>' +
         '<p class="text-[10px] text-slate-500 truncate">' + esc((n.mentionedBy || 'A team member') + (isAttentionToday ? ' marked this for your attention today' : (isTeamFlag ? ' requested Support attention' : (isQuestionRouting ? ' routed this question to you' : ' mentioned you')))) + '</p>' +
         '</button>';
     }
@@ -12098,7 +12102,7 @@ function updateNotificationCenter() {
       : '<span class="text-[9px] ' + (q.hasUnreadUpdate ? 'text-indigo-700' : 'text-rose-600') + ' font-black">' + (q.hasUnreadUpdate ? 'NEW UPDATE' : 'NEW ANSWER') + '</span>';
     return "<button onclick=\"openPersonalNotification('" + esc(q.ticketId) + "')\" class=\"w-full text-left px-4 py-3 border-b border-slate-100 hover:bg-slate-50 " + unreadClass + "\">" +
       '<div class="flex items-center justify-between gap-2">' + badge + '<span class="text-[9px] text-slate-400">' + esc(formatCSTDateTime(q.lastUpdatedAt || q.answeredDate, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })) + '</span></div>' +
-      '<p class="text-xs font-semibold text-slate-800 truncate mt-1">' + esc(q.eventName || 'Answered ticket') + '</p>' +
+      '<p class="text-xs font-semibold text-slate-800 truncate mt-1">' + esc(q.eventName || 'Answered question') + '</p>' +
       '<p class="text-[10px] text-slate-500 truncate">Answered by ' + esc(getUserDisplayName(q.answeredBy || 'Support')) + '</p>' +
       '</button>';
   }).join('');
@@ -12144,7 +12148,7 @@ function openPersonalNotification(ticketId) {
   const panel = document.getElementById('notification-panel');
   if (panel) panel.classList.add('hidden');
   const q = allQuestions.find(item => item.sheet === 'Answered' && String(item.ticketId) === String(ticketId) && isOwnerOf(item));
-  if (!q) { showToast('That answered ticket is no longer available.'); return; }
+  if (!q) { showToast('That answered question is no longer available.'); return; }
   openViewModal(q);
 }
 
