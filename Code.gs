@@ -4006,20 +4006,6 @@ function getTicketForNavigation(ticketId, requestingEmail) {
   throw new Error('The linked ticket no longer exists.');
 }
 
-// Dedicated Answered-ticket navigation. The Answered Tickets table uses this
-// endpoint instead of the generic Ticket-ID resolver so a click can never
-// accidentally resolve against the open Questions sheet. It also returns the
-// complete Answered row, including read state and answer metadata, in one
-// server call.
-function getAnsweredTicketForNavigation(ticketId, requestingEmail) {
-  const member = requireAuthenticatedMember(requestingEmail);
-  const target = requireAnsweredRow(ticketId);
-  const row = target.sheet.getRange(target.rowIndex, 1, 1, A_WIDTH).getValues()[0];
-  const record = navigationQuestionFromRow(row, SHEET_ANSWERED, member.email);
-  record.contentDeferred = false;
-  return record;
-}
-
 // ==========================================
 // PHASE 13F - SERVER SEARCH + GROUP PAGINATION
 // ==========================================

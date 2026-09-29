@@ -2443,7 +2443,6 @@ let answerSubmitInFlight = false;
 
 let activeModalTicketId = null;
 let activeViewQuestion = null;
-const answeredTicketOpenRequests = new Set();
 let activeTicketDetailQuestion = null;
 let detailNavigationStack = [];
 let activeEditRecord = null;
@@ -6543,7 +6542,7 @@ function renderAnsweredTab() {
     tr.onclick = (e) => {
       if (e.target.closest('button, a, input, select, textarea')) return;
       e.preventDefault();
-      openAnsweredTicketFromList(q);
+      openTicketDetail(q.sheet, q.ticketId);
     };
     tr.innerHTML =
       '<td class="p-3"><span class="px-2 py-0.5 text-[9px] font-bold rounded ' + (q.isRead ? 'bg-slate-100 text-slate-500 border border-slate-200/60' : (q.hasUnreadUpdate ? 'bg-indigo-600 text-white shadow-sm' : 'bg-rose-500 text-white shadow-sm')) + '">' + (q.isRead ? 'READ' : (q.hasUnreadUpdate ? 'NEW UPDATE' : 'UNREAD')) + '</span></td>' +
@@ -6554,7 +6553,7 @@ function renderAnsweredTab() {
       '<td class="p-3 text-slate-700 font-medium truncate">' + esc(getUserDisplayName(q.answeredBy)) + '</td>' +
       '<td class="p-3 text-[10px] text-slate-500 whitespace-nowrap">' + esc(q._answeredDisplay || '—') + '</td>' +
       '<td class="p-3 text-center font-mono text-[11px] text-slate-500">' + esc(q.turnaroundHours) + ' hrs</td>' +
-      '<td class="p-3 text-right whitespace-nowrap"><button type="button" onclick="event.stopPropagation();openAnsweredTicketFromList(\'' + esc(q.ticketId) + '\')" class="text-[11px] text-blue-600 hover:text-blue-800 font-semibold underline mr-3">Open</button><button type="button" onclick="event.stopPropagation();toggleRead(\'' + esc(q.ticketId) + '\', ' + (!q.isRead) + ')" class="text-[11px] text-slate-500 hover:text-slate-800 font-semibold underline">' + (q.isRead ? 'Unread' : 'Read') + '</button></td>';
+      '<td class="p-3 text-right whitespace-nowrap"><button type="button" onclick="event.stopPropagation();openTicketDetail(\'Answered\', \'' + esc(q.ticketId) + '\')" class="text-[11px] text-blue-600 hover:text-blue-800 font-semibold underline mr-3">Open</button><button type="button" onclick="event.stopPropagation();toggleRead(\'' + esc(q.ticketId) + '\', ' + (!q.isRead) + ')" class="text-[11px] text-slate-500 hover:text-slate-800 font-semibold underline">' + (q.isRead ? 'Unread' : 'Read') + '</button></td>';
     body.appendChild(tr);
   });
 }
@@ -6609,41 +6608,6 @@ function ensureFullTicketContent(q) {
   });
   ticketContentRequests.set(key, request);
   return request;
-}
-
-// Answered Tickets gets a dedicated open path. We deliberately fetch the
-// Answered row again from the server before opening the modal. This removes
-// dependence on the compact table object, avoids stale/mismatched sheet data,
-// and guarantees the Answered sheet is the source for an Answered-table click.
-function openAnsweredTicketFromList(qOrTicketId) {
-  if (!currentUser) return;
-  const ticketId = typeof qOrTicketId === 'object'
-    ? String(qOrTicketId && qOrTicketId.ticketId || '').trim()
-    : String(qOrTicketId || '').trim();
-  if (!ticketId) {
-    showToast('This answered ticket has no Ticket ID.');
-    return;
-  }
-
-  if (answeredTicketOpenRequests.has(ticketId)) return;
-  answeredTicketOpenRequests.add(ticketId);
-
-  google.script.run
-    .withFailureHandler(err => {
-      answeredTicketOpenRequests.delete(ticketId);
-      console.error('Answered ticket open failed', err);
-      showToast('Could not open answered ticket: ' + (err && err.message ? err.message : err));
-    })
-    .withSuccessHandler(ticket => {
-      answeredTicketOpenRequests.delete(ticketId);
-      if (!ticket || String(ticket.sheet || '') !== 'Answered' || String(ticket.ticketId || '') !== ticketId) {
-        showToast('The answered ticket could not be loaded. Please refresh and try again.');
-        return;
-      }
-      mergeNavigationQuestions([ticket]);
-      openViewModal(ticket);
-    })
-    .getAnsweredTicketForNavigation(ticketId, currentUser.email);
 }
 
 function openViewModal(q) {
@@ -7201,7 +7165,12 @@ async function openTicketDetail(sheet, ticketId) {
     }).getTicketForNavigation(id,currentUser.email);
     return;
   }
-  if (q.contentDeferred) {
+  // Answered tickets can contain large question/answer bodies. Let their
+  // modal open from the compact feed preview immediately; openViewModal then
+  // upgrades the body in the background. Blocking here made an Answered click
+  // look like it did nothing whenever the rich-content request was slow or
+  // failed. Open questions keep their existing full-detail-before-open flow.
+  if (q.contentDeferred && q.sheet !== 'Answered') {
     showToast('Opening full ticket details...');
     try { q = await ensureFullTicketContent(q); }
     catch (err) { showToast('Could not open ticket details: ' + (err && err.message ? err.message : err)); return; }
