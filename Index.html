@@ -3112,10 +3112,19 @@ function formatCSTDateTime(isoOrDate, opts) {
   return d.toLocaleString('en-US', Object.assign({ timeZone: APP_TIMEZONE }, opts || {}));
 }
 
+const ticketAuditTimestampCache = new Map();
+const ticketAuditDateTimeFormatter = new Intl.DateTimeFormat('en-US', {
+  timeZone: APP_TIMEZONE, month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit'
+});
 function ticketAuditTimestamp(isoOrDate) {
-  return isoOrDate
-    ? formatCSTDateTime(isoOrDate, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })
-    : '—';
+  if (!isoOrDate) return '—';
+  const key = String(isoOrDate);
+  if (!ticketAuditTimestampCache.has(key)) {
+    if (ticketAuditTimestampCache.size > 5000) ticketAuditTimestampCache.clear();
+    const date = isoOrDate instanceof Date ? isoOrDate : new Date(isoOrDate);
+    ticketAuditTimestampCache.set(key, isNaN(date.getTime()) ? '—' : ticketAuditDateTimeFormatter.format(date));
+  }
+  return ticketAuditTimestampCache.get(key);
 }
 
 function getCSTOffsetMinutes(date) {
@@ -3619,6 +3628,7 @@ let adminTestMode = null;
 const ADMIN_MANUAL_LOGIN_SESSION_KEY = 'supportHubManualLoginAfterLogout';
 
 window.onload = function() {
+  initUniversalTableSorting();
   document.getElementById('current-date').innerText =
     new Date().toLocaleDateString('en-US', { timeZone: APP_TIMEZONE, weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) + ' · CST';
   initCustomDialog();
@@ -5432,6 +5442,119 @@ function applySort(list, tableKey) {
   });
 }
 
+// Headers with an existing data-aware sort keep that behavior. This fills in
+// sorting for the other tables and for tables created later (for example,
+// report drill-downs) without changing their row rendering functions.
+const universalTableSortState = new WeakMap();
+function universalCellSortValue(value) {
+  const text = String(value || '').replace(/\s+/g, ' ').trim();
+  if (!text || text === '—' || text === '-') return { kind: 'empty', value: '' };
+  const dateValue = Date.parse(text);
+  if (!isNaN(dateValue) && /\b\d{1,4}\b/.test(text)) return { kind: 'date', value: dateValue };
+  const numberText = text.replace(/[,\s]/g, '').replace(/(?:hrs?|hours?)$/i, '');
+  if (/^-?\d+(?:\.\d+)?%?$/.test(numberText)) return { kind: 'number', value: parseFloat(numberText) };
+  return { kind: 'text', value: text.toLocaleLowerCase() };
+}
+
+function universalHeaderLabel(header) {
+  const clone = header.cloneNode(true);
+  const indicator = clone.querySelector('.universal-sort-indicator');
+  if (indicator) indicator.remove();
+  return clone.innerText.trim();
+}
+
+function isUniversalSortableHeader(header) {
+  return !!header && !header.hasAttribute('onclick') && !header.querySelector('button, input, select, a') && !!universalHeaderLabel(header);
+}
+
+function sortTableByHeader(table, columnIndex, direction) {
+  const header = table && table.tHead && table.tHead.rows.length ? table.tHead.rows[0].cells[columnIndex] : null;
+  const body = table && table.tBodies && table.tBodies[0];
+  if (!header || !body) return;
+  const rows = Array.from(body.rows).filter(row => row.cells.length > columnIndex);
+  rows.sort((left, right) => {
+    const a = universalCellSortValue(left.cells[columnIndex].innerText);
+    const b = universalCellSortValue(right.cells[columnIndex].innerText);
+    if (a.kind === 'empty' || b.kind === 'empty') return a.kind === b.kind ? 0 : (a.kind === 'empty' ? 1 : -1);
+    if (a.kind === b.kind) {
+      if (a.value < b.value) return direction === 'asc' ? -1 : 1;
+      if (a.value > b.value) return direction === 'asc' ? 1 : -1;
+      return 0;
+    }
+    const comparison = String(a.value).localeCompare(String(b.value), undefined, { numeric: true, sensitivity: 'base' });
+    return direction === 'asc' ? comparison : -comparison;
+  });
+  const currentRows = Array.from(body.rows).filter(row => row.cells.length > columnIndex);
+  if (rows.some((row, index) => row !== currentRows[index])) {
+    const fragment = document.createDocumentFragment();
+    rows.forEach(row => fragment.appendChild(row));
+    body.appendChild(fragment);
+  }
+  Array.from(header.parentElement.cells).forEach(cell => {
+    if (cell !== header) cell.removeAttribute('aria-sort');
+  });
+  header.setAttribute('aria-sort', direction === 'asc' ? 'ascending' : 'descending');
+  const indicator = header.querySelector('.universal-sort-indicator');
+  if (indicator) indicator.textContent = direction === 'asc' ? ' ▲' : ' ▼';
+}
+
+function initUniversalTableSorting() {
+  const markSortableHeaders = root => {
+    if (!root || !root.querySelectorAll) return;
+    const headers = root.matches && root.matches('th') ? [root] : root.querySelectorAll('th');
+    headers.forEach(header => {
+      if (!header.closest('thead')) return;
+      if (!isUniversalSortableHeader(header)) return;
+      header.classList.add('cursor-pointer', 'select-none');
+      header.title = 'Click to sort ascending; click again to sort descending';
+    });
+  };
+  markSortableHeaders(document);
+  document.addEventListener('click', function(event) {
+    const header = event.target.closest && event.target.closest('th');
+    if (!isUniversalSortableHeader(header) || event.target.closest('button, input, select, a')) return;
+    const table = header.closest('table');
+    const row = header.parentElement;
+    if (!table || !table.tBodies.length || !row || !row.closest('thead')) return;
+    const columnIndex = Array.prototype.indexOf.call(row.cells, header);
+    if (columnIndex < 0 || !Array.from(table.tBodies[0].rows).some(item => item.cells.length > columnIndex)) return;
+    const label = universalHeaderLabel(header);
+    if (!label) return;
+    let state = universalTableSortState.get(table);
+    if (!state || state.label !== label || state.columnIndex !== columnIndex) state = { label, columnIndex, direction: 'asc' };
+    else state.direction = state.direction === 'asc' ? 'desc' : 'asc';
+    universalTableSortState.set(table, state);
+    header.classList.add('cursor-pointer', 'select-none');
+    header.title = 'Sort ' + state.direction + 'ending';
+    let indicator = header.querySelector('.universal-sort-indicator');
+    if (!indicator) {
+      indicator = document.createElement('span');
+      indicator.className = 'universal-sort-indicator';
+      header.appendChild(indicator);
+    }
+    sortTableByHeader(table, columnIndex, state.direction);
+  });
+
+  const observer = new MutationObserver(records => {
+    records.forEach(record => {
+      record.addedNodes.forEach(node => {
+        if (node.nodeType === 1) {
+          if (node.matches('th')) markSortableHeaders(node);
+          else markSortableHeaders(node);
+        }
+      });
+      const table = record.target.closest && record.target.closest('table');
+      const state = table && universalTableSortState.get(table);
+      if (!state || !table.tHead || !table.tHead.rows.length) return;
+      const headerRow = table.tHead.rows[0];
+      const matchingHeader = Array.from(headerRow.cells).findIndex(cell => universalHeaderLabel(cell) === state.label);
+      if (matchingHeader >= 0) sortTableByHeader(table, matchingHeader, state.direction);
+      else universalTableSortState.delete(table);
+    });
+  });
+  observer.observe(document.body, { childList: true, subtree: true });
+}
+
 function statusLabelOf(q) {
   if (q.sheet === 'Answered' || q.status === 'Answered') return 'Answered';
   if (q.status === 'Hold') return 'On Hold';
@@ -6473,6 +6596,27 @@ function openLinkedTaskFromAnswered(taskId) {
   openTaskDetail(taskId);
 }
 
+const ticketSearchTextCache = new WeakMap();
+function ticketMatchesSearch(q, search, includeAskedBy) {
+  if (!search) return true;
+  const askedBySource = includeAskedBy ? getUserDisplayName(q.askedBy) : '';
+  let cached = ticketSearchTextCache.get(q);
+  if (!cached || cached.questionSource !== q.question || cached.answerSource !== q.answer || cached.eventSource !== q.eventName || cached.askedBySource !== askedBySource) {
+    cached = {
+      questionSource: q.question,
+      answerSource: q.answer,
+      eventSource: q.eventName,
+      askedBySource: askedBySource,
+      question: String(q.question || '').toLowerCase(),
+      answer: String(q.answer || '').toLowerCase(),
+      event: String(q.eventName || '').toLowerCase(),
+      askedBy: askedBySource.toLowerCase()
+    };
+    ticketSearchTextCache.set(q, cached);
+  }
+  return cached.question.includes(search) || cached.event.includes(search) || cached.answer.includes(search) || (includeAskedBy && cached.askedBy.includes(search));
+}
+
 function renderAnsweredTab() {
   const userIsSupport = isSupportUser(currentUser);
   // Coordinators are always restricted to their own tickets, regardless of
@@ -6516,7 +6660,7 @@ function renderAnsweredTab() {
     if (scope === 'INTERNAL' && !internal) return false;
 
     // Search filter
-    const matchesSearch = q.question.toLowerCase().includes(search) || q.eventName.toLowerCase().includes(search) || q.answer.toLowerCase().includes(search);
+    const matchesSearch = ticketMatchesSearch(q, search, false);
     if (!matchesSearch) return false;
 
     // Asked by & Answered by filters
@@ -6545,6 +6689,7 @@ function renderAnsweredTab() {
     return;
   }
 
+  const answeredRowsFragment = document.createDocumentFragment();
   sorted.forEach(q => {
     const internalTag = isAskedBySupport(q) ? internalBadgeHtml() : '';
     const tr = document.createElement('tr');
@@ -6560,8 +6705,9 @@ function renderAnsweredTab() {
       '<td class="p-3 text-[10px] text-slate-500 whitespace-nowrap">' + esc(ticketAuditTimestamp(q.answeredDate)) + '</td>' +
       '<td class="p-3 text-center font-mono text-[11px] text-slate-500">' + esc(q.turnaroundHours) + ' hrs</td>' +
       '<td class="p-3 text-right"><button onclick="toggleRead(\'' + esc(q.ticketId) + '\', ' + (!q.isRead) + ')" class="text-[11px] text-blue-600 hover:text-blue-800 font-semibold underline">' + (q.isRead ? 'Unread' : 'Read') + '</button></td>';
-    body.appendChild(tr);
+    answeredRowsFragment.appendChild(tr);
   });
+  body.appendChild(answeredRowsFragment);
 }
 
 function markAllAnsweredAsRead() {
@@ -7005,9 +7151,7 @@ function renderAllTickets() {
     // managerial escalations stay hidden from standard Coordinators here.
     if (isAskedBySupport(q) && !userIsSupport) return false;
 
-    const matchesSearch = q.question.toLowerCase().includes(search) ||
-      q.eventName.toLowerCase().includes(search) ||
-      getUserDisplayName(q.askedBy).toLowerCase().includes(search);
+    const matchesSearch = ticketMatchesSearch(q, search, true);
     let matchesType = true;
     if (typeFilter === 'QUESTIONS') matchesType = (q.sheet === 'Questions Tracker');
     if (typeFilter === 'ANSWERED') matchesType = (q.sheet === 'Answered');
@@ -7026,6 +7170,7 @@ function renderAllTickets() {
     return;
   }
 
+  const ticketRowsFragment = document.createDocumentFragment();
   sorted.forEach(q => {
     const tr = document.createElement('tr');
     tr.className = 'hover:bg-slate-50 transition border-b border-slate-100 cursor-pointer';
@@ -7055,8 +7200,9 @@ function renderAllTickets() {
         '<button onclick="openEditModalByKey(\'' + esc(q.sheet) + '\', \'' + esc(q.ticketId) + '\')" class="text-blue-600 font-semibold underline text-[11px] hover:text-blue-800">Edit</button>' +
         '<button onclick="deleteRecord(\'' + esc(q.sheet) + '\', \'' + esc(q.ticketId) + '\')" class="text-rose-600 font-semibold underline text-[11px] hover:text-rose-800">Delete</button>' +
       '</div></td>';
-    body.appendChild(tr);
+    ticketRowsFragment.appendChild(tr);
   });
+  body.appendChild(ticketRowsFragment);
   updateAdminTicketBulkUi();
 }
 
