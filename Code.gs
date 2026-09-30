@@ -5938,15 +5938,60 @@ function getTasksData(requestingEmail) {
   if (sheet.getLastRow() < 2) return [];
   const data = sheet.getRange(2, 1, sheet.getLastRow() - 1, T_WIDTH).getValues();
   const out = [];
+  let ownerLookup = null;
+
+  // Index the cached roster once per response. Older task rows may not have a
+  // persisted Support Owner; resolving each row independently repeatedly
+  // reparsed the same team cache and rescanned it for the same assignees.
+  const getOwnerLookup = () => {
+    if (ownerLookup) return ownerLookup;
+    const byEmail = new Map();
+    const questionAssigneeMatches = new Map();
+    _getTeamMembersInternal().forEach(teamMember => {
+      const teamEmail = normalizeEmail(teamMember.email);
+      if (!teamEmail) return;
+      if (!byEmail.has(teamEmail)) byEmail.set(teamEmail, []);
+      byEmail.get(teamEmail).push(teamMember);
+      if (String(teamMember.status || '').trim().toLowerCase() === 'active' &&
+          String(teamMember.category || '').trim().toLowerCase() === 'support') {
+        if (!questionAssigneeMatches.has(teamEmail)) questionAssigneeMatches.set(teamEmail, []);
+        questionAssigneeMatches.get(teamEmail).push(teamMember);
+      }
+    });
+    const questionOwner = (candidateEmail) => {
+      const matches = questionAssigneeMatches.get(normalizeEmail(candidateEmail)) || [];
+      return matches.length === 1 ? normalizeEmail(matches[0].email) : '';
+    };
+    ownerLookup = {
+      supportOwnerFor: assigneeEmail => {
+        const matches = byEmail.get(normalizeEmail(assigneeEmail)) || [];
+        const assignee = matches.find(teamMember => !isAdminMember(teamMember)) || matches[0];
+        if (!assignee || String(assignee.status || '').trim().toLowerCase() !== 'active') return '';
+        const category = String(assignee.category || '').trim().toLowerCase();
+        if (category === 'support') return questionOwner(assignee.email);
+        if (category === 'coordinator') {
+          return questionOwner(assignee.primarySupportEmail) || questionOwner(assignee.backupSupportEmail);
+        }
+        return '';
+      }
+    };
+    return ownerLookup;
+  };
+
   for (let i = 0; i < data.length; i++) {
-    const task = taskRowToObject(data[i]);
+    const row = data[i];
+    const assignedToEmail = normalizeEmail(row[T_COL.ASSIGNED_TO_EMAIL - 1]);
+    const createdByEmail = normalizeEmail(row[T_COL.CREATED_BY_EMAIL - 1]);
+    // Personal views can discard unrelated rows before converting rich task
+    // fields and dates. Support/Admin keeps the full team view as before.
+    if (!requesterIsSupport && assignedToEmail !== email && createdByEmail !== email) continue;
+    const task = taskRowToObject(row);
     if (!task.taskId || !task.title) continue;
     if (!task.supportOwnerEmail && task.assignedToEmail) {
-      const assignee = findTeamMemberByEmail(task.assignedToEmail);
-      task.supportOwnerEmail = resolveTaskSupportOwnerEmail(assignee);
+      task.supportOwnerEmail = getOwnerLookup().supportOwnerFor(task.assignedToEmail);
       task.supportOwnerDerived = !!task.supportOwnerEmail;
     }
-    if (requesterIsSupport || task.assignedToEmail === email || task.createdByEmail === email) out.push(task);
+    out.push(task);
   }
   return out;
 }
