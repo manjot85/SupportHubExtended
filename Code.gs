@@ -3392,6 +3392,8 @@ function getQuestionsDataForMember(requestingEmail, requestingMember) {
           askedBy: stripNoraPrefix(String(row[2] || "").trim()),
           askedByEmail: String(row[Q_COL.ASKED_BY_EMAIL - 1] || "").trim().toLowerCase(),
           created: createdIso,
+          answeredBy: '',
+          answeredDate: '',
           caseLink: extractCaseId(String(row[7] || "").trim()),
           answer: String(row[Q_COL.ANSWER - 1] || '').trim(),
           contentDeferred: compactQuestion.deferred,
@@ -3682,6 +3684,72 @@ function getQuestionsDataIfChanged(requestingEmail, clientVersion) {
   return { unchanged: false, data: records, version: serverVersion, serverTiming: { totalMs: Date.now() - startedAt, authMs: authenticatedAt - startedAt, dataMs: Date.now() - authenticatedAt } };
 }
 
+// Lightweight first paint for the Answered Questions desk. The full history
+// feed is intentionally loaded after this response so its large archive does
+// not delay the user's personal unread review queue.
+function getMyUnreadAnsweredQuestions(requestingEmail) {
+  const startedAt = Date.now();
+  const member = requireAuthenticatedMember(requestingEmail);
+  const authenticatedAt = Date.now();
+  const email = normalizeEmail(member.email || requestingEmail);
+  const name = stripNoraPrefix(String(member.name || '').trim()).toLowerCase();
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_ANSWERED);
+  if (!sheet || sheet.getLastRow() < 2) {
+    return { data: [], version: getDataVersion(), serverTiming: { totalMs: Date.now() - startedAt, authMs: authenticatedAt - startedAt, dataMs: Date.now() - authenticatedAt } };
+  }
+
+  const lastRow = sheet.getLastRow();
+  const rows = sheet.getRange(2, 1, lastRow - 1, A_WIDTH).getValues();
+  const data = [];
+  for (let i = rows.length - 1; i >= 0; i--) {
+    const row = rows[i];
+    const question = String(row[A_COL.QUESTION - 1] || '').trim();
+    if (!question) continue;
+    const askedEmail = normalizeEmail(row[A_COL.ASKED_BY_EMAIL - 1]);
+    const askedName = stripNoraPrefix(String(row[A_COL.ASKED_BY - 1] || '').trim()).toLowerCase();
+    const sameOwner = askedEmail
+      ? (askedEmail === email || emailsRepresentSameWorkspaceIdentity(askedEmail, email))
+      : (askedName && askedName === name);
+    if (!sameOwner || isReadByUser(row[A_COL.READ_BY - 1], email)) continue;
+
+    const compactQuestion = compactRichContentForFeed(question);
+    const compactAnswer = compactRichContentForFeed(row[A_COL.ANSWER - 1]);
+    const ticketId = String(row[A_COL.TICKET_ID - 1] || '').trim();
+    const created = safeIsoDate(row[A_COL.CREATED - 1]);
+    const answered = safeIsoDate(row[A_COL.ANSWERED - 1]);
+    let turnaround = row[A_COL.TURNAROUND - 1];
+    if (turnaround === '' || turnaround === undefined || isNaN(turnaround) || Number(turnaround) < 0) {
+      const diff = (new Date(answered) - new Date(created)) / (1000 * 60 * 60);
+      turnaround = diff > 0 ? diff.toFixed(1) : '0.5';
+    } else {
+      turnaround = Math.abs(Number(turnaround)).toFixed(1);
+    }
+    const firstReadMap = parseFirstReadMap(row[A_COL.FIRST_READ_AT - 1]);
+    const lastUpdated = safeIsoDate(row[A_COL.LAST_UPDATED_AT - 1] || row[A_COL.ANSWERED - 1]);
+    data.push({
+      id: 'A_' + (ticketId || (i + 2)), ticketId: ticketId, sheet: SHEET_ANSWERED,
+      question: compactQuestion.html, answer: compactAnswer.html,
+      contentDeferred: compactQuestion.deferred || compactAnswer.deferred,
+      eventName: String(row[A_COL.EVENT - 1] || '').trim(),
+      askedBy: stripNoraPrefix(String(row[A_COL.ASKED_BY - 1] || '').trim()),
+      askedByEmail: askedEmail, created: created, answeredDate: answered,
+      turnaroundHours: turnaround, holdHoursExcluded: Number(row[A_COL.HOLD_HOURS - 1]) || 0,
+      caseLink: extractCaseId(String(row[A_COL.LINK - 1] || '').trim()),
+      status: String(row[A_COL.STATUS - 1] || STATUS_ANSWERED).trim(),
+      answeredBy: stripNoraPrefix(String(row[A_COL.ANSWERED_BY - 1] || 'Supervisor').trim()),
+      answeredByEmail: normalizeEmail(row[A_COL.ANSWERED_BY_EMAIL - 1]),
+      isRead: false, firstReadAt: firstReadMap[email] || '', lastUpdatedAt: lastUpdated,
+      hasUnreadUpdate: !!row[A_COL.LAST_UPDATED_AT - 1] && new Date(lastUpdated).getTime() > new Date(answered).getTime(),
+      category: normalizeWorkCategory(row[A_COL.WORK_CATEGORY - 1] || inferWorkCategory(question, row[A_COL.EVENT - 1])),
+      eventDate: normalizeEventDate(row[A_COL.EVENT_DATE - 1]),
+      talentRole: String(row[A_COL.TALENT_ROLE - 1] || '').trim(),
+      routedSupportEmail: normalizeEmail(row[A_COL.ROUTED_SUPPORT_EMAIL - 1]),
+      attentionRequested: row[A_COL.ATTENTION_REQUESTED - 1] === true || !!row[A_COL.ATTENTION_SET_AT - 1]
+    });
+  }
+  return { data: data, version: getDataVersion(), serverTiming: { totalMs: Date.now() - startedAt, authMs: authenticatedAt - startedAt, dataMs: Date.now() - authenticatedAt } };
+}
+
 // Fast feed for Supervisor Desk. The desk only displays open questions, so it
 // should not read and transmit the entire Answered history on every queue
 // change. Other tabs continue using getQuestionsDataIfChanged and receive the
@@ -3737,6 +3805,8 @@ function getSupervisorQuestionsDataIfChanged(requestingEmail, clientVersion) {
       askedBy: stripNoraPrefix(String(row[Q_COL.ASKED_BY - 1] || '').trim()),
       askedByEmail: normalizeEmail(row[Q_COL.ASKED_BY_EMAIL - 1]),
       created: safeIsoDate(row[Q_COL.CREATED - 1]),
+      answeredBy: '',
+      answeredDate: '',
       caseLink: extractCaseId(String(row[Q_COL.LINK - 1] || '').trim()),
       answer: String(row[Q_COL.ANSWER - 1] || '').trim(),
       contentDeferred: compactQuestion.deferred,
@@ -3893,6 +3963,8 @@ function navigationQuestionFromRow(row, sheetName, requestingEmail) {
     askedBy: stripNoraPrefix(String(row[C.ASKED_BY - 1] || '').trim()),
     askedByEmail: normalizeEmail(row[C.ASKED_BY_EMAIL - 1]),
     created: safeIsoDate(row[C.CREATED - 1]),
+    answeredBy: '',
+    answeredDate: '',
     caseLink: extractCaseId(String(row[C.LINK - 1] || '').trim()),
     answer: String(row[C.ANSWER - 1] || '').trim(),
     contentDeferred: false,
@@ -4682,7 +4754,7 @@ function answerQuestion(ticketId, answerText, supervisorEmail, supervisorName, f
         title: title,
         instructions: instructions,
         assignee: assignee,
-        dueDate: normalizeTaskDueDate(raw.dueDate) || getNextBusinessTaskDueDate(),
+        dueDate: taskDueDateForAttention_(normalizeTaskDueDate(raw.dueDate) || getNextBusinessTaskDueDate(), raw.needAttentionToday === true || raw.attentionToday === true),
         priority: '', // Legacy priority column retained only for sheet compatibility.
         category: normalizeWorkCategory(raw.category || selectedCategory),
         relatedClientTalent: relatedClientTalent,
@@ -5092,7 +5164,8 @@ function createFollowUpTaskFromAnswered(ticketId, payload, requestingEmail) {
     const assignee = requireTaskAssignee(requestedAssignee);
     const title = String(payload.title || '').trim();
     const instructions = String(payload.instructions || '').trim();
-    const dueDate = normalizeTaskDueDate(payload.dueDate) || getNextBusinessTaskDueDate();
+    const attentionToday = payload.needAttentionToday === true || payload.attentionToday === true;
+    const dueDate = taskDueDateForAttention_(normalizeTaskDueDate(payload.dueDate) || getNextBusinessTaskDueDate(), attentionToday);
     const priority = ''; // Legacy priority column retained only for sheet compatibility.
     const taskCategory = normalizeWorkCategory(payload.category || row[A_COL.WORK_CATEGORY - 1]);
     const relatedClientTalent = Object.prototype.hasOwnProperty.call(payload, 'relatedClientTalent')
@@ -5102,7 +5175,6 @@ function createFollowUpTaskFromAnswered(ticketId, payload, requestingEmail) {
       ? String(payload.relatedLink || '').trim()
       : String(row[A_COL.LINK - 1] || '').trim();
     const relatedEntityType = String(payload.relatedEntityType || (relatedClientTalent ? 'Event' : '')).trim();
-    const attentionToday = payload.needAttentionToday === true || payload.attentionToday === true;
     const attentionUntil = attentionToday ? todayCSTDateString() : '';
     if (!title) throw new Error('Task title is required.');
     if (title.length > 140) throw new Error('Task title is too long. Please keep it under 140 characters.');
@@ -5786,6 +5858,15 @@ function getNextBusinessTaskDueDate() {
   return Utilities.formatDate(d, 'UTC', 'yyyy-MM-dd');
 }
 
+function taskDueDateForAttention_(dueDate, attentionToday) {
+  const cleanDueDate = normalizeTaskDueDate(dueDate);
+  if (attentionToday !== true) return cleanDueDate;
+  const today = todayCSTDateString();
+  // Keep a past due date visible as overdue. Otherwise, attention means the
+  // task is due today, regardless of a future or blank requested date.
+  return cleanDueDate && cleanDueDate < today ? cleanDueDate : today;
+}
+
 function findTaskRowById(sheet, taskId) {
   const id = String(taskId || '').trim();
   if (!id) return -1;
@@ -5857,15 +5938,60 @@ function getTasksData(requestingEmail) {
   if (sheet.getLastRow() < 2) return [];
   const data = sheet.getRange(2, 1, sheet.getLastRow() - 1, T_WIDTH).getValues();
   const out = [];
+  let ownerLookup = null;
+
+  // Index the cached roster once per response. Older task rows may not have a
+  // persisted Support Owner; resolving each row independently repeatedly
+  // reparsed the same team cache and rescanned it for the same assignees.
+  const getOwnerLookup = () => {
+    if (ownerLookup) return ownerLookup;
+    const byEmail = new Map();
+    const questionAssigneeMatches = new Map();
+    _getTeamMembersInternal().forEach(teamMember => {
+      const teamEmail = normalizeEmail(teamMember.email);
+      if (!teamEmail) return;
+      if (!byEmail.has(teamEmail)) byEmail.set(teamEmail, []);
+      byEmail.get(teamEmail).push(teamMember);
+      if (String(teamMember.status || '').trim().toLowerCase() === 'active' &&
+          String(teamMember.category || '').trim().toLowerCase() === 'support') {
+        if (!questionAssigneeMatches.has(teamEmail)) questionAssigneeMatches.set(teamEmail, []);
+        questionAssigneeMatches.get(teamEmail).push(teamMember);
+      }
+    });
+    const questionOwner = (candidateEmail) => {
+      const matches = questionAssigneeMatches.get(normalizeEmail(candidateEmail)) || [];
+      return matches.length === 1 ? normalizeEmail(matches[0].email) : '';
+    };
+    ownerLookup = {
+      supportOwnerFor: assigneeEmail => {
+        const matches = byEmail.get(normalizeEmail(assigneeEmail)) || [];
+        const assignee = matches.find(teamMember => !isAdminMember(teamMember)) || matches[0];
+        if (!assignee || String(assignee.status || '').trim().toLowerCase() !== 'active') return '';
+        const category = String(assignee.category || '').trim().toLowerCase();
+        if (category === 'support') return questionOwner(assignee.email);
+        if (category === 'coordinator') {
+          return questionOwner(assignee.primarySupportEmail) || questionOwner(assignee.backupSupportEmail);
+        }
+        return '';
+      }
+    };
+    return ownerLookup;
+  };
+
   for (let i = 0; i < data.length; i++) {
-    const task = taskRowToObject(data[i]);
+    const row = data[i];
+    const assignedToEmail = normalizeEmail(row[T_COL.ASSIGNED_TO_EMAIL - 1]);
+    const createdByEmail = normalizeEmail(row[T_COL.CREATED_BY_EMAIL - 1]);
+    // Personal views can discard unrelated rows before converting rich task
+    // fields and dates. Support/Admin keeps the full team view as before.
+    if (!requesterIsSupport && assignedToEmail !== email && createdByEmail !== email) continue;
+    const task = taskRowToObject(row);
     if (!task.taskId || !task.title) continue;
     if (!task.supportOwnerEmail && task.assignedToEmail) {
-      const assignee = findTeamMemberByEmail(task.assignedToEmail);
-      task.supportOwnerEmail = resolveTaskSupportOwnerEmail(assignee);
+      task.supportOwnerEmail = getOwnerLookup().supportOwnerFor(task.assignedToEmail);
       task.supportOwnerDerived = !!task.supportOwnerEmail;
     }
-    if (requesterIsSupport || task.assignedToEmail === email || task.createdByEmail === email) out.push(task);
+    out.push(task);
   }
   return out;
 }
@@ -6010,22 +6136,39 @@ function createTask(payload) {
     const assignee = requireTaskAssignee(payload.assignedToEmail);
     const title = String(payload.title || '').trim();
     const instructions = String(payload.instructions || '').trim();
-    const dueDate = normalizeTaskDueDate(payload.dueDate) || getNextBusinessTaskDueDate();
+    const attentionToday = payload.needAttentionToday === true || payload.attentionToday === true;
+    const dueDate = taskDueDateForAttention_(normalizeTaskDueDate(payload.dueDate) || getNextBusinessTaskDueDate(), attentionToday);
     const priority = ''; // Legacy priority column retained only for sheet compatibility.
     const parent = resolveTaskParentContext(payload.parentType, payload.parentId, creator);
     const requestedTaskCategory = Object.prototype.hasOwnProperty.call(payload, 'category') ? String(payload.category || '').trim() : 'None';
-    const relatedClientTalent = Object.prototype.hasOwnProperty.call(payload, 'relatedClientTalent')
-      ? String(payload.relatedClientTalent || '').trim()
-      : String(parent.event || '').trim();
-    const relatedLink = Object.prototype.hasOwnProperty.call(payload, 'relatedLink')
-      ? String(payload.relatedLink || '').trim()
-      : String(parent.link || '').trim();
+
+    // Ticket -> + Add Task is a clean Create Task workflow. The server must
+    // enforce that rule too, because the browser is not the source of truth.
+    // The Ticket remains the parent connection, but its Event / Client /
+    // Talent / CR / TR and Related Link must not be inherited. A separately
+    // selected Related Ticket continues to use the normal inheritance behavior.
+    const cleanParentTicketContext = payload.cleanParentTicketContext === true && parent.parentType === 'Question';
+    const relatedClientTalent = cleanParentTicketContext
+      ? ''
+      : (Object.prototype.hasOwnProperty.call(payload, 'relatedClientTalent')
+        ? String(payload.relatedClientTalent || '').trim()
+        : String(parent.event || '').trim());
+    const relatedLink = cleanParentTicketContext
+      ? ''
+      : (Object.prototype.hasOwnProperty.call(payload, 'relatedLink')
+        ? String(payload.relatedLink || '').trim()
+        : String(parent.link || '').trim());
+
     // Backward compatibility: older deployed Create Task forms did not send
     // relatedEntityType. Keep those clients working while the newer UI can
     // explicitly choose Event / Client / Talent / CR / TR relationship types.
     const hasRelatedEntityType = Object.prototype.hasOwnProperty.call(payload, 'relatedEntityType');
-    const inheritedType = (!hasRelatedEntityType && parent.parentType === 'Question' && relatedClientTalent) ? 'Event' : '';
-    const legacyType = (!hasRelatedEntityType && relatedClientTalent && relatedLink && !inheritedType) ? 'Event' : inheritedType;
+    const inheritedType = cleanParentTicketContext
+      ? ''
+      : ((!hasRelatedEntityType && parent.parentType === 'Question' && relatedClientTalent) ? 'Event' : '');
+    const legacyType = cleanParentTicketContext
+      ? ''
+      : ((!hasRelatedEntityType && relatedClientTalent && relatedLink && !inheritedType) ? 'Event' : inheritedType);
     const relatedContext = validateTaskRelatedContext_(relatedClientTalent, hasRelatedEntityType ? payload.relatedEntityType : legacyType, relatedLink);
     const relatedEntityType = relatedContext.type;
     // Category behaves like ticket intake: an explicit category wins. If the
@@ -6049,7 +6192,6 @@ function createTask(payload) {
     const now = new Date();
     const taskId = Utilities.getUuid();
     const supportOwnerEmail = resolveTaskSupportOwnerEmail(assignee);
-    const attentionToday = payload.needAttentionToday === true || payload.attentionToday === true;
     const attentionUntil = attentionToday ? todayCSTDateString() : '';
     sheet.appendRow([
       taskId, title, instructions, assignee.name, assignee.email,
@@ -6129,6 +6271,8 @@ function setTaskAttentionToday(taskId, enabled, requestingEmail) {
     if (task.status === TASK_STATUS_COMPLETED || task.status === TASK_STATUS_CANCELLED) throw new Error('Completed or cancelled tasks cannot be marked Need Attention Today.');
     const active = enabled === true || String(enabled).toLowerCase() === 'true';
     const now = new Date();
+    const dueDate = active ? taskDueDateForAttention_(task.dueDate, true) : task.dueDate;
+    if (dueDate !== task.dueDate) target.sheet.getRange(target.rowIndex, T_COL.DUE_DATE).setValue(dueDate);
     target.sheet.getRange(target.rowIndex, T_COL.ATTENTION_TODAY).setValue(active);
     target.sheet.getRange(target.rowIndex, T_COL.ATTENTION_SET_AT).setValue(active ? now : '');
     target.sheet.getRange(target.rowIndex, T_COL.ATTENTION_SET_BY).setValue(active ? actor.name : '');
@@ -6136,7 +6280,10 @@ function setTaskAttentionToday(taskId, enabled, requestingEmail) {
     target.sheet.getRange(target.rowIndex, T_COL.UPDATED_AT).setValue(now);
     target.sheet.getRange(target.rowIndex, T_COL.UPDATED_BY).setValue(actor.name);
     bumpTaskDataVersion();
-    logAudit(active ? 'TASK_ATTENTION_TODAY_SET' : 'TASK_ATTENTION_TODAY_CLEARED', actor.email, actor.name, taskId, { attentionToday: active, entity: 'Task' });
+    logAudit(active ? 'TASK_ATTENTION_TODAY_SET' : 'TASK_ATTENTION_TODAY_CLEARED', actor.email, actor.name, taskId, {
+      attentionToday: active, entity: 'Task',
+      dueDateFrom: task.dueDate || '', dueDateTo: dueDate || '', dueDateAdjusted: dueDate !== task.dueDate
+    });
     return { success: true, task: taskRowToObject(target.sheet.getRange(target.rowIndex, 1, 1, T_WIDTH).getValues()[0]) };
   }, { operation: 'setTaskAttentionToday' });
 }
@@ -6247,8 +6394,9 @@ function updateTaskDueDate(taskId, dueDate, requestingEmail, expected) {
     const actorEmail = normalizeEmail(actor.email);
     const canViewTask = isSupportMember(actor) || task.assignedToEmail === actorEmail || task.createdByEmail === actorEmail;
     if (!canViewTask) throw new Error('Access denied: you cannot update this task.');
-    const cleanDueDate = normalizeTaskDueDate(dueDate);
-    if (!cleanDueDate) throw new Error('Please choose a due date.');
+    const requestedDueDate = normalizeTaskDueDate(dueDate);
+    if (!requestedDueDate) throw new Error('Please choose a due date.');
+    const cleanDueDate = taskDueDateForAttention_(requestedDueDate, task.attentionToday === true);
 
     expected = expected || {};
     if (expected.updatedAt && task.updatedAt && String(expected.updatedAt) !== String(task.updatedAt)) {
@@ -6315,7 +6463,10 @@ function updateTaskDetails(taskId, updates, requestingEmail, expected) {
     updates = updates || {};
     const title = String(updates.title !== undefined ? updates.title : task.title).trim();
     const instructions = String(updates.instructions !== undefined ? updates.instructions : task.instructions).trim();
-    const dueDate = normalizeTaskDueDate(updates.dueDate !== undefined ? updates.dueDate : task.dueDate);
+    const requestedDueDate = normalizeTaskDueDate(updates.dueDate !== undefined ? updates.dueDate : task.dueDate);
+    const dueDate = task.attentionToday === true
+      ? taskDueDateForAttention_(requestedDueDate, true)
+      : requestedDueDate;
     const priority = ''; // Legacy priority column retained only for sheet compatibility.
     const taskCategory = normalizeTaskCategoryValue_(updates.category !== undefined ? updates.category : task.category, task.category);
     const relatedClientTalent = String(updates.relatedClientTalent !== undefined ? updates.relatedClientTalent : task.relatedClientTalent).trim();
