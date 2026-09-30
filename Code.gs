@@ -5930,11 +5930,9 @@ function taskRowToObject(row) {
   };
 }
 
-function getTasksData(requestingEmail) {
-  const member = requireAuthenticatedMember(requestingEmail);
+function getTasksDataForMember_(member, sheet) {
   const requesterIsSupport = isSupportMember(member);
   const email = normalizeEmail(member.email);
-  const sheet = ensureTasksSheet(SpreadsheetApp.getActiveSpreadsheet());
   if (sheet.getLastRow() < 2) return [];
   const data = sheet.getRange(2, 1, sheet.getLastRow() - 1, T_WIDTH).getValues();
   const out = [];
@@ -5996,16 +5994,22 @@ function getTasksData(requestingEmail) {
   return out;
 }
 
+function getTasksData(requestingEmail) {
+  const member = requireAuthenticatedMember(requestingEmail);
+  const sheet = ensureTasksSheet(SpreadsheetApp.getActiveSpreadsheet());
+  return getTasksDataForMember_(member, sheet);
+}
+
 function getTasksDataIfChanged(requestingEmail, clientVersion) {
   const startedAt = Date.now();
-  requireAuthenticatedMember(requestingEmail);
+  const member = requireAuthenticatedMember(requestingEmail);
   const authenticatedAt = Date.now();
-  ensureTasksSheet(SpreadsheetApp.getActiveSpreadsheet());
+  const sheet = ensureTasksSheet(SpreadsheetApp.getActiveSpreadsheet());
   const version = getTaskDataVersion();
   if (clientVersion !== null && clientVersion !== undefined && String(clientVersion) === String(version)) {
     return { unchanged: true, version: version, serverTiming: { totalMs: Date.now() - startedAt, authMs: authenticatedAt - startedAt, dataMs: Date.now() - authenticatedAt } };
   }
-  const data = getTasksData(requestingEmail);
+  const data = getTasksDataForMember_(member, sheet);
   return { unchanged: false, version: version, data: data, serverTiming: { totalMs: Date.now() - startedAt, authMs: authenticatedAt - startedAt, dataMs: Date.now() - authenticatedAt } };
 }
 
