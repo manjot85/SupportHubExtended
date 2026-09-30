@@ -1106,7 +1106,7 @@ function getTeamMembersForCurrentUser() {
 // without a code change, while access still always comes from Category.
 //
 // NOTE: Support and ticket/task access comes from Category, never Title.
-// Active Managers and Directors receive one narrow title-based permission:
+// Active Managers, Assistant Managers, and Directors receive one narrow title-based permission:
 // edit announcement updates. That does not grant Support publishing,
 // question, task, or supervisor-desk access.
 const BASE_TITLES = ["Coordinator", "Sr. Coordinator", "Supervisor", "Escalation Supervisor", "Assistant Manager", "Manager", "Director"];
@@ -5846,7 +5846,7 @@ function ensureAnnouncementsSheets_() {
 function canEditAnnouncements_(member) {
   if (!member || String(member.status || '').trim().toLowerCase() !== 'active') return false;
   const title = String(member.title || '').trim().toLowerCase();
-  return title === 'manager' || title === 'director';
+  return title === 'manager' || title === 'assistant manager' || title === 'director';
 }
 
 function validateAnnouncementContent_(title,message) {
@@ -5880,7 +5880,7 @@ function getAnnouncementsData(requestingEmail,includeArchive){
 function editAnnouncement(payload,requestingEmail){
   const d=payload||{},id=String(d.id||'').trim(),clean=validateAnnouncementContent_(d.title,d.message);
   if(!id)throw new Error('This update could not be identified.');
-  return withLock(()=>{const m=requireAuthenticatedMember(requestingEmail);if(!canEditAnnouncements_(m))throw new Error('Access denied: editing Updates requires the Manager or Director title.');
+  return withLock(()=>{const m=requireAuthenticatedMember(requestingEmail);if(!canEditAnnouncements_(m))throw new Error('Access denied: editing Updates requires the Manager, Assistant Manager, or Director title.');
     const s=ensureAnnouncementsSheets_(),last=s.announcements.getLastRow();if(last<2)throw new Error('This update is no longer available.');
     const rows=s.announcements.getRange(2,1,last-1,12).getValues(),offset=rows.findIndex(row=>String(row[0]||'')===id);if(offset<0)throw new Error('This update is no longer available.');
     const rowIndex=offset+2,oldRevision=Number(rows[offset][8])||1,now=new Date(),revision=oldRevision+1;
