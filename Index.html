@@ -513,6 +513,7 @@ html { font-size: 16px; }
       <span>Answered Only</span><span id="unread-ticker" class="hidden bg-slate-200 text-slate-600 border border-slate-300 text-[9px] font-bold px-1.5 py-0.5 rounded-full">0</span>
     </button>
     <button onclick="switchTab('all-tickets')" id="tab-all-tickets" class="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 whitespace-nowrap">All Questions</button>
+    <button onclick="switchTab('updates')" id="subtab-updates" class="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 whitespace-nowrap">Updates</button>
     <button onclick="switchTab('tasks')" id="subtab-tasks" class="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 flex items-center gap-1.5 whitespace-nowrap"><span>Tasks</span><span id="task-ticker" class="hidden bg-blue-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full">0</span></button>
   </div>
 </div>
@@ -542,6 +543,7 @@ html { font-size: 16px; }
           <summary onclick="handleCreateButtonClick(event)" onpointerdown="startCreateButtonHold(event)" oncontextmenu="suppressCreateContextMenu(event)" title="Click to create · Right-click and hold for shortcuts" aria-label="Create or right-click and hold for shortcuts" class="list-none cursor-pointer bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-md transition whitespace-nowrap">+ Create</summary>
           <div class="absolute right-0 mt-2 w-52 bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden text-xs">
             <button type="button" onclick="closeHomeCreateMenu(); openHomeQuestionComposer()" class="w-full text-left px-4 py-3 hover:bg-slate-50 font-semibold text-slate-800">Ask a Question</button>
+            <button id="home-create-announcement" type="button" onclick="closeHomeCreateMenu(); openAnnouncementComposer()" class="hidden w-full text-left px-4 py-3 hover:bg-slate-50 font-semibold text-slate-800 border-t border-slate-100">Publish an Announcement</button>
             <button type="button" onclick="closeHomeCreateMenu(); openCreateTaskModal()" class="w-full text-left px-4 py-3 hover:bg-slate-50 font-semibold text-slate-800 border-t border-slate-100">Create a Task</button>
             <button id="home-create-peer" type="button" onclick="closeHomeCreateMenu(); openPeerCreateModal()" class="hidden w-full text-left px-4 py-3 hover:bg-slate-50 font-semibold text-slate-800 border-t border-slate-100">Ask a Peer Question</button>
           </div>
@@ -587,6 +589,10 @@ html { font-size: 16px; }
   </div>
 <!-- TAB 1: COORDINATOR WORKSPACE -->
 <section id="view-coordinator" class="space-y-6">
+<section id="home-announcements" class="hidden bg-white border border-amber-200 rounded-2xl shadow-sm overflow-hidden">
+  <div class="px-4 py-3 flex items-center justify-between border-b border-amber-100 bg-amber-50/70 gap-3"><div><p class="text-[10px] font-bold uppercase tracking-wider text-amber-700">Team Updates</p><h2 class="text-sm font-bold text-slate-900">Announcements</h2></div><button id="announcement-create-home" type="button" onclick="openAnnouncementComposer()" class="hidden px-3 py-2 rounded-lg bg-slate-900 text-white text-xs font-bold hover:bg-slate-800">+ Announce</button></div>
+  <div id="home-announcement-list" class="divide-y divide-amber-100"></div><div class="px-4 py-2 text-right"><button type="button" onclick="switchTab('updates')" class="text-xs font-semibold text-blue-700 hover:underline">View all updates →</button></div>
+</section>
 <div id="my-work-dashboard" class="space-y-4">
   
 
@@ -1667,9 +1673,28 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 </div>
 </section>
 
+<section id="view-updates" class="hidden space-y-4">
+  <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-5"><div class="flex items-center justify-between gap-3"><div><p class="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Team communication</p><h2 class="text-lg font-bold text-slate-900">Updates</h2><p class="text-xs text-slate-500 mt-1">Current announcements and previous updates from Support.</p></div><button id="announcement-create-updates" type="button" onclick="openAnnouncementComposer()" class="hidden px-4 py-2.5 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800">+ New announcement</button></div></div>
+  <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden"><div class="px-4 py-3 border-b border-slate-200"><h3 class="text-sm font-bold text-slate-800">Current announcements</h3></div><div id="updates-active-list" class="divide-y divide-slate-100"></div></div>
+  <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden"><div class="px-4 py-3 border-b border-slate-200"><h3 class="text-sm font-bold text-slate-800">Past updates</h3></div><div id="updates-archive-list" class="divide-y divide-slate-100"><p class="p-4 text-xs text-slate-400">Open Updates to load the archive.</p></div></div>
+</section>
 </main>
 </div>
 
+
+<!-- ANNOUNCEMENT COMPOSER -->
+<div id="announcement-composer-modal" class="hidden fixed inset-0 z-[115] items-center justify-center bg-slate-950/55 p-4" onclick="if(event.target===this)closeAnnouncementComposer()">
+  <form onsubmit="submitAnnouncement(event)" class="w-full max-w-xl rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden">
+    <div class="px-5 py-4 border-b border-slate-200 flex items-start justify-between"><div><p class="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Support announcement</p><h2 class="text-base font-bold text-slate-900">Publish an update</h2><p class="text-xs text-slate-500 mt-1">Visible to everyone while active, then kept in Updates.</p></div><button type="button" onclick="closeAnnouncementComposer()" class="text-xl text-slate-400 hover:text-slate-700">×</button></div>
+    <div class="p-5 space-y-4">
+      <label class="block text-[11px] font-bold text-slate-600">Title<input id="announcement-title" maxlength="160" required class="mt-1 w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm" placeholder="What should everyone know?"></label>
+      <label class="block text-[11px] font-bold text-slate-600">Message<textarea id="announcement-message" maxlength="8000" required rows="5" class="mt-1 w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm resize-y" placeholder="Write the update for the team..."></textarea></label>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3"><label class="block text-[11px] font-bold text-slate-600">Show on Home for<select id="announcement-duration" class="mt-1 w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm"><option value="48" selected>2 days (default)</option><option value="24">1 day</option><option value="72">3 days</option><option value="168">7 days</option><option value="336">14 days</option></select></label><label class="flex items-center gap-2 text-xs text-slate-700 self-end pb-3"><input id="announcement-review-required" type="checkbox" class="accent-emerald-600"> Require users to mark as reviewed</label></div>
+      <p id="announcement-error" class="hidden text-xs text-rose-600"></p>
+    </div>
+    <div class="px-5 py-4 border-t border-slate-200 flex justify-end gap-2"><button type="button" onclick="closeAnnouncementComposer()" class="px-4 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100">Cancel</button><button id="announcement-publish-button" type="submit" class="px-4 py-2 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700">Publish announcement</button></div>
+  </form>
+</div>
 
 <!-- QUICK ACCESS GUIDE MODAL -->
 <div id="quick-guide-modal" class="fixed inset-0 bg-slate-950/70 z-[70] hidden flex items-center justify-center p-4 backdrop-blur-sm" onclick="if(event.target===this) closeQuickCommandGuide()">
@@ -3983,6 +4008,7 @@ function continueWorkspaceLogin() {
 function finishLogin(member) {
   member = normalizeTeamMembers([member])[0] || member;
   currentUser = member;
+  announcementState={active:[],archive:[],canPublish:false}; announcementArchiveLoaded=false; announcementLoadInFlight=false; announcementArchiveNeedsLoad=false;
   document.getElementById('login-overlay').classList.add('hidden');
   document.getElementById('app-container').classList.remove('hidden');
 
@@ -4082,6 +4108,8 @@ function finishLogin(member) {
   const teamTaskOption = document.getElementById('task-scope-team-option');
   if (teamTaskOption) teamTaskOption.classList.toggle('hidden', !support);
   loadNotificationPreferences();
+  configureAnnouncementControls();
+  loadAnnouncements(false);
   // Preserve any direct record link from an email while login/data loading starts.
   pendingEmailDeepLink = readSupportHubDeepLink();
 
@@ -4888,10 +4916,10 @@ function getQuickReportDateRange(){ if(quickReportRange==='CUSTOM'){ const v=doc
 function renderQuickPersonalReport(){ if(!currentUser)return; const range=getQuickReportDateRange(); const email=String(currentUser.email||'').toLowerCase(); const myQuestion=q=>isOwnerOf(q); const answeredByMe=q=>{ const a=String(q.answeredBy||'').trim().toLowerCase(); return a===email || a===String(currentUser.name||'').trim().toLowerCase(); }; const submitted=allQuestions.filter(q=>myQuestion(q)&&inDateRange(q.created,range)).length; const answers=allQuestions.filter(q=>q.sheet==='Answered'&&answeredByMe(q)&&inDateRange(q.answeredDate,range)).length; const taskCreated=allTasks.filter(t=>String(t.createdByEmail||'').toLowerCase()===email&&inDateRange(t.createdAt,range)).length; const taskCompleted=allTasks.filter(t=>(String(t.completedByEmail||'').toLowerCase()===email||(!t.completedByEmail&&String(t.assignedToEmail||'').toLowerCase()===email))&&t.status==='Completed'&&inDateRange(t.completedAt||t.updatedAt,range)).length; const unread=allQuestions.filter(q=>q.sheet==='Answered'&&isOwnerOf(q)&&!q.isRead).length; const activeTasks=allTasks.filter(t=>String(t.assignedToEmail||'').toLowerCase()===email&&isTaskActive(t)).length; const vals={'quick-stat-submitted':submitted,'quick-stat-answered':answers,'quick-stat-task-created':taskCreated,'quick-stat-task-completed':taskCompleted,'quick-stat-unread':unread,'quick-stat-active-tasks':activeTasks}; Object.entries(vals).forEach(([id,v])=>{const el=document.getElementById(id);if(el)el.innerText=v;}); }
 function cstDateBoundary(ymd,end){ const parts=String(ymd).split('-').map(Number); if(parts.length!==3)return null; const noon=new Date(Date.UTC(parts[0],parts[1]-1,parts[2],12,0,0)); return cstDayBoundary(noon,!!end); }
 
-const APP_TAB_NAMES = ['coordinator', 'peer', 'answered', 'all-tickets', 'tasks', 'supervisor', 'reporting', 'team'];
+const APP_TAB_NAMES = ['coordinator', 'peer', 'answered', 'all-tickets', 'tasks', 'supervisor', 'reporting', 'team', 'updates'];
 
 function primaryAreaForTab(name) {
-  if (name === 'peer' || name === 'answered' || name === 'all-tickets' || name === 'tasks') return 'home';
+  if (name === 'peer' || name === 'answered' || name === 'all-tickets' || name === 'tasks' || name === 'updates') return 'home';
   if (name === 'supervisor') return 'support';
   if (name === 'reporting') return 'reports';
   if (name === 'team') return 'admin';
@@ -4941,7 +4969,8 @@ function activateTabShell(name) {
     { id: 'tab-peer', tab: 'peer' },
     { id: 'tab-answered', tab: 'answered' },
     { id: 'tab-all-tickets', tab: 'all-tickets' },
-    { id: 'subtab-tasks', tab: 'tasks' }
+    { id: 'subtab-tasks', tab: 'tasks' },
+    { id: 'subtab-updates', tab: 'updates' }
   ];
   secondaryTabs.forEach(item => {
     const tab = document.getElementById(item.id);
@@ -4968,6 +4997,7 @@ function switchTab(name) {
   currentTab = name;
   activateTabShell(name);
   if (name === 'answered' && previousTab !== 'answered') prepareAnsweredDefaultView();
+  if (name === 'updates') loadAnnouncements(true);
   renderCurrentTab();
 
   // Feeds skipped while Supervisor Desk is active refresh immediately when
@@ -5020,6 +5050,87 @@ function loadAnsweredInitialFeed() {
   }).getMyUnreadAnsweredQuestions(currentUser.email);
 }
 
+
+let announcementState={active:[],archive:[],canPublish:false};
+let announcementArchiveLoaded=false;
+let announcementLoadInFlight=false;
+let announcementArchiveNeedsLoad=false;
+let announcementExpiryTimer=null;
+function configureAnnouncementControls(){
+  const allowed=isSupportUser(currentUser);
+  ['announcement-create-home','announcement-create-updates','home-create-announcement'].forEach(id=>{const e=document.getElementById(id);if(e)e.classList.toggle('hidden',!allowed);});
+}
+function loadAnnouncements(includeArchive){
+  if(!currentUser)return;
+  if(announcementLoadInFlight){if(includeArchive)announcementArchiveNeedsLoad=true;return;}
+  if(includeArchive&&announcementArchiveLoaded){renderAnnouncementViews();return;}
+  announcementLoadInFlight=true;const user=currentUser;
+  google.script.run.withFailureHandler(err=>{
+    if(currentUser!==user)return;announcementLoadInFlight=false;console.warn('Announcements could not be loaded.',err);
+    if(includeArchive){const e=document.getElementById('updates-archive-list');if(e)e.innerHTML='<p class="p-4 text-xs text-rose-600">Updates could not be loaded. Please try again.</p>';}
+    if(announcementArchiveNeedsLoad){announcementArchiveNeedsLoad=false;loadAnnouncements(true);}
+  }).withSuccessHandler(result=>{
+    if(currentUser!==user)return;announcementLoadInFlight=false;result=result||{};
+    announcementState.active=result.active||[];announcementState.canPublish=!!result.canPublish;
+    if(includeArchive){announcementState.archive=result.archive||[];announcementArchiveLoaded=true;}
+    renderAnnouncementViews();
+    scheduleAnnouncementExpiry();
+    if(announcementArchiveNeedsLoad){announcementArchiveNeedsLoad=false;loadAnnouncements(true);}
+  }).getAnnouncementsData(currentUser.email,!!includeArchive);
+}
+
+function scheduleAnnouncementExpiry(){
+  if(announcementExpiryTimer)clearTimeout(announcementExpiryTimer);
+  const times=(announcementState.active||[]).map(x=>Date.parse(x.expiresAt)).filter(x=>Number.isFinite(x)&&x>Date.now());
+  if(!times.length)return;
+  const delay=Math.max(1000,Math.min(2147483647,Math.min.apply(null,times)-Date.now()+1000));
+  announcementExpiryTimer=setTimeout(()=>{announcementArchiveLoaded=false;loadAnnouncements(currentTab==='updates');},delay);
+}
+function renderAnnouncementViews(){
+  configureAnnouncementControls();const active=announcementState.active||[];
+  const home=document.getElementById('home-announcement-list'),section=document.getElementById('home-announcements');
+  if(home&&section){section.classList.toggle('hidden',!active.length);home.innerHTML=active.map(renderAnnouncementCard_).join('');}
+  const activeList=document.getElementById('updates-active-list');
+  if(activeList)activeList.innerHTML=active.length?active.map(renderAnnouncementCard_).join(''):'<p class="p-5 text-xs text-slate-400">There are no active announcements.</p>';
+  const archiveList=document.getElementById('updates-archive-list');
+  if(archiveList&&announcementArchiveLoaded){const archive=announcementState.archive||[];
+    archiveList.innerHTML=archive.length?archive.map(item=>'<article class="p-4"><div class="flex flex-wrap items-start justify-between gap-2"><h4 class="text-sm font-bold text-slate-800">'+esc(item.title)+'</h4><span class="text-[10px] text-slate-400">Expired '+esc(formatCSTDateTime(item.expiresAt))+'</span></div><p class="text-xs text-slate-600 mt-2 whitespace-pre-wrap">'+esc(item.message)+'</p><p class="text-[10px] text-slate-400 mt-2">Published by '+esc(item.createdBy)+' · '+esc(formatCSTDateTime(item.publishedAt))+'</p></article>').join(''):'<p class="p-5 text-xs text-slate-400">No past updates yet.</p>';
+  }
+}
+function renderAnnouncementCard_(item){
+  const review=item.reviewRequired?(item.reviewed?'<span class="text-[10px] font-semibold text-emerald-700">Reviewed</span>':'<button type="button" onclick="markAnnouncementReviewedUi(\''+item.id+'\')" class="px-3 py-1.5 rounded-lg border border-amber-300 text-amber-800 text-[10px] font-bold hover:bg-amber-50">Mark as reviewed</button>'):'';
+  return '<article class="p-4"><div class="flex flex-wrap items-start justify-between gap-3"><div class="min-w-0 flex-1"><h3 class="text-sm font-bold text-slate-900">'+esc(item.title)+'</h3><p class="text-[10px] text-slate-400 mt-1">From '+esc(item.createdBy)+' · '+esc(formatCSTDateTime(item.publishedAt))+'</p></div>'+review+'</div><p class="text-xs leading-5 text-slate-700 mt-3 whitespace-pre-wrap">'+esc(item.message)+'</p></article>';
+}
+function renderAnnouncementsArchive(){
+  if(!announcementArchiveLoaded){const e=document.getElementById('updates-archive-list');if(e)e.innerHTML='<p class="p-4 text-xs text-slate-400">Loading past updates…</p>';}
+  renderAnnouncementViews();
+}
+function openAnnouncementComposer(){
+  if(!isSupportUser(currentUser)){showToast('Only Support can publish announcements.');return;}
+  const modal=document.getElementById('announcement-composer-modal');if(!modal)return;
+  document.getElementById('announcement-title').value='';document.getElementById('announcement-message').value='';
+  document.getElementById('announcement-duration').value='48';document.getElementById('announcement-review-required').checked=false;
+  document.getElementById('announcement-error').classList.add('hidden');modal.classList.remove('hidden');modal.classList.add('flex');
+  setTimeout(()=>document.getElementById('announcement-title').focus(),50);
+}
+function closeAnnouncementComposer(){const modal=document.getElementById('announcement-composer-modal');if(modal){modal.classList.add('hidden');modal.classList.remove('flex');}}
+function submitAnnouncement(event){
+  event.preventDefault();if(!isSupportUser(currentUser))return;
+  const button=document.getElementById('announcement-publish-button'),error=document.getElementById('announcement-error');
+  const payload={title:document.getElementById('announcement-title').value.trim(),message:document.getElementById('announcement-message').value.trim(),durationHours:Number(document.getElementById('announcement-duration').value),reviewRequired:document.getElementById('announcement-review-required').checked};
+  button.disabled=true;button.innerText='Publishing…';error.classList.add('hidden');
+  google.script.run.withFailureHandler(err=>{button.disabled=false;button.innerText='Publish announcement';error.innerText=err&&err.message?err.message:String(err);error.classList.remove('hidden');}).withSuccessHandler(()=>{
+    button.disabled=false;button.innerText='Publish announcement';closeAnnouncementComposer();announcementArchiveLoaded=false;showToast('Announcement published to everyone.');
+    loadAnnouncements(currentTab==='updates');
+  }).publishAnnouncement(payload,currentUser.email);
+}
+function markAnnouncementReviewedUi(id){
+  if(!currentUser)return;const user=currentUser;
+  google.script.run.withFailureHandler(err=>showToast('Could not record review: '+(err&&err.message?err.message:err))).withSuccessHandler(()=>{
+    if(currentUser!==user)return;const item=announcementState.active.find(x=>String(x.id)===String(id));if(item)item.reviewed=true;renderAnnouncementViews();
+  }).markAnnouncementReviewed(id,currentUser.email);
+}
+
 function renderCurrentTab() {
   if (currentTab === 'coordinator') renderCoordinatorQuestions();
   else if (currentTab === 'peer') renderPeerQuestions();
@@ -5029,6 +5140,7 @@ function renderCurrentTab() {
   else if (currentTab === 'supervisor') renderSupervisorDesk();
   else if (currentTab === 'reporting') renderReporting();
   else if (currentTab === 'team') renderTeamTable();
+  else if (currentTab === 'updates') renderAnnouncementsArchive();
 }
 
 function finishRefreshCycle() {
