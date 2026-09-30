@@ -6111,10 +6111,6 @@ function getCreateShortcutKeys(){
     const saved=JSON.parse(localStorage.getItem(createShortcutStorageKey())||'null');
     if(Array.isArray(saved)){
       const selected=saved.filter((key,index)=>allowed.has(key)&&saved.indexOf(key)===index).slice(0,6);
-      if(allowed.has('my-priority')&&!selected.includes('my-priority')){
-        if(selected.length<6)selected.push('my-priority');
-        else if(selected.includes('ask-support'))selected[selected.indexOf('ask-support')]='my-priority';
-      }
       return selected;
     }
   }catch(e){}
@@ -6194,6 +6190,7 @@ function updateCreateShortcutSettingsCount(){
 function appendCreateShortcutSetting(container,item,checked){
   const label=document.createElement('label');label.className='flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer';
   const box=document.createElement('input');box.type='checkbox';box.value=item.key;box.checked=checked;box.className='w-4 h-4 accent-slate-900';
+  if(container.id==='create-shortcut-options')box.addEventListener('change',updateCreateShortcutSettingsCount);
   const text=document.createElement('span');text.className='text-xs font-semibold text-slate-700';text.textContent=item.label;label.append(box,text);container.appendChild(label);
 }
 function ensurePriorityHomeMetrics(){
