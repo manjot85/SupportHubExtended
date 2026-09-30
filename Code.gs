@@ -5849,6 +5849,61 @@ function canEditAnnouncements_(member) {
   return title === 'manager' || title === 'assistant manager' || title === 'director';
 }
 
+function cleanupAnnouncementReviews_(sheet, ids) {
+  if (!sheet || !ids || !ids.length) return;
+  const last = sheet.getLastRow();
+  if (last < 2) return;
+  const idSet = new Set(ids.map(String));
+  const rows = sheet.getRange(2, 1, last - 1, 4).getValues();
+  const removeRows = [];
+  rows.forEach((row, index) => { if (idSet.has(String(row[0] || ''))) removeRows.push(index + 2); });
+  removeRows.reverse().forEach(rowNumber => sheet.deleteRow(rowNumber));
+}
+
+function deleteAnnouncementFromHome(announcementId, requestingEmail) {
+  const id = String(announcementId || '').trim();
+  if (!id) throw new Error('This announcement could not be identified.');
+  return withLock(() => {
+    const member = requireAuthenticatedMember(requestingEmail);
+    if (!canEditAnnouncements_(member)) throw new Error('Access denied: deleting Home announcements requires the Assistant Manager, Manager, or Director title.');
+    const sheets = ensureAnnouncementsSheets_(), last = sheets.announcements.getLastRow();
+    if (last < 2) throw new Error('This announcement is no longer available.');
+    const rows = sheets.announcements.getRange(2, 1, last - 1, 12).getValues();
+    const offset = rows.findIndex(row => String(row[0] || '').trim() === id);
+    if (offset < 0) throw new Error('This announcement is no longer available.');
+    const row = rows[offset], now = Date.now();
+    const published = row[5] instanceof Date ? row[5] : new Date(row[5]);
+    const expires = row[6] instanceof Date ? row[6] : new Date(row[6]);
+    if (isNaN(published.getTime()) || isNaN(expires.getTime()) || published.getTime() > now || expires.getTime() <= now) {
+      throw new Error('Only active announcements shown on Home can be deleted here.');
+    }
+    sheets.announcements.deleteRow(offset + 2);
+    cleanupAnnouncementReviews_(sheets.reviews, [id]);
+    logAudit('ANNOUNCEMENT_DELETED', member.email, member.name, id, {source: 'Home', title: String(row[1] || '')});
+    return {success: true, id: id};
+  }, {bumpDataVersion: false, operation: 'deleteAnnouncementFromHome'});
+}
+
+function bulkDeleteAnnouncements(announcementIds, requestingEmail) {
+  const ids = Array.from(new Set((Array.isArray(announcementIds) ? announcementIds : []).map(id => String(id || '').trim()).filter(Boolean)));
+  if (!ids.length) throw new Error('Select at least one update to delete.');
+  if (ids.length > 200) throw new Error('Delete up to 200 updates at a time.');
+  return withLock(() => {
+    const member = requireAuthenticatedMember(requestingEmail);
+    if (!isAdminMember(member)) throw new Error('Access denied: bulk deletion of Updates requires an Admin profile.');
+    const sheets = ensureAnnouncementsSheets_(), last = sheets.announcements.getLastRow();
+    if (last < 2) return {success: true, deletedCount: 0};
+    const rows = sheets.announcements.getRange(2, 1, last - 1, 12).getValues();
+    const targets = [];
+    rows.forEach((row, index) => { if (ids.indexOf(String(row[0] || '').trim()) >= 0) targets.push({rowNumber: index + 2, id: String(row[0]), title: String(row[1] || '')}); });
+    if (!targets.length) throw new Error('The selected updates are no longer available.');
+    targets.slice().reverse().forEach(item => sheets.announcements.deleteRow(item.rowNumber));
+    cleanupAnnouncementReviews_(sheets.reviews, targets.map(item => item.id));
+    targets.forEach(item => logAudit('ANNOUNCEMENT_DELETED', member.email, member.name, item.id, {source: 'Updates bulk action', title: item.title}));
+    return {success: true, deletedCount: targets.length};
+  }, {bumpDataVersion: false, operation: 'bulkDeleteAnnouncements'});
+}
+
 function validateAnnouncementContent_(title,message) {
   title=String(title||'').trim();message=String(message||'').trim();
   if(!title||title.length>160)throw new Error('Add a title (up to 160 characters).');
@@ -5868,7 +5923,7 @@ function getAnnouncementsData(requestingEmail,includeArchive){
     item.reviewed=reviewed.has(id+'|'+item.revision);if(p.getTime()<=now&&x.getTime()>now)active.push(item);else if(includeArchive&&p.getTime()<=now&&x.getTime()<=now)archive.push(item);
   });
   const sort=(a,b)=>Date.parse(b.publishedAt)-Date.parse(a.publishedAt);active.sort(sort);archive.sort(sort);
-  return {active:active,archive:archive,canPublish:isSupportMember(m),canEdit:canEditAnnouncements_(m)};
+  return {active:active,archive:archive,canPublish:isSupportMember(m),canEdit:canEditAnnouncements_(m),canDeleteHome:canEditAnnouncements_(m),canBulkDelete:isAdminMember(m)};
 }function publishAnnouncement(payload,requestingEmail){
   const d=payload||{},clean=validateAnnouncementContent_(d.title,d.message),hours=Number(d.durationHours);
   if([24,48,72,168,336].indexOf(hours)<0)throw new Error('Choose a supported announcement duration.');
