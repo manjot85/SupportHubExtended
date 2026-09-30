@@ -5860,12 +5860,12 @@ function cleanupAnnouncementReviews_(sheet, ids) {
   removeRows.reverse().forEach(rowNumber => sheet.deleteRow(rowNumber));
 }
 
-function deleteAnnouncementFromHome(announcementId, requestingEmail) {
+function deleteAnnouncementFromUpdates(announcementId, requestingEmail) {
   const id = String(announcementId || '').trim();
   if (!id) throw new Error('This announcement could not be identified.');
   return withLock(() => {
     const member = requireAuthenticatedMember(requestingEmail);
-    if (!canEditAnnouncements_(member)) throw new Error('Access denied: deleting Home announcements requires the Assistant Manager, Manager, or Director title.');
+    if (!canEditAnnouncements_(member)) throw new Error('Access denied: deleting active announcements requires the Assistant Manager, Manager, or Director title.');
     const sheets = ensureAnnouncementsSheets_(), last = sheets.announcements.getLastRow();
     if (last < 2) throw new Error('This announcement is no longer available.');
     const rows = sheets.announcements.getRange(2, 1, last - 1, 12).getValues();
@@ -5875,13 +5875,13 @@ function deleteAnnouncementFromHome(announcementId, requestingEmail) {
     const published = row[5] instanceof Date ? row[5] : new Date(row[5]);
     const expires = row[6] instanceof Date ? row[6] : new Date(row[6]);
     if (isNaN(published.getTime()) || isNaN(expires.getTime()) || published.getTime() > now || expires.getTime() <= now) {
-      throw new Error('Only active announcements shown on Home can be deleted here.');
+      throw new Error('Only active announcements can be deleted here.');
     }
     sheets.announcements.deleteRow(offset + 2);
     cleanupAnnouncementReviews_(sheets.reviews, [id]);
     logAudit('ANNOUNCEMENT_DELETED', member.email, member.name, id, {source: 'Home', title: String(row[1] || '')});
     return {success: true, id: id};
-  }, {bumpDataVersion: false, operation: 'deleteAnnouncementFromHome'});
+  }, {bumpDataVersion: false, operation: 'deleteAnnouncementFromUpdates'});
 }
 
 function bulkDeleteAnnouncements(announcementIds, requestingEmail) {
@@ -5938,7 +5938,10 @@ function editAnnouncement(payload,requestingEmail){
   return withLock(()=>{const m=requireAuthenticatedMember(requestingEmail);if(!canEditAnnouncements_(m))throw new Error('Access denied: editing Updates requires the Manager, Assistant Manager, or Director title.');
     const s=ensureAnnouncementsSheets_(),last=s.announcements.getLastRow();if(last<2)throw new Error('This update is no longer available.');
     const rows=s.announcements.getRange(2,1,last-1,12).getValues(),offset=rows.findIndex(row=>String(row[0]||'')===id);if(offset<0)throw new Error('This update is no longer available.');
-    const rowIndex=offset+2,oldRevision=Number(rows[offset][8])||1,now=new Date(),revision=oldRevision+1;
+    const rowIndex=offset+2,oldRevision=Number(rows[offset][8])||1,now=new Date();
+    const published=rows[offset][5] instanceof Date?rows[offset][5]:new Date(rows[offset][5]),expires=rows[offset][6] instanceof Date?rows[offset][6]:new Date(rows[offset][6]);
+    if(isNaN(published.getTime())||isNaN(expires.getTime())||published.getTime()>now.getTime()||expires.getTime()<=now.getTime())throw new Error('Only active announcements can be edited by title-based roles.');
+    const revision=oldRevision+1;
     s.announcements.getRange(rowIndex,2,1,2).setValues([[clean.title,clean.message]]);
     s.announcements.getRange(rowIndex,9,1,4).setValues([[revision,now,String(m.name||''),normalizeEmail(m.email)]]);
     logAudit('ANNOUNCEMENT_EDITED',m.email,m.name,id,{revision:revision,title:clean.title});
