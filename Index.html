@@ -5172,10 +5172,14 @@ function renderAnnouncementViews(){
   const preview=summary.length>220?summary.slice(0,217)+'…':summary;
   const review=item.reviewRequired&&Date.parse(item.expiresAt)>Date.now()?(item.reviewed?'<span class="text-[10px] font-semibold text-emerald-700">Reviewed</span>':'<button type="button" onclick="event.preventDefault();event.stopPropagation();markAnnouncementReviewedUi(&quot;'+item.id+'&quot;)" class="px-3 py-1.5 rounded-lg border border-amber-300 text-amber-800 text-[10px] font-bold hover:bg-amber-50">Mark as reviewed</button>'):'';
   const bulkSelect=announcementState.canBulkDelete&&currentTab==='updates'?'<label onclick="event.stopPropagation()" onkeydown="event.stopPropagation()" class="inline-flex items-center px-2 py-1 text-slate-500" title="Select update"><input type="checkbox" class="rounded border-slate-300" '+(selectedAnnouncementIds.indexOf(String(item.id))>=0?'checked':'')+' onchange="toggleAnnouncementBulkSelection(event,&quot;'+item.id+'&quot;)"></label>':'';
-  const homeDelete=homeSurface&&announcementState.canDeleteHome?'<button type="button" onclick="event.preventDefault();event.stopPropagation();deleteHomeAnnouncement(&quot;'+item.id+'&quot;)" class="px-3 py-1.5 rounded-lg border border-rose-200 text-rose-700 text-[10px] font-bold hover:bg-rose-50">Delete</button>':'';
-  const edit=announcementState.canEdit?'<button type="button" onclick="event.preventDefault();event.stopPropagation();openAnnouncementEdit(&quot;'+item.id+'&quot;)" class="px-3 py-1.5 rounded-lg border border-blue-200 text-blue-700 text-[10px] font-bold hover:bg-blue-50">Edit</button>':'';
+  const homeDelete=!homeSurface&&currentTab==='updates'&&announcementState.canDeleteHome&&Date.parse(item.expiresAt)>Date.now()?'<button type="button" onclick="event.preventDefault();event.stopPropagation();deleteHomeAnnouncement(&quot;'+item.id+'&quot;)" class="px-3 py-1.5 rounded-lg border border-rose-200 text-rose-700 text-[10px] font-bold hover:bg-rose-50">Delete</button>':'';
+  const edit=announcementState.canEdit&&currentTab==='updates'&&Date.parse(item.expiresAt)>Date.now()?'<button type="button" onclick="event.preventDefault();event.stopPropagation();openAnnouncementEdit(&quot;'+item.id+'&quot;)" class="px-3 py-1.5 rounded-lg border border-blue-200 text-blue-700 text-[10px] font-bold hover:bg-blue-50">Edit</button>':'';
   const updated=item.updatedAt?'<p class="text-[10px] text-slate-500 mt-1">Last updated '+esc(formatCSTDateTime(item.updatedAt))+' by '+esc(item.updatedBy||'Manager')+'</p>':'';
   const published=item.updatedAt?'':'<p class="text-[10px] text-slate-400 mt-1">From '+esc(item.createdBy||'Support')+' · '+esc(formatCSTDateTime(item.publishedAt))+'</p>';
+  if(homeSurface){
+    const timeLabel=item.updatedAt?'Updated '+formatCSTDateTime(item.updatedAt)+' · '+(item.updatedBy||'Manager'):'Published '+formatCSTDateTime(item.publishedAt)+' · '+(item.createdBy||'Support');
+    return '<article role="button" tabindex="0" aria-label="Open announcement: '+esc(item.title)+'" onclick="openAnnouncementDetail(&quot;'+item.id+'&quot;)" onkeydown="if(event.key===&quot;Enter&quot;||event.key===&quot; &quot;){event.preventDefault();openAnnouncementDetail(&quot;'+item.id+'&quot;)}" class="px-4 py-2.5 cursor-pointer hover:bg-amber-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-amber-300"><div class="flex items-center gap-4 min-w-0"><h3 class="text-xs font-bold text-slate-900 truncate w-1/4">'+esc(item.title)+'</h3><p class="text-xs text-slate-600 truncate flex-1">'+esc(preview)+'</p><span class="shrink-0 max-w-[14rem] truncate text-[10px] text-slate-400" title="'+esc(timeLabel)+'">'+esc(timeLabel)+'</span></div></article>';
+  }
   return '<article role="button" tabindex="0" onclick="openAnnouncementDetail(&quot;'+item.id+'&quot;)" onkeydown="if(event.key===&quot;Enter&quot;||event.key===&quot; &quot;){event.preventDefault();openAnnouncementDetail(&quot;'+item.id+'&quot;)}" class="p-4 cursor-pointer hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-emerald-300"><div class="flex flex-wrap items-start justify-between gap-3"><div class="min-w-0 flex-1"><div class="flex items-center gap-2"><h3 class="text-sm font-bold text-slate-900">'+esc(item.title)+'</h3></div>'+published+updated+'</div><div class="flex items-center gap-2">'+bulkSelect+review+edit+homeDelete+'</div></div><p class="text-xs leading-5 text-slate-600 mt-2">'+esc(preview)+'</p></article>';
 }
 function updateAnnouncementBulkControls_(){
@@ -5200,7 +5204,7 @@ function deleteHomeAnnouncement(id){
   const user=currentUser;
   google.script.run.withFailureHandler(err=>showToast(err&&err.message?err.message:'Could not delete announcement.')).withSuccessHandler(()=>{
     announcementArchiveLoaded=false;showToast('Announcement deleted.');loadAnnouncements(currentTab==='updates');
-  }).deleteAnnouncementFromHome(id,user.email);
+  }).deleteAnnouncementFromUpdates(id,user.email);
 }
 function bulkDeleteSelectedAnnouncements(){
   if(!currentUser||!announcementState.canBulkDelete||!selectedAnnouncementIds.length)return;
