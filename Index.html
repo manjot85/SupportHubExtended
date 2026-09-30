@@ -9764,24 +9764,40 @@ function applyTaskQuickFilter(filter) {
   renderTasks();
 }
 
+let taskProgressIndex={source:null,byId:new Map(),children:new Map(),metrics:new Map()};
+function rebuildTaskProgressIndex(){
+  const byId=new Map(),children=new Map();
+  allTasks.forEach(task=>{const id=String(task.taskId||'');if(id)byId.set(id,task);});
+  allTasks.forEach(task=>{
+    if(String(task.parentType||'').toLowerCase()!=='task')return;
+    const parentId=String(task.parentId||'');if(!parentId)return;
+    if(!children.has(parentId))children.set(parentId,[]);
+    children.get(parentId).push(String(task.taskId||''));
+  });
+  taskProgressIndex={source:allTasks,byId:byId,children:children,metrics:new Map()};
+}
 function taskProgressMetricsForTable(task) {
   if (!task) return { total:0, completed:0, percent:0 };
+  if(taskProgressIndex.source!==allTasks)rebuildTaskProgressIndex();
   const rootId=String(task.taskId||'');
+  if(taskProgressIndex.metrics.has(rootId))return taskProgressIndex.metrics.get(rootId);
   const family=[];
   const queue=[rootId];
   const seen=new Set();
-  while(queue.length){
-    const id=String(queue.shift()||'');
-    if(!id||seen.has(id)) continue;
+  for(let cursor=0;cursor<queue.length;cursor++){
+    const id=String(queue[cursor]||'');
+    if(!id||seen.has(id))continue;
     seen.add(id);
-    const item=allTasks.find(t=>String(t.taskId)===id);
-    if(item) family.push(item);
-    allTasks.filter(t=>String(t.parentType||'').toLowerCase()==='task'&&String(t.parentId||'')===id).forEach(child=>queue.push(String(child.taskId||'')));
+    const item=taskProgressIndex.byId.get(id);
+    if(item)family.push(item);
+    (taskProgressIndex.children.get(id)||[]).forEach(childId=>queue.push(childId));
   }
   const counted=family.filter(t=>t.status!=='Cancelled');
   const total=counted.length||family.length||1;
   const completed=counted.filter(t=>t.status==='Completed').length;
-  return { total:total, completed:completed, percent:Math.round((completed/total)*100) };
+  const metrics={total:total,completed:completed,percent:Math.round((completed/total)*100)};
+  taskProgressIndex.metrics.set(rootId,metrics);
+  return metrics;
 }
 function taskTableSortValue(task,key){
   if(key==='category') return String(task.category||'None').toLowerCase();
@@ -9866,6 +9882,7 @@ function renderTasks() {
   if (!currentUser) return;
   const body = document.getElementById('task-table-body');
   if (!body) return;
+  rebuildTaskProgressIndex();
   const scopeEl = document.getElementById('task-scope-filter');
   const teamOption = document.getElementById('task-scope-team-option');
   const support = isSupportUser(currentUser);
