@@ -1105,12 +1105,11 @@ function getTeamMembersForCurrentUser() {
 // deleteCustomTitle() below) so Admins can add roles like "Project Manager"
 // without a code change, while access still always comes from Category.
 //
-// NOTE: an earlier version of this app granted Support access to anyone
-// whose TITLE was Manager/Assistant Manager/Supervisor/Escalation Supervisor,
-// regardless of Category. That was a hidden bypass (a Coordinator-category
-// member with one of those titles silently got Support access) and has been
-// removed - Category is now the only thing that determines access.
-const BASE_TITLES = ["Coordinator", "Sr. Coordinator", "Supervisor", "Escalation Supervisor", "Assistant Manager", "Manager"];
+// NOTE: Support and ticket/task access comes from Category, never Title.
+// Active Managers and Directors receive one narrow title-based permission:
+// edit announcement updates. That does not grant Support publishing,
+// question, task, or supervisor-desk access.
+const BASE_TITLES = ["Coordinator", "Sr. Coordinator", "Supervisor", "Escalation Supervisor", "Assistant Manager", "Manager", "Director"];
 const CONFIG_KEY_CUSTOM_TITLES = 'CUSTOM_TITLES_LIST';
 
 function doGet() {
@@ -5823,42 +5822,77 @@ function markAllAnsweredRead(requestingEmail) {
 
 const ANNOUNCEMENT_MAX_BODY_CHARS = 8000;
 function ensureAnnouncementsSheets_() {
-  const ss=SpreadsheetApp.getActiveSpreadsheet();let a=ss.getSheetByName('Announcements');
-  if(!a){a=ss.insertSheet('Announcements');a.appendRow(['Announcement ID','Title','Message','Created By','Created By Email','Published At','Expires At','Review Required','Revision']);a.setFrozenRows(1);}
+  const ss=SpreadsheetApp.getActiveSpreadsheet();
+  const announcementHeaders=['Announcement ID','Title','Message','Created By','Created By Email','Published At','Expires At','Review Required','Revision','Last Updated At','Last Updated By','Last Updated By Email'];
+  const reviewHeaders=['Announcement ID','Revision','Reviewed By Email','Reviewed At'];
+  let a=ss.getSheetByName('Announcements');
+  if(!a){a=ss.insertSheet('Announcements');a.appendRow(announcementHeaders);a.setFrozenRows(1);}
+  else {
+    const lastCol=Math.max(a.getLastColumn(),1);
+    if(lastCol<announcementHeaders.length)a.insertColumnsAfter(lastCol,announcementHeaders.length-lastCol);
+    const current=a.getRange(1,1,1,announcementHeaders.length).getValues()[0];
+    announcementHeaders.forEach((value,index)=>{if(String(current[index]||'').trim()!==value)a.getRange(1,index+1).setValue(value);});
+  }
   let r=ss.getSheetByName('Announcement Reviews');
-  if(!r){r=ss.insertSheet('Announcement Reviews');r.appendRow(['Announcement ID','Revision','Reviewed By Email','Reviewed At']);r.setFrozenRows(1);}
+  if(!r){r=ss.insertSheet('Announcement Reviews');r.appendRow(reviewHeaders);r.setFrozenRows(1);}
   return {announcements:a,reviews:r};
+}function announcementDateIso_(v) {
+  if (v instanceof Date && !isNaN(v.getTime())) return v.toISOString();
+  const d = v ? new Date(v) : null;
+  return d && !isNaN(d.getTime()) ? d.toISOString() : '';
 }
-function announcementDateIso_(v){if(v instanceof Date&&!isNaN(v.getTime()))return v.toISOString();const d=v?new Date(v):null;return d&&!isNaN(d.getTime())?d.toISOString():'';}
-function getAnnouncementsData(requestingEmail,includeArchive){
-  const m=requireAuthenticatedMember(requestingEmail),s=ensureAnnouncementsSheets_(),now=Date.now(),n=s.announcements.getLastRow();
-  const rows=n>1?s.announcements.getRange(2,1,n-1,9).getValues():[],rn=s.reviews.getLastRow(),reviewed=new Set();
-  if(rn>1){const email=normalizeEmail(m.email);s.reviews.getRange(2,1,rn-1,4).getValues().forEach(r=>{if(normalizeEmail(r[2])===email)reviewed.add(String(r[0])+'|'+String(r[1]||'1'));});}
-  const active=[],archive=[];
-  rows.forEach(r=>{const id=String(r[0]||'').trim(),p=r[5] instanceof Date?r[5]:new Date(r[5]),x=r[6] instanceof Date?r[6]:new Date(r[6]);if(!id||isNaN(p.getTime())||isNaN(x.getTime()))return;
-    const item={id:id,title:String(r[1]||''),message:String(r[2]||''),createdBy:String(r[3]||''),publishedAt:announcementDateIso_(p),expiresAt:announcementDateIso_(x),reviewRequired:r[7]===true||String(r[7]).toLowerCase()==='true',revision:Number(r[8])||1};
-    item.reviewed=reviewed.has(id+'|'+item.revision);if(p.getTime()<=now&&x.getTime()>now)active.push(item);else if(includeArchive&&p.getTime()<=now&&x.getTime()<=now)archive.push(item);
-  });
-  const sort=(a,b)=>Date.parse(b.publishedAt)-Date.parse(a.publishedAt);active.sort(sort);archive.sort(sort);
-  return {active:active,archive:archive,canPublish:isSupportMember(m)};
+
+// Narrow update-editor permission only. Title grants no operational Support access.
+function canEditAnnouncements_(member) {
+  if (!member || String(member.status || '').trim().toLowerCase() !== 'active') return false;
+  const title = String(member.title || '').trim().toLowerCase();
+  return title === 'manager' || title === 'director';
 }
-function publishAnnouncement(payload,requestingEmail){
-  const d=payload||{},title=String(d.title||'').trim(),message=String(d.message||'').trim(),hours=Number(d.durationHours);
+
+function validateAnnouncementContent_(title,message) {
+  title=String(title||'').trim();message=String(message||'').trim();
   if(!title||title.length>160)throw new Error('Add a title (up to 160 characters).');
   if(!message||message.length>ANNOUNCEMENT_MAX_BODY_CHARS)throw new Error('Add a message, rich text, or image (up to 8,000 characters).');
   if(/<\s*(script|iframe|object|svg|form)\b|javascript\s*:|\son[a-z]+\s*=/i.test(message))throw new Error('Remove unsupported or unsafe content from the announcement.');
   rejectEmbeddedBase64Image(message,'Announcement image');
   requireSheetCellLength(message,'Announcement message');
+  return {title:title,message:message};
+}
+function getAnnouncementsData(requestingEmail,includeArchive){
+  const m=requireAuthenticatedMember(requestingEmail),s=ensureAnnouncementsSheets_(),now=Date.now(),n=s.announcements.getLastRow();
+  const rows=n>1?s.announcements.getRange(2,1,n-1,12).getValues():[],rn=s.reviews.getLastRow(),reviewed=new Set();
+  if(rn>1){const email=normalizeEmail(m.email);s.reviews.getRange(2,1,rn-1,4).getValues().forEach(r=>{if(normalizeEmail(r[2])===email)reviewed.add(String(r[0])+'|'+String(r[1]||'1'));});}
+  const active=[],archive=[];
+  rows.forEach(r=>{const id=String(r[0]||'').trim(),p=r[5] instanceof Date?r[5]:new Date(r[5]),x=r[6] instanceof Date?r[6]:new Date(r[6]);if(!id||isNaN(p.getTime())||isNaN(x.getTime()))return;
+    const item={id:id,title:String(r[1]||''),message:String(r[2]||''),createdBy:String(r[3]||''),publishedAt:announcementDateIso_(p),expiresAt:announcementDateIso_(x),reviewRequired:r[7]===true||String(r[7]).toLowerCase()==='true',revision:Number(r[8])||1,updatedAt:announcementDateIso_(r[9]),updatedBy:String(r[10]||'')};
+    item.reviewed=reviewed.has(id+'|'+item.revision);if(p.getTime()<=now&&x.getTime()>now)active.push(item);else if(includeArchive&&p.getTime()<=now&&x.getTime()<=now)archive.push(item);
+  });
+  const sort=(a,b)=>Date.parse(b.publishedAt)-Date.parse(a.publishedAt);active.sort(sort);archive.sort(sort);
+  return {active:active,archive:archive,canPublish:isSupportMember(m),canEdit:canEditAnnouncements_(m)};
+}function publishAnnouncement(payload,requestingEmail){
+  const d=payload||{},clean=validateAnnouncementContent_(d.title,d.message),hours=Number(d.durationHours);
   if([24,48,72,168,336].indexOf(hours)<0)throw new Error('Choose a supported announcement duration.');
   return withLock(()=>{const m=requireSupportRole(requestingEmail),s=ensureAnnouncementsSheets_(),now=new Date(),expires=new Date(now.getTime()+hours*3600000),id=Utilities.getUuid(),review=d.reviewRequired===true;
-    s.announcements.appendRow([id,title,message,String(m.name||''),normalizeEmail(m.email),now,expires,review,1]);
-    logAudit('ANNOUNCEMENT_PUBLISHED',m.email,m.name,id,{title:title,expiresAt:expires.toISOString(),reviewRequired:review});return {success:true,id:id,publishedAt:now.toISOString(),expiresAt:expires.toISOString()};
+    s.announcements.appendRow([id,clean.title,clean.message,String(m.name||''),normalizeEmail(m.email),now,expires,review,1,'','','']);
+    logAudit('ANNOUNCEMENT_PUBLISHED',m.email,m.name,id,{title:clean.title,expiresAt:expires.toISOString(),reviewRequired:review});return {success:true,id:id,publishedAt:now.toISOString(),expiresAt:expires.toISOString()};
   },{bumpDataVersion:false,operation:'publishAnnouncement'});
 }
-function markAnnouncementReviewed(announcementId,requestingEmail){
+function editAnnouncement(payload,requestingEmail){
+  const d=payload||{},id=String(d.id||'').trim(),clean=validateAnnouncementContent_(d.title,d.message);
+  if(!id)throw new Error('This update could not be identified.');
+  return withLock(()=>{const m=requireAuthenticatedMember(requestingEmail);if(!canEditAnnouncements_(m))throw new Error('Access denied: editing Updates requires the Manager or Director title.');
+    const s=ensureAnnouncementsSheets_(),last=s.announcements.getLastRow();if(last<2)throw new Error('This update is no longer available.');
+    const rows=s.announcements.getRange(2,1,last-1,12).getValues(),offset=rows.findIndex(row=>String(row[0]||'')===id);if(offset<0)throw new Error('This update is no longer available.');
+    const rowIndex=offset+2,oldRevision=Number(rows[offset][8])||1,now=new Date(),revision=oldRevision+1;
+    s.announcements.getRange(rowIndex,2,1,2).setValues([[clean.title,clean.message]]);
+    s.announcements.getRange(rowIndex,9,1,4).setValues([[revision,now,String(m.name||''),normalizeEmail(m.email)]]);
+    logAudit('ANNOUNCEMENT_EDITED',m.email,m.name,id,{revision:revision,title:clean.title});
+    return {success:true,id:id,revision:revision,updatedAt:now.toISOString(),updatedBy:String(m.name||'')};
+  },{bumpDataVersion:false,operation:'editAnnouncement'});
+}function markAnnouncementReviewed(announcementId,requestingEmail){
   const id=String(announcementId||'').trim();if(!id)throw new Error('This announcement could not be identified.');
   return withLock(()=>{const m=requireAuthenticatedMember(requestingEmail),s=ensureAnnouncementsSheets_(),n=s.announcements.getLastRow();if(n<2)throw new Error('This announcement is no longer available.');
-    const r=s.announcements.getRange(2,1,n-1,9).getValues().find(x=>String(x[0]||'')===id);if(!r)throw new Error('This announcement is no longer available.');
+    const r=s.announcements.getRange(2,1,n-1,12).getValues().find(x=>String(x[0]||'')===id);if(!r)throw new Error('This announcement is no longer available.');
     const now=Date.now(),p=r[5] instanceof Date?r[5]:new Date(r[5]),x=r[6] instanceof Date?r[6]:new Date(r[6]);if(isNaN(p.getTime())||isNaN(x.getTime())||p.getTime()>now||x.getTime()<=now)throw new Error('This announcement is no longer active.');
     const revision=Number(r[8])||1,rn=s.reviews.getLastRow(),email=normalizeEmail(m.email);
     if(rn>1&&s.reviews.getRange(2,1,rn-1,3).getValues().some(y=>String(y[0]||'')===id&&Number(y[1])===revision&&normalizeEmail(y[2])===email))return {success:true,alreadyReviewed:true};
