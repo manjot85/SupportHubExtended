@@ -501,6 +501,7 @@ html { font-size: 16px; }
 <button onclick="switchTab('team')" id="tab-team" data-primary-area="admin" class="py-3 text-slate-400 hover:text-white hidden whitespace-nowrap" title="Team Setup">
   <span id="tab-team-label">Admin</span><span class="sr-only"> Team Setup</span>
 </button>
+<button onclick="switchTab('updates')" id="tab-updates" data-primary-area="updates" class="py-3 text-slate-400 hover:text-white whitespace-nowrap" title="Updates">Updates</button>
 </div>
 </header>
 
@@ -515,7 +516,6 @@ html { font-size: 16px; }
       <span>Answered Only</span><span id="unread-ticker" class="hidden bg-slate-200 text-slate-600 border border-slate-300 text-[9px] font-bold px-1.5 py-0.5 rounded-full">0</span>
     </button>
     <button onclick="switchTab('all-tickets')" id="tab-all-tickets" class="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 whitespace-nowrap">All Questions</button>
-    <button onclick="switchTab('updates')" id="subtab-updates" class="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 whitespace-nowrap">Updates</button>
     <button onclick="switchTab('tasks')" id="subtab-tasks" class="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 flex items-center gap-1.5 whitespace-nowrap"><span>Tasks</span><span id="task-ticker" class="hidden bg-blue-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full">0</span></button>
   </div>
 </div>
@@ -1687,31 +1687,42 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 <!-- ANNOUNCEMENT COMPOSER -->
 <div id="announcement-composer-modal" class="hidden fixed inset-0 z-[115] items-center justify-center bg-slate-950/55 p-4" onclick="if(event.target===this)closeAnnouncementComposer()">
   <form onsubmit="submitAnnouncement(event)" class="w-full max-w-xl rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden">
-    <div class="px-5 py-4 border-b border-slate-200 flex items-start justify-between"><div><p class="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Support announcement</p><h2 class="text-base font-bold text-slate-900">Publish an update</h2><p class="text-xs text-slate-500 mt-1">Visible to everyone while active, then kept in Updates.</p></div><button type="button" onclick="closeAnnouncementComposer()" class="text-xl text-slate-400 hover:text-slate-700">×</button></div>
+    <div class="px-5 py-4 border-b border-slate-200 flex items-start justify-between"><div><p class="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Support announcement</p><h2 id="announcement-composer-heading" class="text-base font-bold text-slate-900">Publish an update</h2><p class="text-xs text-slate-500 mt-1">Visible to everyone while active, then kept in Updates.</p></div><button type="button" onclick="closeAnnouncementComposer()" class="text-xl text-slate-400 hover:text-slate-700">×</button></div>
     <div class="p-5 space-y-4">
-      <label class="block text-[11px] font-bold text-slate-600">Title<input id="announcement-title" maxlength="160" required class="mt-1 w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm" placeholder="What should everyone know?"></label>
-      <div><label class="block text-[11px] font-bold text-slate-600 mb-1">Message</label>
-        <div class="border border-slate-300 rounded-t-xl bg-slate-50 p-1.5 flex items-center gap-1 border-b-0 text-xs text-slate-600">
-          <button type="button" onmousedown="event.preventDefault()" onclick="execEditorCmd('bold')" class="px-2 py-1 rounded hover:bg-slate-200 font-bold" title="Bold">B</button>
-          <button type="button" onmousedown="event.preventDefault()" onclick="execEditorCmd('italic')" class="px-2 py-1 rounded hover:bg-slate-200 italic" title="Italic">I</button>
-          <button type="button" onmousedown="event.preventDefault()" onclick="promptInsertLink()" class="px-2 py-1 rounded hover:bg-slate-200 underline" title="Insert link">🔗 Link</button>
-          <label class="px-2 py-1 rounded hover:bg-slate-200 cursor-pointer" title="Attach an image">📷 Image <input type="file" accept="image/png,image/jpeg,image/gif,image/webp" class="hidden" onchange="handleImageInsert(event,'announcement-message')"></label>
-          <span class="ml-auto text-[10px] text-slate-400">Paste or drop an image</span>
+      <div id="announcement-edit-fields" class="space-y-4">
+        <label class="block text-[11px] font-bold text-slate-600">Title<input id="announcement-title" maxlength="160" required class="mt-1 w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm" placeholder="What should everyone know?"></label>
+        <div><label class="block text-[11px] font-bold text-slate-600 mb-1">Message</label>
+          <div class="border border-slate-300 rounded-t-xl bg-slate-50 p-1.5 flex items-center gap-1 border-b-0 text-xs text-slate-600">
+            <button type="button" onmousedown="event.preventDefault()" onclick="execEditorCmd('bold')" class="px-2 py-1 rounded hover:bg-slate-200 font-bold" title="Bold">B</button>
+            <button type="button" onmousedown="event.preventDefault()" onclick="execEditorCmd('italic')" class="px-2 py-1 rounded hover:bg-slate-200 italic" title="Italic">I</button>
+            <button type="button" onmousedown="event.preventDefault()" onclick="promptInsertLink()" class="px-2 py-1 rounded hover:bg-slate-200 underline" title="Insert link">🔗 Link</button>
+            <label class="px-2 py-1 rounded hover:bg-slate-200 cursor-pointer" title="Attach an image">📷 Image <input type="file" accept="image/png,image/jpeg,image/gif,image/webp" class="hidden" onchange="handleImageInsert(event,'announcement-message')"></label>
+            <span class="ml-auto text-[10px] text-slate-400">Paste or drop an image</span>
+          </div>
+          <div id="announcement-message" contenteditable="true" role="textbox" aria-multiline="true" onpaste="handleEditorPasteImage(event,'announcement-message')" ondragover="handleAnnouncementEditorDragOver(event)" ondrop="handleAnnouncementEditorDrop(event)" class="rich-editor-content w-full min-h-[150px] max-h-[40vh] overflow-y-auto border border-slate-300 p-3 rounded-b-xl text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none transition bg-white leading-relaxed" data-placeholder="Write the update for the team..."></div>
         </div>
-        <div id="announcement-message" contenteditable="true" role="textbox" aria-multiline="true" onpaste="handleEditorPasteImage(event,'announcement-message')" ondragover="handleAnnouncementEditorDragOver(event)" ondrop="handleAnnouncementEditorDrop(event)" class="rich-editor-content w-full min-h-[150px] max-h-[40vh] overflow-y-auto border border-slate-300 p-3 rounded-b-xl text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none transition bg-white leading-relaxed" data-placeholder="Write the update for the team..."></div>
+        <div id="announcement-publish-options" class="grid grid-cols-1 sm:grid-cols-2 gap-3"><label class="block text-[11px] font-bold text-slate-600">Show on Home for<select id="announcement-duration" class="mt-1 w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm"><option value="48" selected>2 days (default)</option><option value="24">1 day</option><option value="72">3 days</option><option value="168">7 days</option><option value="336">14 days</option></select></label><label class="flex items-center gap-2 text-xs text-slate-700 self-end pb-3"><input id="announcement-review-required" type="checkbox" class="accent-emerald-600"> Require users to mark as reviewed</label></div>
       </div>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3"><label class="block text-[11px] font-bold text-slate-600">Show on Home for<select id="announcement-duration" class="mt-1 w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm"><option value="48" selected>2 days (default)</option><option value="24">1 day</option><option value="72">3 days</option><option value="168">7 days</option><option value="336">14 days</option></select></label><label class="flex items-center gap-2 text-xs text-slate-700 self-end pb-3"><input id="announcement-review-required" type="checkbox" class="accent-emerald-600"> Require users to mark as reviewed</label></div>
+      <div id="announcement-preview-panel" class="hidden">
+        <div class="rounded-xl border border-emerald-100 bg-emerald-50/40 p-4 mb-3"><p class="text-[9px] font-bold uppercase tracking-wider text-emerald-700">Preview · Not published</p><h3 id="announcement-preview-title" class="text-base font-bold text-slate-900 mt-1"></h3></div>
+        <div id="announcement-preview-content" class="announcement-detail-rich rich-editor-content max-h-[42vh] overflow-y-auto rounded-xl border border-slate-200 bg-white p-4 text-sm leading-6 text-slate-700"></div>
+      </div>
       <p id="announcement-error" class="hidden text-xs text-rose-600"></p>
     </div>
-    <div class="px-5 py-4 border-t border-slate-200 flex justify-end gap-2"><button type="button" onclick="closeAnnouncementComposer()" class="px-4 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100">Cancel</button><button id="announcement-publish-button" type="submit" class="px-4 py-2 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700">Publish announcement</button></div>
+    <div class="px-5 py-4 border-t border-slate-200 flex justify-end gap-2">
+      <button type="button" onclick="closeAnnouncementComposer()" class="px-4 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100">Cancel</button>
+      <button id="announcement-preview-back" type="button" onclick="setAnnouncementPreview(false)" class="hidden px-4 py-2 rounded-lg border border-slate-300 text-xs font-semibold text-slate-700">Back to edit</button>
+      <button id="announcement-preview-button" type="button" onclick="showAnnouncementPreview()" class="px-4 py-2 rounded-lg border border-emerald-300 text-emerald-700 text-xs font-bold hover:bg-emerald-50">Preview</button>
+      <button id="announcement-publish-button" type="submit" class="hidden px-4 py-2 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700">Publish announcement</button>
+    </div>
   </form>
 </div>
 <!-- ANNOUNCEMENT DETAIL -->
 <div id="announcement-detail-modal" class="hidden fixed inset-0 z-[116] items-center justify-center bg-slate-950/55 p-4" onclick="if(event.target===this)closeAnnouncementDetail()">
   <div class="w-full max-w-3xl max-h-[88vh] flex flex-col rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden" role="dialog" aria-modal="true" aria-labelledby="announcement-detail-title">
-    <div class="px-5 py-4 border-b border-slate-200 flex items-start justify-between gap-4 shrink-0"><div class="min-w-0"><p class="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Team update</p><h2 id="announcement-detail-title" class="text-lg font-bold text-slate-900 mt-1"></h2><p id="announcement-detail-meta" class="text-xs text-slate-500 mt-1"></p></div><button type="button" onclick="closeAnnouncementDetail()" aria-label="Close announcement" class="text-xl text-slate-400 hover:text-slate-700">×</button></div>
+    <div class="px-5 py-4 border-b border-slate-200 flex items-start justify-between gap-4 shrink-0"><div class="min-w-0"><p class="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Team update</p><h2 id="announcement-detail-title" class="text-lg font-bold text-slate-900 mt-1"></h2><p id="announcement-detail-meta" class="text-xs text-slate-500 mt-1"></p><p id="announcement-detail-updated" class="text-[10px] text-slate-400 mt-1"></p></div><button type="button" onclick="closeAnnouncementDetail()" aria-label="Close announcement" class="text-xl text-slate-400 hover:text-slate-700">×</button></div>
     <div id="announcement-detail-content" class="announcement-detail-rich rich-editor-content p-5 overflow-y-auto text-sm leading-6 text-slate-700"></div>
-    <div class="px-5 py-4 border-t border-slate-200 flex items-center justify-between gap-3 shrink-0"><span id="announcement-detail-expiry" class="text-[10px] text-slate-400"></span><div class="flex gap-2"><button id="announcement-detail-review" type="button" onclick="markAnnouncementReviewedUi(activeAnnouncementDetailId)" class="hidden px-4 py-2 rounded-lg border border-amber-300 text-amber-800 text-xs font-bold hover:bg-amber-50">Mark as reviewed</button><button type="button" onclick="closeAnnouncementDetail()" class="px-4 py-2 rounded-lg bg-slate-900 text-white text-xs font-bold">Close</button></div></div>
+    <div class="px-5 py-4 border-t border-slate-200 flex items-center justify-between gap-3 shrink-0"><span id="announcement-detail-expiry" class="text-[10px] text-slate-400"></span><div class="flex gap-2"><button id="announcement-detail-edit" type="button" onclick="openAnnouncementEdit(activeAnnouncementDetailId)" class="hidden px-4 py-2 rounded-lg border border-blue-200 text-blue-700 text-xs font-bold hover:bg-blue-50">Edit update</button><button id="announcement-detail-review" type="button" onclick="markAnnouncementReviewedUi(activeAnnouncementDetailId)" class="hidden px-4 py-2 rounded-lg border border-amber-300 text-amber-800 text-xs font-bold hover:bg-amber-50">Mark as reviewed</button><button type="button" onclick="closeAnnouncementDetail()" class="px-4 py-2 rounded-lg bg-slate-900 text-white text-xs font-bold">Close</button></div></div>
   </div>
 </div>
 
@@ -3379,10 +3390,10 @@ function getUserDisplayName(val) {
   return match ? match.name : stripNoraPrefix(val);
 }
 
-// Access comes from Category alone (Coordinator / Support / Admin). Title is
-// a display label only and never grants access — see Code.gs's ROLE MODEL
-// comment for why the old title-based bypass was removed.
-const BASE_TITLES_CLIENT = ["Coordinator", "Sr. Coordinator", "Supervisor", "Escalation Supervisor", "Assistant Manager", "Manager"];
+// Operational Support access comes from Category, never Title. Active Manager
+// and Director titles have only the separate announcement-edit permission
+// enforced by Code.gs; they do not gain Support tools from their title.
+const BASE_TITLES_CLIENT = ["Coordinator", "Sr. Coordinator", "Supervisor", "Escalation Supervisor", "Assistant Manager", "Manager", "Director"];
 let allTitles = BASE_TITLES_CLIENT.slice();
 function isSupportUser(m) {
   if (!m) return false;
@@ -4028,7 +4039,7 @@ function continueWorkspaceLogin() {
 function finishLogin(member) {
   member = normalizeTeamMembers([member])[0] || member;
   currentUser = member;
-  announcementState={active:[],archive:[],canPublish:false}; announcementArchiveLoaded=false; announcementLoadInFlight=false; announcementArchiveNeedsLoad=false;
+  announcementState={active:[],archive:[],canPublish:false,canEdit:false}; announcementArchiveLoaded=false; announcementLoadInFlight=false; announcementArchiveNeedsLoad=false; activeAnnouncementEditId=''; announcementPreviewReady=false;
   document.getElementById('login-overlay').classList.add('hidden');
   document.getElementById('app-container').classList.remove('hidden');
 
@@ -4939,7 +4950,8 @@ function cstDateBoundary(ymd,end){ const parts=String(ymd).split('-').map(Number
 const APP_TAB_NAMES = ['coordinator', 'peer', 'answered', 'all-tickets', 'tasks', 'supervisor', 'reporting', 'team', 'updates'];
 
 function primaryAreaForTab(name) {
-  if (name === 'peer' || name === 'answered' || name === 'all-tickets' || name === 'tasks' || name === 'updates') return 'home';
+  if (name === 'peer' || name === 'answered' || name === 'all-tickets' || name === 'tasks') return 'home';
+  if (name === 'updates') return 'updates';
   if (name === 'supervisor') return 'support';
   if (name === 'reporting') return 'reports';
   if (name === 'team') return 'admin';
@@ -4969,7 +4981,8 @@ function activateTabShell(name) {
     { id: 'tab-supervisor', area: 'support' },
     { id: 'tab-tasks', area: 'tasks' },
     { id: 'tab-reporting', area: 'reports' },
-    { id: 'tab-team', area: 'admin' }
+    { id: 'tab-team', area: 'admin' },
+    { id: 'tab-updates', area: 'updates' }
   ];
   primaryTabs.forEach(item => {
     const tab = document.getElementById(item.id);
@@ -4990,7 +5003,6 @@ function activateTabShell(name) {
     { id: 'tab-answered', tab: 'answered' },
     { id: 'tab-all-tickets', tab: 'all-tickets' },
     { id: 'subtab-tasks', tab: 'tasks' },
-    { id: 'subtab-updates', tab: 'updates' }
   ];
   secondaryTabs.forEach(item => {
     const tab = document.getElementById(item.id);
@@ -5071,10 +5083,12 @@ function loadAnsweredInitialFeed() {
 }
 
 
-let announcementState={active:[],archive:[],canPublish:false};
+let announcementState={active:[],archive:[],canPublish:false,canEdit:false};
 let announcementArchiveLoaded=false;
 let announcementLoadInFlight=false;
 let announcementArchiveNeedsLoad=false;
+let activeAnnouncementEditId='';
+let announcementPreviewReady=false;
 let announcementExpiryTimer=null;
 let activeAnnouncementDetailId='';
 function findAnnouncementById_(id){return (announcementState.active||[]).concat(announcementState.archive||[]).find(item=>String(item.id)===String(id))||null;}
@@ -5086,12 +5100,16 @@ function openAnnouncementDetail(id){
 function renderAnnouncementDetail_(item){
   if(!item)return;
   document.getElementById('announcement-detail-title').innerText=item.title||'Team update';
-  document.getElementById('announcement-detail-meta').innerText='From '+(item.createdBy||'Support')+' · '+formatCSTDateTime(item.publishedAt);
+  document.getElementById('announcement-detail-meta').innerText='From '+(item.createdBy||'Support')+' · Published '+formatCSTDateTime(item.publishedAt);
+  const updated=document.getElementById('announcement-detail-updated');
+  if(updated){updated.innerText=item.updatedAt?'Last updated '+formatCSTDateTime(item.updatedAt)+' by '+(item.updatedBy||'Manager'):'';updated.classList.toggle('hidden',!item.updatedAt);}
   document.getElementById('announcement-detail-content').innerHTML=renderStoredRichHtml(item.message||'');
   const expiry=document.getElementById('announcement-detail-expiry');
   if(expiry)expiry.innerText=Date.parse(item.expiresAt)<=Date.now()?'Archived update':'Active until '+formatCSTDateTime(item.expiresAt);
   const review=document.getElementById('announcement-detail-review');
   if(review){review.classList.toggle('hidden',!item.reviewRequired||!!item.reviewed||Date.parse(item.expiresAt)<=Date.now());review.innerText='Mark as reviewed';}
+  const edit=document.getElementById('announcement-detail-edit');
+  if(edit)edit.classList.toggle('hidden',!announcementState.canEdit);
 }
 function closeAnnouncementDetail(){const modal=document.getElementById('announcement-detail-modal');if(modal){modal.classList.add('hidden');modal.classList.remove('flex');}activeAnnouncementDetailId='';}
 function handleAnnouncementEditorDragOver(event){
@@ -5119,7 +5137,7 @@ function loadAnnouncements(includeArchive){
     if(announcementArchiveNeedsLoad){announcementArchiveNeedsLoad=false;loadAnnouncements(true);}
   }).withSuccessHandler(result=>{
     if(currentUser!==user)return;announcementLoadInFlight=false;result=result||{};
-    announcementState.active=result.active||[];announcementState.canPublish=!!result.canPublish;
+    announcementState.active=result.active||[];announcementState.canPublish=!!result.canPublish;announcementState.canEdit=!!result.canEdit;
     if(includeArchive){announcementState.archive=result.archive||[];announcementArchiveLoaded=true;}
     renderAnnouncementViews();
     scheduleAnnouncementExpiry();
@@ -5149,28 +5167,78 @@ function renderAnnouncementViews(){
   const summary=stripHtml(item.message||'').replace(/\s+/g,' ').trim();
   const preview=summary.length>220?summary.slice(0,217)+'…':summary;
   const review=item.reviewRequired&&Date.parse(item.expiresAt)>Date.now()?(item.reviewed?'<span class="text-[10px] font-semibold text-emerald-700">Reviewed</span>':'<button type="button" onclick="event.preventDefault();event.stopPropagation();markAnnouncementReviewedUi(&quot;'+item.id+'&quot;)" class="px-3 py-1.5 rounded-lg border border-amber-300 text-amber-800 text-[10px] font-bold hover:bg-amber-50">Mark as reviewed</button>'):'';
+  const edit=announcementState.canEdit?'<button type="button" onclick="event.preventDefault();event.stopPropagation();openAnnouncementEdit(&quot;'+item.id+'&quot;)" class="px-3 py-1.5 rounded-lg border border-blue-200 text-blue-700 text-[10px] font-bold hover:bg-blue-50">Edit</button>':'';
   const state=Date.parse(item.expiresAt)<=Date.now()?'Past update':'Active';
-  return '<article role="button" tabindex="0" onclick="openAnnouncementDetail(&quot;'+item.id+'&quot;)" onkeydown="if(event.key===&quot;Enter&quot;||event.key===&quot; &quot;){event.preventDefault();openAnnouncementDetail(&quot;'+item.id+'&quot;)}" class="p-4 cursor-pointer hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-emerald-300"><div class="flex flex-wrap items-start justify-between gap-3"><div class="min-w-0 flex-1"><div class="flex items-center gap-2"><h3 class="text-sm font-bold text-slate-900">'+esc(item.title)+'</h3><span class="text-[9px] font-bold uppercase text-slate-400">'+state+'</span></div><p class="text-[10px] text-slate-400 mt-1">From '+esc(item.createdBy)+' · '+esc(formatCSTDateTime(item.publishedAt))+'</p></div>'+review+'</div><p class="text-xs leading-5 text-slate-600 mt-2">'+esc(preview)+'</p><p class="text-[10px] font-semibold text-blue-700 mt-2">Click to read full update →</p></article>';
-}function openAnnouncementComposer(){
-  if(!isSupportUser(currentUser)){showToast('Only Support can publish announcements.');return;}
+  const updated=item.updatedAt?'<p class="text-[10px] text-slate-500 mt-1">Last updated '+esc(formatCSTDateTime(item.updatedAt))+' by '+esc(item.updatedBy||'Manager')+'</p>':'';
+  return '<article role="button" tabindex="0" onclick="openAnnouncementDetail(&quot;'+item.id+'&quot;)" onkeydown="if(event.key===&quot;Enter&quot;||event.key===&quot; &quot;){event.preventDefault();openAnnouncementDetail(&quot;'+item.id+'&quot;)}" class="p-4 cursor-pointer hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-emerald-300"><div class="flex flex-wrap items-start justify-between gap-3"><div class="min-w-0 flex-1"><div class="flex items-center gap-2"><h3 class="text-sm font-bold text-slate-900">'+esc(item.title)+'</h3><span class="text-[9px] font-bold uppercase text-slate-400">'+state+'</span></div><p class="text-[10px] text-slate-400 mt-1">From '+esc(item.createdBy)+' · '+esc(formatCSTDateTime(item.publishedAt))+'</p>'+updated+'</div><div class="flex items-center gap-2">'+review+edit+'</div></div><p class="text-xs leading-5 text-slate-600 mt-2">'+esc(preview)+'</p><p class="text-[10px] font-semibold text-blue-700 mt-2">Click to read full update →</p></article>';
+}
+function openAnnouncementComposer(){
+  if(!announcementState.canPublish&&!isSupportUser(currentUser)){showToast('Only Support can publish announcements.');return;}
+  activeAnnouncementEditId='';announcementPreviewReady=false;
   const modal=document.getElementById('announcement-composer-modal');if(!modal)return;
   document.getElementById('announcement-title').value='';clearRichEditor('announcement-message');
   document.getElementById('announcement-duration').value='48';document.getElementById('announcement-review-required').checked=false;
-  document.getElementById('announcement-error').classList.add('hidden');modal.classList.remove('hidden');modal.classList.add('flex');
+  document.getElementById('announcement-publish-options').classList.remove('hidden');
+  document.getElementById('announcement-composer-heading').innerText='Publish an update';
+  document.getElementById('announcement-publish-button').innerText='Publish announcement';
+  document.getElementById('announcement-error').classList.add('hidden');
+  setAnnouncementPreview(false);modal.classList.remove('hidden');modal.classList.add('flex');
   setTimeout(()=>document.getElementById('announcement-title').focus(),50);
-}function closeAnnouncementComposer(){const modal=document.getElementById('announcement-composer-modal');if(modal){modal.classList.add('hidden');modal.classList.remove('flex');}}
-function submitAnnouncement(event){
-  event.preventDefault();if(!isSupportUser(currentUser))return;
-  const button=document.getElementById('announcement-publish-button'),error=document.getElementById('announcement-error');
+}
+function closeAnnouncementComposer(){
+  const modal=document.getElementById('announcement-composer-modal');
+  if(modal){modal.classList.add('hidden');modal.classList.remove('flex');}
+  activeAnnouncementEditId='';announcementPreviewReady=false;
+}
+function setAnnouncementPreview(show){
+  announcementPreviewReady=!!show;
+  document.getElementById('announcement-edit-fields').classList.toggle('hidden',announcementPreviewReady);
+  document.getElementById('announcement-preview-panel').classList.toggle('hidden',!announcementPreviewReady);
+  document.getElementById('announcement-preview-button').classList.toggle('hidden',announcementPreviewReady);
+  document.getElementById('announcement-preview-back').classList.toggle('hidden',!announcementPreviewReady);
+  document.getElementById('announcement-publish-button').classList.toggle('hidden',!announcementPreviewReady);
+}
+function showAnnouncementPreview(){
+  const title=document.getElementById('announcement-title').value.trim();
   const message=getRichEditorHtml('announcement-message');
-  if(!message||!getRichEditorText('announcement-message').trim()&&!/<img\b/i.test(message)){error.innerText='Add a message, link, or image first.';error.classList.remove('hidden');return;}
-  const payload={title:document.getElementById('announcement-title').value.trim(),message:message,durationHours:Number(document.getElementById('announcement-duration').value),reviewRequired:document.getElementById('announcement-review-required').checked};
-  button.disabled=true;button.innerText='Publishing…';error.classList.add('hidden');
-  google.script.run.withFailureHandler(err=>{button.disabled=false;button.innerText='Publish announcement';error.innerText=err&&err.message?err.message:String(err);error.classList.remove('hidden');}).withSuccessHandler(()=>{
-    button.disabled=false;button.innerText='Publish announcement';closeAnnouncementComposer();announcementArchiveLoaded=false;showToast('Announcement published to everyone.');
-    loadAnnouncements(currentTab==='updates');
-  }).publishAnnouncement(payload,currentUser.email);
-}function markAnnouncementReviewedUi(id){
+  const hasText=!!getRichEditorText('announcement-message').trim();
+  if(!title){document.getElementById('announcement-error').innerText='Add a title before previewing.';document.getElementById('announcement-error').classList.remove('hidden');document.getElementById('announcement-title').focus();return;}
+  if(!message||(!hasText&&!/<img\b/i.test(message))){document.getElementById('announcement-error').innerText='Add a message, link, or image before previewing.';document.getElementById('announcement-error').classList.remove('hidden');return;}
+  if(Number(richImageUploadsInFlight['announcement-message'])>0){showToast('Wait for image uploads to finish before previewing.');return;}
+  document.getElementById('announcement-preview-title').innerText=title;
+  document.getElementById('announcement-preview-content').innerHTML=renderStoredRichHtml(message);
+  document.getElementById('announcement-error').classList.add('hidden');
+  setAnnouncementPreview(true);
+}
+function openAnnouncementEdit(id){
+  if(!announcementState.canEdit){showToast('Editing Updates requires the Manager or Director title.');return;}
+  const item=findAnnouncementById_(id);if(!item){showToast('This update is no longer available.');return;}
+  closeAnnouncementDetail();activeAnnouncementEditId=String(item.id);announcementPreviewReady=false;
+  document.getElementById('announcement-title').value=item.title||'';
+  setRichEditorContent('announcement-message',item.message||'');
+  document.getElementById('announcement-publish-options').classList.add('hidden');
+  document.getElementById('announcement-composer-heading').innerText='Edit update';
+  document.getElementById('announcement-publish-button').innerText='Save update';
+  document.getElementById('announcement-error').classList.add('hidden');
+  setAnnouncementPreview(false);
+  const modal=document.getElementById('announcement-composer-modal');modal.classList.remove('hidden');modal.classList.add('flex');
+}
+function submitAnnouncement(event){
+  event.preventDefault();
+  const editing=!!activeAnnouncementEditId;
+  if(editing&&!announcementState.canEdit){showToast('Editing Updates requires the Manager or Director title.');return;}
+  if(!editing&&!isSupportUser(currentUser)){showToast('Only Support can publish announcements.');return;}
+  if(!announcementPreviewReady){showAnnouncementPreview();return;}
+  if(Number(richImageUploadsInFlight['announcement-message'])>0){showToast('Wait for image uploads to finish before saving.');return;}
+  const button=document.getElementById('announcement-publish-button'),error=document.getElementById('announcement-error');
+  const payload={title:document.getElementById('announcement-title').value.trim(),message:getRichEditorHtml('announcement-message')};
+  button.disabled=true;button.innerText=editing?'Saving…':'Publishing…';error.classList.add('hidden');
+  const done=()=>{button.disabled=false;button.innerText=editing?'Save update':'Publish announcement';closeAnnouncementComposer();announcementArchiveLoaded=false;showToast(editing?'Update saved.':'Announcement published to everyone.');loadAnnouncements(currentTab==='updates');};
+  const failed=err=>{button.disabled=false;button.innerText=editing?'Save update':'Publish announcement';error.innerText=err&&err.message?err.message:String(err);error.classList.remove('hidden');};
+  if(editing)google.script.run.withFailureHandler(failed).withSuccessHandler(done).editAnnouncement({id:activeAnnouncementEditId,title:payload.title,message:payload.message},currentUser.email);
+  else google.script.run.withFailureHandler(failed).withSuccessHandler(done).publishAnnouncement(Object.assign(payload,{durationHours:Number(document.getElementById('announcement-duration').value),reviewRequired:document.getElementById('announcement-review-required').checked}),currentUser.email);
+}
+function markAnnouncementReviewedUi(id){
   if(!currentUser||!id)return;const user=currentUser;
   google.script.run.withFailureHandler(err=>showToast('Could not record review: '+(err&&err.message?err.message:err))).withSuccessHandler(()=>{
     if(currentUser!==user)return;
