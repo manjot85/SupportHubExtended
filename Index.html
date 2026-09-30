@@ -28,6 +28,8 @@ body { overflow-x: hidden; }
 .sup-wait-badge { display: inline-block; white-space: nowrap; }
 .sup-cell-clip { min-width: 0; overflow: hidden; }
 .rich-editor-content { min-height: 90px; outline: none; }
+.announcement-detail-rich img { max-height:70vh; width:auto; }
+.rich-editor-content [data-placeholder]:empty:before { content:attr(data-placeholder); color:#94a3b8; }
 .rich-editor-content img { max-width: 100%; max-height: 250px; border-radius: 8px; margin: 6px 0; display: inline-block; border: 1px solid #e2e8f0; }
 .journey-progress-fill { transition: width .65s cubic-bezier(.22,1,.36,1); }
 .journey-roadmap { min-width: max-content; }
@@ -1688,12 +1690,29 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
     <div class="px-5 py-4 border-b border-slate-200 flex items-start justify-between"><div><p class="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Support announcement</p><h2 class="text-base font-bold text-slate-900">Publish an update</h2><p class="text-xs text-slate-500 mt-1">Visible to everyone while active, then kept in Updates.</p></div><button type="button" onclick="closeAnnouncementComposer()" class="text-xl text-slate-400 hover:text-slate-700">×</button></div>
     <div class="p-5 space-y-4">
       <label class="block text-[11px] font-bold text-slate-600">Title<input id="announcement-title" maxlength="160" required class="mt-1 w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm" placeholder="What should everyone know?"></label>
-      <label class="block text-[11px] font-bold text-slate-600">Message<textarea id="announcement-message" maxlength="8000" required rows="5" class="mt-1 w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm resize-y" placeholder="Write the update for the team..."></textarea></label>
+      <div><label class="block text-[11px] font-bold text-slate-600 mb-1">Message</label>
+        <div class="border border-slate-300 rounded-t-xl bg-slate-50 p-1.5 flex items-center gap-1 border-b-0 text-xs text-slate-600">
+          <button type="button" onmousedown="event.preventDefault()" onclick="execEditorCmd('bold')" class="px-2 py-1 rounded hover:bg-slate-200 font-bold" title="Bold">B</button>
+          <button type="button" onmousedown="event.preventDefault()" onclick="execEditorCmd('italic')" class="px-2 py-1 rounded hover:bg-slate-200 italic" title="Italic">I</button>
+          <button type="button" onmousedown="event.preventDefault()" onclick="promptInsertLink()" class="px-2 py-1 rounded hover:bg-slate-200 underline" title="Insert link">🔗 Link</button>
+          <label class="px-2 py-1 rounded hover:bg-slate-200 cursor-pointer" title="Attach an image">📷 Image <input type="file" accept="image/png,image/jpeg,image/gif,image/webp" class="hidden" onchange="handleImageInsert(event,'announcement-message')"></label>
+          <span class="ml-auto text-[10px] text-slate-400">Paste or drop an image</span>
+        </div>
+        <div id="announcement-message" contenteditable="true" role="textbox" aria-multiline="true" onpaste="handleEditorPasteImage(event,'announcement-message')" ondragover="handleAnnouncementEditorDragOver(event)" ondrop="handleAnnouncementEditorDrop(event)" class="rich-editor-content w-full min-h-[150px] max-h-[40vh] overflow-y-auto border border-slate-300 p-3 rounded-b-xl text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none transition bg-white leading-relaxed" data-placeholder="Write the update for the team..."></div>
+      </div>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3"><label class="block text-[11px] font-bold text-slate-600">Show on Home for<select id="announcement-duration" class="mt-1 w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm"><option value="48" selected>2 days (default)</option><option value="24">1 day</option><option value="72">3 days</option><option value="168">7 days</option><option value="336">14 days</option></select></label><label class="flex items-center gap-2 text-xs text-slate-700 self-end pb-3"><input id="announcement-review-required" type="checkbox" class="accent-emerald-600"> Require users to mark as reviewed</label></div>
       <p id="announcement-error" class="hidden text-xs text-rose-600"></p>
     </div>
     <div class="px-5 py-4 border-t border-slate-200 flex justify-end gap-2"><button type="button" onclick="closeAnnouncementComposer()" class="px-4 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100">Cancel</button><button id="announcement-publish-button" type="submit" class="px-4 py-2 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700">Publish announcement</button></div>
   </form>
+</div>
+<!-- ANNOUNCEMENT DETAIL -->
+<div id="announcement-detail-modal" class="hidden fixed inset-0 z-[116] items-center justify-center bg-slate-950/55 p-4" onclick="if(event.target===this)closeAnnouncementDetail()">
+  <div class="w-full max-w-3xl max-h-[88vh] flex flex-col rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden" role="dialog" aria-modal="true" aria-labelledby="announcement-detail-title">
+    <div class="px-5 py-4 border-b border-slate-200 flex items-start justify-between gap-4 shrink-0"><div class="min-w-0"><p class="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Team update</p><h2 id="announcement-detail-title" class="text-lg font-bold text-slate-900 mt-1"></h2><p id="announcement-detail-meta" class="text-xs text-slate-500 mt-1"></p></div><button type="button" onclick="closeAnnouncementDetail()" aria-label="Close announcement" class="text-xl text-slate-400 hover:text-slate-700">×</button></div>
+    <div id="announcement-detail-content" class="announcement-detail-rich rich-editor-content p-5 overflow-y-auto text-sm leading-6 text-slate-700"></div>
+    <div class="px-5 py-4 border-t border-slate-200 flex items-center justify-between gap-3 shrink-0"><span id="announcement-detail-expiry" class="text-[10px] text-slate-400"></span><div class="flex gap-2"><button id="announcement-detail-review" type="button" onclick="markAnnouncementReviewedUi(activeAnnouncementDetailId)" class="hidden px-4 py-2 rounded-lg border border-amber-300 text-amber-800 text-xs font-bold hover:bg-amber-50">Mark as reviewed</button><button type="button" onclick="closeAnnouncementDetail()" class="px-4 py-2 rounded-lg bg-slate-900 text-white text-xs font-bold">Close</button></div></div>
+  </div>
 </div>
 
 <!-- QUICK ACCESS GUIDE MODAL -->
@@ -2849,7 +2868,7 @@ function setRichImageUploadBusy(editorId, busy) {
     'task-create-instructions':'task-create-submit', 'task-edit-instructions':'task-edit-save-btn',
     'task-modal-update-input':'task-modal-update-save', 'modal-followup-task-instructions':'modal-followup-task-add-btn',
     'vmodal-update-text':'vmodal-update-save',
-    'peer-reply-text':'peer-reply-submit-btn', 'peer-question-text':'peer-create-btn'
+    'peer-reply-text':'peer-reply-submit-btn', 'peer-question-text':'peer-create-btn', 'announcement-message':'announcement-publish-button'
   };
   const buttonId = buttonIds[editorId];
   const button = document.getElementById(buttonId);
@@ -2920,6 +2939,7 @@ function imageAttachmentContext(editorId) {
   if (editorId === 'vmodal-update-text') return { context: 'Answered Question Update', recordId: activeViewQuestion ? activeViewQuestion.ticketId : '' };
   if (editorId === 'peer-reply-text') return { context: 'Peer Question Reply', recordId: activePeerQuestion ? activePeerQuestion.id : '' };
   if (editorId === 'peer-question-text') return { context: 'Peer Question', recordId: '' };
+  if (editorId === 'announcement-message') return { context: 'Support Announcement', recordId: '' };
   if (editorId === 'task-create-instructions' || editorId === 'modal-followup-task-instructions') return { context: 'New Task', recordId: '' };
   return { context: 'Coordinator Question', recordId: '' };
 }
@@ -5056,6 +5076,34 @@ let announcementArchiveLoaded=false;
 let announcementLoadInFlight=false;
 let announcementArchiveNeedsLoad=false;
 let announcementExpiryTimer=null;
+let activeAnnouncementDetailId='';
+function findAnnouncementById_(id){return (announcementState.active||[]).concat(announcementState.archive||[]).find(item=>String(item.id)===String(id))||null;}
+function openAnnouncementDetail(id){
+  const item=findAnnouncementById_(id);if(!item)return;
+  activeAnnouncementDetailId=String(id);renderAnnouncementDetail_(item);
+  const modal=document.getElementById('announcement-detail-modal');modal.classList.remove('hidden');modal.classList.add('flex');
+}
+function renderAnnouncementDetail_(item){
+  if(!item)return;
+  document.getElementById('announcement-detail-title').innerText=item.title||'Team update';
+  document.getElementById('announcement-detail-meta').innerText='From '+(item.createdBy||'Support')+' · '+formatCSTDateTime(item.publishedAt);
+  document.getElementById('announcement-detail-content').innerHTML=renderStoredRichHtml(item.message||'');
+  const expiry=document.getElementById('announcement-detail-expiry');
+  if(expiry)expiry.innerText=Date.parse(item.expiresAt)<=Date.now()?'Archived update':'Active until '+formatCSTDateTime(item.expiresAt);
+  const review=document.getElementById('announcement-detail-review');
+  if(review){review.classList.toggle('hidden',!item.reviewRequired||!!item.reviewed||Date.parse(item.expiresAt)<=Date.now());review.innerText='Mark as reviewed';}
+}
+function closeAnnouncementDetail(){const modal=document.getElementById('announcement-detail-modal');if(modal){modal.classList.add('hidden');modal.classList.remove('flex');}activeAnnouncementDetailId='';}
+function handleAnnouncementEditorDragOver(event){
+  if(event.dataTransfer&&Array.from(event.dataTransfer.types||[]).includes('Files')){event.preventDefault();event.dataTransfer.dropEffect='copy';}
+}
+function handleAnnouncementEditorDrop(event){
+  const files=Array.from(event.dataTransfer&&event.dataTransfer.files||[]);
+  if(!files.length)return;
+  event.preventDefault();event.stopPropagation();
+  files.forEach(file=>uploadRichTextImageFile(file,'announcement-message',null));
+}
+
 function configureAnnouncementControls(){
   const allowed=isSupportUser(currentUser);
   ['announcement-create-home','announcement-create-updates','home-create-announcement'].forEach(id=>{const e=document.getElementById(id);if(e)e.classList.toggle('hidden',!allowed);});
@@ -5087,51 +5135,50 @@ function scheduleAnnouncementExpiry(){
   announcementExpiryTimer=setTimeout(()=>{announcementArchiveLoaded=false;loadAnnouncements(currentTab==='updates');},delay);
 }
 function renderAnnouncementViews(){
-  configureAnnouncementControls();const active=announcementState.active||[];
+  configureAnnouncementControls();
+  const active=announcementState.active||[];
   const home=document.getElementById('home-announcement-list'),section=document.getElementById('home-announcements');
-  if(home&&section){section.classList.toggle('hidden',!active.length);home.innerHTML=active.map(renderAnnouncementCard_).join('');}
+  if(home&&section){section.classList.toggle('hidden',!active.length);home.innerHTML=active.map(item=>renderAnnouncementCard_(item,true)).join('');}
   const activeList=document.getElementById('updates-active-list');
-  if(activeList)activeList.innerHTML=active.length?active.map(renderAnnouncementCard_).join(''):'<p class="p-5 text-xs text-slate-400">There are no active announcements.</p>';
+  if(activeList)activeList.innerHTML=active.length?active.map(item=>renderAnnouncementCard_(item,false)).join(''):'<p class="p-5 text-xs text-slate-400">There are no active announcements.</p>';
   const archiveList=document.getElementById('updates-archive-list');
   if(archiveList&&announcementArchiveLoaded){const archive=announcementState.archive||[];
-    archiveList.innerHTML=archive.length?archive.map(item=>'<article class="p-4"><div class="flex flex-wrap items-start justify-between gap-2"><h4 class="text-sm font-bold text-slate-800">'+esc(item.title)+'</h4><span class="text-[10px] text-slate-400">Expired '+esc(formatCSTDateTime(item.expiresAt))+'</span></div><p class="text-xs text-slate-600 mt-2 whitespace-pre-wrap">'+esc(item.message)+'</p><p class="text-[10px] text-slate-400 mt-2">Published by '+esc(item.createdBy)+' · '+esc(formatCSTDateTime(item.publishedAt))+'</p></article>').join(''):'<p class="p-5 text-xs text-slate-400">No past updates yet.</p>';
+    archiveList.innerHTML=archive.length?archive.map(item=>renderAnnouncementCard_(item,true)).join(''):'<p class="p-5 text-xs text-slate-400">No past updates yet.</p>';
   }
-}
-function renderAnnouncementCard_(item){
-  const review=item.reviewRequired?(item.reviewed?'<span class="text-[10px] font-semibold text-emerald-700">Reviewed</span>':'<button type="button" onclick="markAnnouncementReviewedUi(\''+item.id+'\')" class="px-3 py-1.5 rounded-lg border border-amber-300 text-amber-800 text-[10px] font-bold hover:bg-amber-50">Mark as reviewed</button>'):'';
-  return '<article class="p-4"><div class="flex flex-wrap items-start justify-between gap-3"><div class="min-w-0 flex-1"><h3 class="text-sm font-bold text-slate-900">'+esc(item.title)+'</h3><p class="text-[10px] text-slate-400 mt-1">From '+esc(item.createdBy)+' · '+esc(formatCSTDateTime(item.publishedAt))+'</p></div>'+review+'</div><p class="text-xs leading-5 text-slate-700 mt-3 whitespace-pre-wrap">'+esc(item.message)+'</p></article>';
-}
-function renderAnnouncementsArchive(){
-  if(!announcementArchiveLoaded){const e=document.getElementById('updates-archive-list');if(e)e.innerHTML='<p class="p-4 text-xs text-slate-400">Loading past updates…</p>';}
-  renderAnnouncementViews();
-}
-function openAnnouncementComposer(){
+}function renderAnnouncementCard_(item,compact){
+  const summary=stripHtml(item.message||'').replace(/\s+/g,' ').trim();
+  const preview=summary.length>220?summary.slice(0,217)+'…':summary;
+  const review=item.reviewRequired&&Date.parse(item.expiresAt)>Date.now()?(item.reviewed?'<span class="text-[10px] font-semibold text-emerald-700">Reviewed</span>':'<button type="button" onclick="event.preventDefault();event.stopPropagation();markAnnouncementReviewedUi(&quot;'+item.id+'&quot;)" class="px-3 py-1.5 rounded-lg border border-amber-300 text-amber-800 text-[10px] font-bold hover:bg-amber-50">Mark as reviewed</button>'):'';
+  const state=Date.parse(item.expiresAt)<=Date.now()?'Past update':'Active';
+  return '<article role="button" tabindex="0" onclick="openAnnouncementDetail(&quot;'+item.id+'&quot;)" onkeydown="if(event.key===&quot;Enter&quot;||event.key===&quot; &quot;){event.preventDefault();openAnnouncementDetail(&quot;'+item.id+'&quot;)}" class="p-4 cursor-pointer hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-emerald-300"><div class="flex flex-wrap items-start justify-between gap-3"><div class="min-w-0 flex-1"><div class="flex items-center gap-2"><h3 class="text-sm font-bold text-slate-900">'+esc(item.title)+'</h3><span class="text-[9px] font-bold uppercase text-slate-400">'+state+'</span></div><p class="text-[10px] text-slate-400 mt-1">From '+esc(item.createdBy)+' · '+esc(formatCSTDateTime(item.publishedAt))+'</p></div>'+review+'</div><p class="text-xs leading-5 text-slate-600 mt-2">'+esc(preview)+'</p><p class="text-[10px] font-semibold text-blue-700 mt-2">Click to read full update →</p></article>';
+}function openAnnouncementComposer(){
   if(!isSupportUser(currentUser)){showToast('Only Support can publish announcements.');return;}
   const modal=document.getElementById('announcement-composer-modal');if(!modal)return;
-  document.getElementById('announcement-title').value='';document.getElementById('announcement-message').value='';
+  document.getElementById('announcement-title').value='';clearRichEditor('announcement-message');
   document.getElementById('announcement-duration').value='48';document.getElementById('announcement-review-required').checked=false;
   document.getElementById('announcement-error').classList.add('hidden');modal.classList.remove('hidden');modal.classList.add('flex');
   setTimeout(()=>document.getElementById('announcement-title').focus(),50);
-}
-function closeAnnouncementComposer(){const modal=document.getElementById('announcement-composer-modal');if(modal){modal.classList.add('hidden');modal.classList.remove('flex');}}
+}function closeAnnouncementComposer(){const modal=document.getElementById('announcement-composer-modal');if(modal){modal.classList.add('hidden');modal.classList.remove('flex');}}
 function submitAnnouncement(event){
   event.preventDefault();if(!isSupportUser(currentUser))return;
   const button=document.getElementById('announcement-publish-button'),error=document.getElementById('announcement-error');
-  const payload={title:document.getElementById('announcement-title').value.trim(),message:document.getElementById('announcement-message').value.trim(),durationHours:Number(document.getElementById('announcement-duration').value),reviewRequired:document.getElementById('announcement-review-required').checked};
+  const message=getRichEditorHtml('announcement-message');
+  if(!message||!getRichEditorText('announcement-message').trim()&&!/<img\b/i.test(message)){error.innerText='Add a message, link, or image first.';error.classList.remove('hidden');return;}
+  const payload={title:document.getElementById('announcement-title').value.trim(),message:message,durationHours:Number(document.getElementById('announcement-duration').value),reviewRequired:document.getElementById('announcement-review-required').checked};
   button.disabled=true;button.innerText='Publishing…';error.classList.add('hidden');
   google.script.run.withFailureHandler(err=>{button.disabled=false;button.innerText='Publish announcement';error.innerText=err&&err.message?err.message:String(err);error.classList.remove('hidden');}).withSuccessHandler(()=>{
     button.disabled=false;button.innerText='Publish announcement';closeAnnouncementComposer();announcementArchiveLoaded=false;showToast('Announcement published to everyone.');
     loadAnnouncements(currentTab==='updates');
   }).publishAnnouncement(payload,currentUser.email);
-}
-function markAnnouncementReviewedUi(id){
-  if(!currentUser)return;const user=currentUser;
+}function markAnnouncementReviewedUi(id){
+  if(!currentUser||!id)return;const user=currentUser;
   google.script.run.withFailureHandler(err=>showToast('Could not record review: '+(err&&err.message?err.message:err))).withSuccessHandler(()=>{
-    if(currentUser!==user)return;const item=announcementState.active.find(x=>String(x.id)===String(id));if(item)item.reviewed=true;renderAnnouncementViews();
+    if(currentUser!==user)return;
+    const item=announcementState.active.find(x=>String(x.id)===String(id))||announcementState.archive.find(x=>String(x.id)===String(id));
+    if(item)item.reviewed=true;renderAnnouncementViews();
+    if(String(activeAnnouncementDetailId)===String(id))renderAnnouncementDetail_(item);
   }).markAnnouncementReviewed(id,currentUser.email);
-}
-
-function renderCurrentTab() {
+}function renderCurrentTab() {
   if (currentTab === 'coordinator') renderCoordinatorQuestions();
   else if (currentTab === 'peer') renderPeerQuestions();
   else if (currentTab === 'answered') renderAnsweredTab();
