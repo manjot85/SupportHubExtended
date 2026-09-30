@@ -5845,7 +5845,10 @@ function getAnnouncementsData(requestingEmail,includeArchive){
 function publishAnnouncement(payload,requestingEmail){
   const d=payload||{},title=String(d.title||'').trim(),message=String(d.message||'').trim(),hours=Number(d.durationHours);
   if(!title||title.length>160)throw new Error('Add a title (up to 160 characters).');
-  if(!message||message.length>ANNOUNCEMENT_MAX_BODY_CHARS)throw new Error('Add a message (up to 8,000 characters).');
+  if(!message||message.length>ANNOUNCEMENT_MAX_BODY_CHARS)throw new Error('Add a message, rich text, or image (up to 8,000 characters).');
+  if(/<\s*(script|iframe|object|svg|form)\b|javascript\s*:|\son[a-z]+\s*=/i.test(message))throw new Error('Remove unsupported or unsafe content from the announcement.');
+  rejectEmbeddedBase64Image(message,'Announcement image');
+  requireSheetCellLength(message,'Announcement message');
   if([24,48,72,168,336].indexOf(hours)<0)throw new Error('Choose a supported announcement duration.');
   return withLock(()=>{const m=requireSupportRole(requestingEmail),s=ensureAnnouncementsSheets_(),now=new Date(),expires=new Date(now.getTime()+hours*3600000),id=Utilities.getUuid(),review=d.reviewRequired===true;
     s.announcements.appendRow([id,title,message,String(m.name||''),normalizeEmail(m.email),now,expires,review,1]);
