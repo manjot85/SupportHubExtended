@@ -360,7 +360,7 @@ html { font-size: 16px; }
 
 <div id="login-password-row" class="hidden">
 <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Admin Password</label>
-<input type="password" id="login-password-input" placeholder="Enter your Admin password" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none transition">
+<input type="password" id="login-password-input" autocomplete="current-password" onkeydown="if(event.keyCode===13){event.preventDefault();continueWorkspaceLogin();}" placeholder="Enter your Admin password" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none transition">
 <p class="text-[10px] text-slate-500 mt-1">Your Google Workspace email has been verified. This extra password remains enabled for Admin accounts.</p>
 </div>
 
