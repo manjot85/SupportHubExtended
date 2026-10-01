@@ -130,6 +130,8 @@ const ATTACHMENT_FOLDER_NAME = 'Support Hub Attachments';
 // individually, which generated Drive "shared with you" notifications.
 const ATTACHMENT_FOLDER_SCRIPT_PROP = 'SUPPORT_HUB_ATTACHMENT_FOLDER_ID_V2';
 const ATTACHMENT_ACCESS_SIGNATURE_PROP = 'SUPPORT_HUB_ATTACHMENT_ACCESS_V2';
+const ATTACHMENT_ACCESS_FAILURES_PROP = 'SUPPORT_HUB_ATTACHMENT_ACCESS_FAILURE_COUNT_V1';
+const ATTACHMENT_ACCESS_CHECKED_AT_PROP = 'SUPPORT_HUB_ATTACHMENT_ACCESS_CHECKED_AT_V1';
 const ATTACHMENT_FOLDER_USER_PROP = 'SUPPORT_HUB_ATTACHMENT_FOLDER_ID';
 
 function requireSheetCellLength(value, label) {
@@ -257,8 +259,11 @@ function ensureSupportHubAttachmentFolderAccess_(folder) {
   const role = attachmentFolderPermissionRole_();
   const signature = role + '|' + activeEmails.join('|');
   const props = PropertiesService.getScriptProperties();
-  if (props.getProperty(ATTACHMENT_ACCESS_SIGNATURE_PROP) === signature) {
-    return { failedEmails: [] };
+  const checkedAt = Number(props.getProperty(ATTACHMENT_ACCESS_CHECKED_AT_PROP) || 0);
+  const retryAfterMs = 6 * 60 * 60 * 1000;
+  if (props.getProperty(ATTACHMENT_ACCESS_SIGNATURE_PROP) === signature &&
+      checkedAt && Date.now() - checkedAt < retryAfterMs) {
+    return { failedCount: Number(props.getProperty(ATTACHMENT_ACCESS_FAILURES_PROP) || 0) };
   }
 
   const failed = [];
@@ -277,24 +282,56 @@ function ensureSupportHubAttachmentFolderAccess_(folder) {
       targets.forEach(email => failed.push(email));
     }
   }
-  if (!failed.length) props.setProperty(ATTACHMENT_ACCESS_SIGNATURE_PROP, signature);
-  return { failedEmails: failed };
+
+  // Cache both success and failure results. Repeating a large permission fanout
+  // on every image upload can exceed the Apps Script execution deadline. Retry
+  // at most every six hours, or immediately when the active roster changes.
+  props.setProperty(ATTACHMENT_ACCESS_SIGNATURE_PROP, signature);
+  props.setProperty(ATTACHMENT_ACCESS_FAILURES_PROP, String(failed.length));
+  props.setProperty(ATTACHMENT_ACCESS_CHECKED_AT_PROP, String(Date.now()));
+  return { failedCount: failed.length };
 }
 
 // Screenshots are stored in Drive, not inside a Sheets cell. The editor stores
 // only a short Drive link and preview URL, so the source image size does
 // not consume the 50,000-character cell limit.
 function uploadRichTextImage(dataUrl, fileName, declaredSize, context, recordId, requestingEmail) {
-  const member = requireAuthenticatedMember(requestingEmail);
   const raw = String(dataUrl || '');
   const match = raw.match(/^data:(image\/(?:png|jpeg|gif|webp));base64,([A-Za-z0-9+/=\r\n]+)$/i);
   if (!match) throw new Error('Use a PNG, JPG, GIF, or WebP image.');
   const mimeType = match[1].toLowerCase() === 'image/jpg' ? 'image/jpeg' : match[1].toLowerCase();
-
   let bytes;
   try { bytes = Utilities.base64Decode(match[2].replace(/\s+/g, '')); }
   catch (e) { throw new Error('The image could not be read. Please try attaching it again.'); }
   if (!bytes || !bytes.length) throw new Error('The selected image is empty.');
+  const blob = Utilities.newBlob(bytes, mimeType, safeAttachmentFileName(fileName, mimeType));
+  return saveRichTextImageBlob_(blob, declaredSize || bytes.length, context, recordId, requestingEmail);
+}
+
+// HTML Service converts a form's file input to a Blob. This avoids expanding
+// pasted screenshots to base64 in the browser and again decoding them in Apps Script.
+function uploadRichTextImageFromForm(formObject) {
+  const blob = formObject && formObject.imageFile;
+  if (!blob || typeof blob.getContentType !== 'function') throw new Error('Select an image and try again.');
+  const mimeType = String(blob.getContentType() || '').toLowerCase();
+  if (!SUPPORTED_IMAGE_ATTACHMENT_TYPES.includes(mimeType)) throw new Error('Use a PNG, JPG, GIF, or WebP image.');
+  const fileName = safeAttachmentFileName(blob.getName() || 'screenshot', mimeType);
+  blob.setName(fileName);
+  return saveRichTextImageBlob_(
+    blob,
+    Number(formObject.imageSize) || 0,
+    String(formObject.imageContext || ''),
+    String(formObject.imageRecordId || ''),
+    String(formObject.requestingEmail || '')
+  );
+}
+
+function saveRichTextImageBlob_(blob, declaredSize, context, recordId, requestingEmail) {
+  const member = requireAuthenticatedMember(requestingEmail);
+  const mimeType = String(blob.getContentType() || '').toLowerCase();
+  if (!SUPPORTED_IMAGE_ATTACHMENT_TYPES.includes(mimeType)) throw new Error('Use a PNG, JPG, GIF, or WebP image.');
+  const safeName = safeAttachmentFileName(blob.getName() || 'screenshot', mimeType);
+  blob.setName(safeName);
 
   // Task attachments may only be added by somebody who can already see the task.
   if (/^Task/i.test(String(context || '')) && recordId) {
@@ -306,58 +343,39 @@ function uploadRichTextImage(dataUrl, fileName, declaredSize, context, recordId,
     }
   }
 
-  const safeName = safeAttachmentFileName(fileName, mimeType);
-  const blob = Utilities.newBlob(bytes, mimeType, safeName);
-  let file;
   const folder = getSupportHubAttachmentFolder_();
-  let folderAccess = { failedEmails: [] };
-  try { folderAccess = ensureSupportHubAttachmentFolderAccess_(folder); }
-  catch (e) {
-    // Preserve access even if the one-time folder sync is blocked by a
-    // Workspace policy. The post-create fallback below will retry silently on
-    // the individual file without generating sharing email.
-    folderAccess = {
-      failedEmails: Array.from(new Set(_getTeamMembersInternal()
-        .filter(row => String(row.status || '').toLowerCase() === 'active')
-        .map(row => normalizeEmail(row.email)).filter(Boolean)))
-    };
+  let folderAccess;
+  try {
+    folderAccess = ensureSupportHubAttachmentFolderAccess_(folder);
+  } catch (e) {
+    folderAccess = { failedCount: 1 };
   }
+
+  let file;
   try {
     file = folder.createFile(blob);
   } catch (e) {
     throw new Error('The image could not be saved to Google Drive. Please confirm Drive access and try again.');
   }
-  file.setDescription('Support Hub image uploaded by ' + member.name + (recordId ? ' for ' + String(recordId) : '') + '.');
 
-  // New files inherit access from the central folder. If a specific folder
-  // permission could not be established because of a Workspace policy, retry
-  // that one permission silently on the file. Never use DriveApp.addViewer(s),
-  // because it can generate a separate sharing notification for every image.
-  let sharingWarning = '';
-  const stillFailed = [];
-  (folderAccess.failedEmails || []).forEach(email => {
-    try {
-      const retry = createDrivePermissionSilently_(file.getId(), email, 'reader');
-      if (!retry.success) stillFailed.push(email);
-    } catch (e) { stillFailed.push(email); }
-  });
-  if (stillFailed.length) {
-    sharingWarning = 'The image uploaded, but access could not be confirmed for ' + stillFailed.length + ' team member(s).';
-  }
-
+  const failedCount = Number(folderAccess.failedCount) || 0;
+  const sharingWarning = failedCount
+    ? 'The image uploaded, but access could not be confirmed for ' + failedCount + ' team member(s). Folder access will retry automatically.'
+    : '';
   const fileId = file.getId();
+  const fileSize = Number(declaredSize) || 0;
   const result = {
     success: true,
     fileId: fileId,
     fileName: safeName,
-    fileSize: bytes.length,
+    fileSize: fileSize,
     mimeType: mimeType,
     viewUrl: file.getUrl(),
     previewUrl: 'https://drive.google.com/thumbnail?id=' + encodeURIComponent(fileId) + '&sz=w1600',
     warning: sharingWarning
   };
   logAudit('IMAGE_ATTACHMENT_UPLOAD', member.email, member.name, String(recordId || ''), {
-    fileId: fileId, fileName: safeName, fileSize: bytes.length,
+    fileId: fileId, fileName: safeName, fileSize: fileSize,
     context: String(context || '').slice(0, 100), sharingWarning: sharingWarning
   });
   return result;
