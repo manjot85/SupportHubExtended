@@ -2880,11 +2880,17 @@ function setRichImageUploadBusy(editorId, busy) {
     'task-create-instructions':'task-create-submit', 'task-edit-instructions':'task-edit-save-btn',
     'task-modal-update-input':'task-modal-update-save', 'modal-followup-task-instructions':'modal-followup-task-add-btn',
     'vmodal-update-text':'vmodal-update-save',
-    'peer-reply-text':'peer-reply-submit-btn', 'peer-question-text':'peer-create-btn', 'announcement-message':'announcement-publish-button'
+    'peer-reply-text':'peer-reply-submit-btn', 'peer-question-text':'peer-create-btn', 'announcement-message':'announcement-publish-button',
+    'edit-question':'admin-edit-save-btn', 'edit-answer':'admin-edit-save-btn'
   };
-  const buttonId = buttonIds[editorId];
-  const button = document.getElementById(buttonId);
-  if (button) button.disabled = richImageUploadsInFlight[editorId] > 0 || (editorId === 'modal-answer-input' && typeof answerSubmitInFlight !== 'undefined' && answerSubmitInFlight);
+  const buttonId = buttonIds[editorId] || (editorId.indexOf('quick-desk-answer-') === 0 ? editorId.replace('quick-desk-answer-', 'quick-desk-submit-') : '');
+  const button = buttonId && document.getElementById(buttonId);
+  if (button) {
+    const relatedEditors = Object.keys(buttonIds).filter(id => buttonIds[id] === buttonId);
+    const busy = relatedEditors.some(id => Number(richImageUploadsInFlight[id]) > 0) ||
+      (editorId.indexOf('quick-desk-answer-') === 0 && Number(richImageUploadsInFlight[editorId]) > 0);
+    button.disabled = busy || (editorId === 'modal-answer-input' && typeof answerSubmitInFlight !== 'undefined' && answerSubmitInFlight);
+  }
 }
 
 function handleImageInsert(e, editorId) {
@@ -2895,20 +2901,35 @@ function handleImageInsert(e, editorId) {
 }
 
 function handleEditorPasteImage(e, editorId) {
-  const items = Array.from((e.clipboardData && e.clipboardData.items) || []);
-  const imageItem = items.find(item => String(item.type || '').toLowerCase().startsWith('image/'));
-  if (imageItem) {
-    const file = imageItem.getAsFile();
-    if (!file) return;
+  const clipboard = e && e.clipboardData;
+  if (!clipboard) return;
+  const imageFiles = Array.from(clipboard.items || [])
+    .filter(item => String(item.type || '').toLowerCase().startsWith('image/'))
+    .map(item => { try { return item.getAsFile(); } catch (err) { return null; } })
+    .filter(Boolean);
+  const clipboardHtml = String(clipboard.getData('text/html') || '');
+
+  // Prefer clipboard image files when present. Some browsers expose the same
+  // picture as both a file and an HTML data URL; handling both would upload it
+  // twice. Keep accompanying formatted text, but route pictures through Drive.
+  if (imageFiles.length) {
     e.preventDefault();
-    uploadRichTextImageFile(file, editorId, null);
+    if (clipboardHtml) {
+      const template = document.createElement('template');
+      template.innerHTML = clipboardHtml;
+      template.content.querySelectorAll('img').forEach(img => img.remove());
+      const safeRemainder = sanitizeRichHtml(template.innerHTML);
+      if (safeRemainder.trim()) execEditorCmd('insertHTML', safeRemainder);
+      else { const plainText = String(clipboard.getData('text/plain') || ''); if (plainText) execEditorCmd('insertText', plainText); }
+    } else {
+      const plainText = String(clipboard.getData('text/plain') || '');
+      if (plainText) execEditorCmd('insertText', plainText);
+    }
+    imageFiles.forEach(file => uploadRichTextImageFile(file, editorId, null));
     return;
   }
 
-  // Some applications place an image only inside clipboard HTML instead of
-  // exposing it as an image file. Convert every embedded data image into the
-  // normal upload flow, and paste the remaining safe rich text separately.
-  const clipboardHtml = String(e.clipboardData && e.clipboardData.getData('text/html') || '');
+  // Some apps put pasted pictures only in clipboard HTML as data URLs.
   if (!clipboardHtml || !/data:image\/(?:png|jpe?g|gif|webp);base64,/i.test(clipboardHtml)) return;
   const template = document.createElement('template');
   template.innerHTML = clipboardHtml;
@@ -2922,8 +2943,8 @@ function handleEditorPasteImage(e, editorId) {
     if (/^data:image\/(?:png|jpe?g|gif|webp);base64,/i.test(String(img.getAttribute('src') || '').trim())) img.remove();
   });
   const safeRemainder = sanitizeRichHtml(template.innerHTML);
-  if (stripHtml(safeRemainder).trim()) execEditorCmd('insertHTML', safeRemainder);
-
+  if (safeRemainder.trim()) execEditorCmd('insertHTML', safeRemainder);
+  else { const plainText = String(clipboard.getData('text/plain') || ''); if (plainText) execEditorCmd('insertText', plainText); }
   dataImages.forEach((dataUrl, index) => {
     try {
       uploadRichTextImageFile(dataImageUrlToFile(dataUrl, index), editorId, null);
@@ -2932,6 +2953,34 @@ function handleEditorPasteImage(e, editorId) {
     }
   });
 }
+
+// Fallback for contenteditable rich-text boxes that do not declare an inline
+// paste handler (including dynamically-rendered answer editors). Editors with
+// their own handler are skipped, so one paste never triggers duplicate uploads.
+document.addEventListener('paste', event => {
+  const target = event.target && event.target.closest ? event.target.closest('[contenteditable="true"]') : null;
+  if (!target || target.hasAttribute('onpaste')) return;
+  handleEditorPasteImage(event, target.id);
+});
+document.addEventListener('dragover', event => {
+  const target = event.target && event.target.closest ? event.target.closest('[contenteditable="true"]') : null;
+  if (!target || target.hasAttribute('ondrop')) return;
+  const items = Array.from((event.dataTransfer && event.dataTransfer.items) || []);
+  if (items.some(item => item.kind === 'file' && String(item.type || '').toLowerCase().startsWith('image/'))) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'copy';
+  }
+});
+document.addEventListener('drop', event => {
+  const target = event.target && event.target.closest ? event.target.closest('[contenteditable="true"]') : null;
+  if (!target || target.hasAttribute('ondrop')) return;
+  const files = Array.from((event.dataTransfer && event.dataTransfer.files) || [])
+    .filter(file => String(file.type || '').toLowerCase().startsWith('image/'));
+  if (!files.length) return;
+  event.preventDefault();
+  event.stopPropagation();
+  files.forEach(file => uploadRichTextImageFile(file, target.id, null));
+});
 
 function dataImageUrlToFile(dataUrl, index) {
   const match = String(dataUrl || '').match(/^data:(image\/(?:png|jpe?g|gif|webp));base64,([\s\S]+)$/i);
@@ -2945,6 +2994,15 @@ function dataImageUrlToFile(dataUrl, index) {
 }
 
 function imageAttachmentContext(editorId) {
+  if (editorId === 'edit-question' || editorId === 'edit-answer') {
+    const ticket = document.getElementById('edit-ticket-id');
+    return { context: 'Admin Question Edit', recordId: ticket ? ticket.value : '' };
+  }
+  if (editorId.indexOf('quick-desk-answer-') === 0) {
+    const safeId = editorId.slice('quick-desk-answer-'.length);
+    const question = (allQuestions || []).find(item => cssSafeId(item.ticketId) === safeId);
+    return { context: 'Supervisor Answer', recordId: question ? question.ticketId : '' };
+  }
   if (editorId === 'modal-answer-input') return { context: 'Supervisor Answer', recordId: activeModalTicketId || '' };
   if (editorId === 'task-modal-update-input') return { context: 'Task Update', recordId: activeTask ? activeTask.taskId : '' };
   if (editorId === 'task-edit-instructions') return { context: 'Task Instructions', recordId: activeTask ? activeTask.taskId : '' };
@@ -2962,31 +3020,96 @@ function formatAttachmentSize(bytes) {
   return (size / (1024 * 1024)).toFixed(1) + ' MB';
 }
 
-function appendUploadedImageToEditor(editorId, attachment, localPreviewUrl) {
+function createRichImageUploadPlaceholder(editorId) {
+  const editor = document.getElementById(editorId);
+  if (!editor) return null;
+  const marker = document.createElement('span');
+  marker.className = 'rich-image-upload-pending';
+  marker.dataset.richImagePending = 'true';
+  marker.contentEditable = 'false';
+  marker.textContent = 'Uploading image…';
+  const selection = window.getSelection();
+  let range = null;
+  if (selection && selection.rangeCount) {
+    const candidate = selection.getRangeAt(0);
+    if (editor.contains(candidate.startContainer)) range = candidate.cloneRange();
+  }
+  if (!range) {
+    range = document.createRange();
+    range.selectNodeContents(editor);
+    range.collapse(false);
+  } else {
+    range.deleteContents();
+  }
+  range.insertNode(marker);
+  range.setStartAfter(marker);
+  range.collapse(true);
+  if (selection) { selection.removeAllRanges(); selection.addRange(range); }
+  return marker;
+}
+
+function appendUploadedImageToEditor(editorId, attachment, localPreviewUrl, placeholder) {
   const editor = document.getElementById(editorId);
   if (!editor) throw new Error('The question or answer window is no longer open.');
-  const block = document.createElement('p');
   const imageLink = document.createElement('a');
   imageLink.href = attachment.viewUrl;
   imageLink.target = '_blank';
   imageLink.rel = 'noopener noreferrer';
   const image = document.createElement('img');
-  // Show the local image immediately. Before saving, the source is swapped to
-  // the permanent Drive thumbnail URL so base64 image data never enters Sheets.
-  image.src = localPreviewUrl || attachment.previewUrl;
   image.setAttribute('data-drive-src', attachment.previewUrl || '');
   image.alt = attachment.fileName || 'Attached screenshot';
+  if (attachment.previewUrl && localPreviewUrl) {
+    let remoteAttempted = false;
+    image.onload = function() {
+      if (!remoteAttempted) {
+        remoteAttempted = true;
+        image.src = attachment.previewUrl;
+        return;
+      }
+      image.onload = null;
+      image.onerror = null;
+      localPreviewUrl = '';
+    };
+    image.onerror = function() {
+      if (!remoteAttempted && attachment.previewUrl) {
+        remoteAttempted = true;
+        image.src = attachment.previewUrl;
+        return;
+      }
+      image.onload = null;
+      image.onerror = null;
+      image.src = localPreviewUrl;
+      localPreviewUrl = '';
+    };
+    image.src = localPreviewUrl;
+  } else {
+    image.src = localPreviewUrl || attachment.previewUrl || '';
+  }
   imageLink.appendChild(image);
   const caption = document.createElement('a');
   caption.href = attachment.viewUrl;
   caption.target = '_blank';
   caption.rel = 'noopener noreferrer';
   caption.textContent = 'Open image: ' + (attachment.fileName || 'Screenshot') + ' (' + formatAttachmentSize(attachment.fileSize) + ')';
-  block.appendChild(imageLink);
-  block.appendChild(document.createElement('br'));
-  block.appendChild(caption);
-  editor.appendChild(block);
-  editor.focus();
+
+  if (placeholder && editor.contains(placeholder)) {
+    const block = document.createElement('span');
+    block.className = 'rich-image-attachment';
+    block.appendChild(imageLink);
+    block.appendChild(document.createElement('br'));
+    block.appendChild(caption);
+    placeholder.replaceWith(block);
+  } else {
+    const block = document.createElement('p');
+    block.appendChild(imageLink);
+    block.appendChild(document.createElement('br'));
+    block.appendChild(caption);
+    editor.appendChild(block);
+  }
+}
+
+function removeRichImageUploadPlaceholder(placeholder) {
+  if (placeholder && placeholder.parentNode) placeholder.remove();
 }
 
 function uploadRichTextImageFile(file, editorId, input) {
@@ -3002,19 +3125,29 @@ function uploadRichTextImageFile(file, editorId, input) {
     return;
   }
 
+  const meta = imageAttachmentContext(editorId);
+  const requesterEmail = currentUser.email;
+  const placeholder = createRichImageUploadPlaceholder(editorId);
+  if (!placeholder) { customAlert('The rich text editor is no longer available.'); return; }
   if (input) input.disabled = true;
   setRichImageUploadBusy(editorId, true);
   showToast('Uploading image...');
   const reader = new FileReader();
   reader.onerror = function() {
+    reader.onerror = null;
+    reader.onload = null;
+    removeRichImageUploadPlaceholder(placeholder);
     if (input) { input.disabled = false; input.value = ''; }
     setRichImageUploadBusy(editorId, false);
     customAlert('The image could not be read. Please try again.');
   };
   reader.onload = function(evt) {
-    const dataUrl = String(evt.target.result || '');
-    const meta = imageAttachmentContext(editorId);
+    let dataUrl = String(evt.target.result || '');
+    reader.onload = null;
+    reader.onerror = null;
     google.script.run.withFailureHandler(err => {
+      dataUrl = '';
+      removeRichImageUploadPlaceholder(placeholder);
       if (input) { input.disabled = false; input.value = ''; }
       setRichImageUploadBusy(editorId, false);
       customAlert('Could not upload the image: ' + (err && err.message ? err.message : err));
@@ -3022,12 +3155,15 @@ function uploadRichTextImageFile(file, editorId, input) {
       if (input) { input.disabled = false; input.value = ''; }
       setRichImageUploadBusy(editorId, false);
       try {
-        appendUploadedImageToEditor(editorId, res || {}, dataUrl);
+        appendUploadedImageToEditor(editorId, res || {}, dataUrl, placeholder);
+        dataUrl = '';
         showToast((res && res.warning) ? res.warning : 'Image attached.');
       } catch (err) {
+        dataUrl = '';
+        removeRichImageUploadPlaceholder(placeholder);
         customAlert(err.message || String(err));
       }
-    }).uploadRichTextImage(dataUrl, file.name || 'screenshot.png', file.size, meta.context, meta.recordId, currentUser.email);
+    }).uploadRichTextImage(dataUrl, file.name || 'screenshot.png', file.size, meta.context, meta.recordId, requesterEmail);
   };
   reader.readAsDataURL(file);
 }
@@ -4885,6 +5021,7 @@ function renderQuickMyDesk(){
 async function quickDeskSubmitAnswer(ticketId){
   if(quickDeskBusyTicketId)return;
   const id=cssSafeId(ticketId), editor=document.getElementById('quick-desk-answer-'+id);
+  if (Number(richImageUploadsInFlight['quick-desk-answer-'+id]) > 0) { showToast('Wait for the image upload to finish before submitting.'); return; }
   const ansHtml=editor?getRichEditorHtml('quick-desk-answer-'+id):''; const ansText=editor?getRichEditorText('quick-desk-answer-'+id):'';
   if(!ansText){await customAlert('Please write an answer before submitting.');return;}
   const btn=document.getElementById('quick-desk-submit-'+id); quickDeskBusyTicketId=ticketId; if(btn){btn.disabled=true;btn.innerText='Submitting...';}
@@ -8226,18 +8363,19 @@ async function submitEditModal() {
   const sheet = document.getElementById('edit-sheet').value;
   const ticketId = document.getElementById('edit-ticket-id').value;
   const isAnswered = sheet === 'Answered';
+  if (Number(richImageUploadsInFlight['edit-question']) > 0 || (isAnswered && Number(richImageUploadsInFlight['edit-answer']) > 0)) { showToast('Wait for the image upload to finish before saving.'); return; }
   const caseLinkVal = (document.getElementById('edit-case-link').value || '').trim();
 
   const updates = {
     category: document.getElementById('edit-work-category').value || 'General / Other',
     eventName: document.getElementById('edit-event-name').value,
-    question: ensureExternalLinks(document.getElementById('edit-question').innerHTML),
+    question: getRichEditorHtml('edit-question'),
     caseLink: caseLinkVal,
     talentRole: document.getElementById('edit-talent-role').value || '',
     eventDate: document.getElementById('edit-event-date').value || '',
     expected: editSnapshot || {}
   };
-  if (isAnswered) updates.answer = ensureExternalLinks(document.getElementById('edit-answer').innerHTML);
+  if (isAnswered) updates.answer = getRichEditorHtml('edit-answer');
   else {
     updates.isUrgent = document.getElementById('edit-urgent').checked;
     if (updates.isUrgent && !updates.eventDate) { showToast('Please add the event date.'); return; }
@@ -13023,6 +13161,7 @@ function openPeerCreateModal(){ if(normalizeCategoryClient(currentUser&& (curren
 function closePeerCreateModal(){document.getElementById('peer-create-modal').classList.add('hidden');}
 function submitPeerQuestion(ev){
   ev.preventDefault();
+  if (Number(richImageUploadsInFlight['peer-question-text']) > 0) { showToast('Wait for the image upload to finish before sending.'); return; }
   const assignedToEmail=(document.getElementById('peer-assignee').value||'').trim();
   const question=getRichEditorHtml('peer-question-text');
   const questionText=getRichEditorText('peer-question-text');
@@ -13052,6 +13191,7 @@ function renderPeerDetail(){
 }
 function sendPeerReply(){
   if(!activePeerQuestion)return;
+  if (Number(richImageUploadsInFlight['peer-reply-text']) > 0) { showToast('Wait for the image upload to finish before sending.'); return; }
   const html=getRichEditorHtml('peer-reply-text');
   const text=getRichEditorText('peer-reply-text');
   if(!text)return showToast('Write a reply first.');
