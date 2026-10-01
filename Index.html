@@ -207,17 +207,21 @@ html { font-size: 16px; }
 .app-modal-maximized { padding:12px !important; }
 .app-modal-maximized #answer-modal-panel,
 .app-modal-maximized #task-detail-panel,
-.app-modal-maximized #ticket-detail-panel { width:calc(100vw - 24px) !important; height:calc(100vh - 24px) !important; min-width:0 !important; min-height:0 !important; max-width:calc(100vw - 24px) !important; max-height:calc(100vh - 24px) !important; resize:none !important; margin:0 !important; }
+.app-modal-maximized #ticket-detail-panel,
+.app-modal-maximized #create-task-panel { width:calc(100vw - 24px) !important; height:calc(100vh - 24px) !important; min-width:0 !important; min-height:0 !important; max-width:calc(100vw - 24px) !important; max-height:calc(100vh - 24px) !important; resize:none !important; margin:0 !important; }
 .app-modal-minimized { pointer-events:none; background:transparent !important; backdrop-filter:none !important; align-items:flex-end !important; justify-content:flex-end !important; padding:16px !important; overflow:visible !important; }
 .app-modal-minimized #answer-modal-panel,
 .app-modal-minimized #task-detail-panel,
-.app-modal-minimized #ticket-detail-panel { pointer-events:auto; width:min(460px,calc(100vw - 32px)) !important; height:auto !important; min-width:0 !important; min-height:0 !important; max-width:calc(100vw - 32px) !important; max-height:none !important; resize:none !important; margin:0 !important; border-radius:14px !important; box-shadow:0 18px 45px rgba(15,23,42,.28); }
+.app-modal-minimized #ticket-detail-panel,
+.app-modal-minimized #create-task-panel { pointer-events:auto; width:min(460px,calc(100vw - 32px)) !important; height:auto !important; min-width:0 !important; min-height:0 !important; max-width:calc(100vw - 32px) !important; max-height:none !important; resize:none !important; margin:0 !important; border-radius:14px !important; box-shadow:0 18px 45px rgba(15,23,42,.28); }
 .app-modal-minimized #answer-modal-panel > *:not(:first-child),
 .app-modal-minimized #task-detail-panel > *:not(:first-child),
-.app-modal-minimized #ticket-detail-panel > *:not(:first-child) { display:none !important; }
+.app-modal-minimized #ticket-detail-panel > *:not(:first-child),
+.app-modal-minimized #create-task-panel > *:not(:first-child) { display:none !important; }
 .app-modal-minimized #answer-modal-panel > div:first-child,
 .app-modal-minimized #task-detail-panel > div:first-child,
-.app-modal-minimized #ticket-detail-panel > div:first-child { padding:10px 12px !important; border-bottom:0 !important; }
+.app-modal-minimized #ticket-detail-panel > div:first-child,
+.app-modal-minimized #create-task-panel > div:first-child { padding:10px 12px !important; border-bottom:0 !important; }
 .app-modal-minimized .resolve-review-grid,
 .app-modal-minimized .task-top-grid,
 .app-modal-minimized #task-modal-related-ticket-top { display:none !important; }
@@ -306,6 +310,19 @@ body.question-task-window-dragging, body.question-task-window-dragging * { curso
   body.question-task-workspace #create-task-modal { display:flex !important; position:fixed; inset:0; z-index:55; padding:12px; align-items:stretch; justify-content:flex-end; overflow:hidden; background:transparent; backdrop-filter:none; pointer-events:none; }
   body.question-task-workspace #create-task-panel { position:absolute; right:12px; top:12px; width:calc(50vw - 18px); height:calc(100vh - 24px); min-width:0; min-height:0; max-width:calc(50vw - 18px); max-height:calc(100vh - 24px); margin:0; resize:both; overflow:hidden; pointer-events:auto; }
   body.question-task-workspace #create-task-panel .task-form-grid { grid-template-columns:1fr; }
+}
+/* Default question-to-task stack: active task in front, question remains exposed and draggable behind it. */
+@media (min-width:900px) {
+  body.question-task-active:not(.question-task-workspace)::before { content:""; position:fixed; inset:0; z-index:48; background:rgba(15,23,42,.55); backdrop-filter:blur(2px); pointer-events:auto; }
+  body.question-task-active:not(.question-task-workspace) #answer-modal { display:flex !important; position:fixed; inset:0; z-index:50; padding:12px; align-items:stretch; justify-content:flex-start; overflow:hidden; background:transparent; backdrop-filter:none; pointer-events:none; }
+  body.question-task-active:not(.question-task-workspace) #answer-modal-panel { position:fixed; left:16px; top:24px; width:min(760px,calc(100vw - 32px)); height:min(82vh,820px); min-width:0; min-height:0; max-width:calc(100vw - 32px); max-height:calc(100vh - 48px); margin:0; resize:both; overflow:hidden; pointer-events:auto; }
+  body.question-task-active:not(.question-task-workspace) #create-task-modal { display:flex !important; position:fixed; inset:0; z-index:55; padding:12px; align-items:stretch; justify-content:flex-start; overflow:hidden; background:transparent; backdrop-filter:none; pointer-events:none; }
+  body.question-task-active:not(.question-task-workspace) #create-task-panel { position:fixed; left:clamp(160px,calc(100vw - 744px),calc(100vw - 32px)); top:clamp(100px,16vh,140px); width:min(720px,calc(100vw - 180px)); height:calc(100vh - 120px); min-width:0; min-height:0; max-width:calc(100vw - 32px); max-height:calc(100vh - 120px); margin:0; resize:both; overflow:hidden; pointer-events:auto; }
+  body.question-task-active:not(.question-task-workspace) #create-task-panel .task-form-grid { grid-template-columns:1fr; }
+  body.question-task-active:not(.question-task-workspace) #create-task-modal.app-modal-minimized { display:flex !important; position:fixed; inset:0; z-index:70; padding:16px; align-items:flex-end; justify-content:flex-end; overflow:visible; background:transparent; pointer-events:none; }
+  body.question-task-active:not(.question-task-workspace) #create-task-modal.app-modal-minimized #create-task-panel { position:fixed; left:auto; top:auto; right:16px; bottom:16px; width:min(460px,calc(100vw - 32px)); height:auto; min-width:0; min-height:0; max-width:calc(100vw - 32px); max-height:none; margin:0; resize:none; }
+  body.question-task-active:not(.question-task-workspace) #create-task-modal.app-modal-maximized { display:flex !important; position:fixed; inset:0; z-index:70; padding:12px; align-items:stretch; justify-content:stretch; overflow:hidden; background:rgba(15,23,42,.74); backdrop-filter:blur(3px); pointer-events:auto; }
+  body.question-task-active:not(.question-task-workspace) #create-task-modal.app-modal-maximized #create-task-panel { position:fixed; left:12px; top:12px; right:12px; bottom:12px; width:calc(100vw - 24px); height:calc(100vh - 24px); min-width:0; min-height:0; max-width:calc(100vw - 24px); max-height:calc(100vh - 24px); margin:0; resize:none; }
 }
 @media (max-width:899px) {
   body.question-task-active #task-create-layout-toggle { display:none !important; }
@@ -1843,10 +1860,17 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 <div id="create-task-modal" class="fixed inset-0 bg-slate-950/70 z-[55] hidden flex items-center justify-center p-4 backdrop-blur-sm overflow-y-auto">
 <div id="create-task-panel" class="task-responsive-panel bg-white rounded-2xl shadow-2xl my-8 border border-slate-200 flex flex-col">
   <div class="flex justify-between items-start p-5 border-b">
-    <div data-window-drag-handle="create-task-panel" class="cursor-grab active:cursor-grabbing select-none"><span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">New Task</span><h3 class="text-base font-bold text-slate-900 mt-1">Create Team Task</h3></div>
-    <div class="flex items-center gap-2">
+    <div data-window-drag-handle="create-task-panel" onclick="restoreWorkModal('create-task-modal')" class="cursor-grab active:cursor-grabbing select-none">
+      <div class="flex items-center gap-2"><span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">New Task</span><span id="task-create-active-label" class="hidden text-[9px] font-bold uppercase tracking-wider text-emerald-700">Working window</span></div>
+      <h3 class="text-base font-bold text-slate-900 mt-1">Create Team Task</h3>
+      <p id="task-create-window-hint" class="hidden text-[10px] text-slate-500 mt-1">The question window stays open behind this task.</p>
+    </div>
+    <div class="app-modal-tools" aria-label="Task window controls">
       <button id="task-create-layout-toggle" type="button" onclick="toggleQuestionTaskWorkspace()" class="hidden px-2.5 py-1 rounded-lg border border-slate-200 text-[10px] font-semibold text-slate-600 hover:bg-slate-50">Side by side</button>
-      <button onclick="closeCreateTaskModal()" class="text-slate-400 hover:text-slate-700 font-bold text-xl">&times;</button>
+      <button type="button" onclick="minimizeWorkModal('create-task-modal')" class="app-modal-tool" title="Minimize task window" aria-label="Minimize task window">—</button>
+      <button type="button" onclick="resetWorkModal('create-task-modal')" class="app-modal-tool" title="Reset task window" aria-label="Reset task window">↺</button>
+      <button type="button" onclick="maximizeWorkModal('create-task-modal')" class="app-modal-tool" title="Maximize task window" aria-label="Maximize task window">□</button>
+      <button type="button" onclick="closeCreateTaskModal()" class="app-modal-tool app-modal-tool-close" title="Close task window" aria-label="Close task window">&times;</button>
     </div>
   </div>
   <form id="create-task-form" autocomplete="off" novalidate onsubmit="submitCreateTask(event)" class="task-responsive-scroll p-5 space-y-4 flex-1">
@@ -10199,6 +10223,8 @@ function clearQuestionTaskWindowPositions(){
 }
 function toggleQuestionTaskWorkspace(){
   if(!document.body.classList.contains('question-task-active'))return;
+  const taskModal=document.getElementById('create-task-modal');
+  if(taskModal&&(taskModal.classList.contains('app-modal-minimized')||taskModal.classList.contains('app-modal-maximized')))resetWorkModal('create-task-modal');
   const useSideBySide=window.innerWidth>=900&&!document.body.classList.contains('question-task-workspace');
   clearQuestionTaskWindowPositions();
   document.body.classList.toggle('question-task-workspace',useSideBySide);
@@ -10206,8 +10232,17 @@ function toggleQuestionTaskWorkspace(){
 }
 function updateQuestionTaskLayoutToggle(){
   const button=document.getElementById('task-create-layout-toggle');
-  if(!button)return;
-  button.textContent=document.body.classList.contains('question-task-workspace')?'Stack windows':'Side by side';
+  if(button)button.textContent=document.body.classList.contains('question-task-workspace')?'Stack windows':'Side by side';
+  const active=document.body.classList.contains('question-task-active');
+  const label=document.getElementById('task-create-active-label');
+  const hint=document.getElementById('task-create-window-hint');
+  if(label)label.classList.toggle('hidden',!active);
+  if(hint){
+    hint.classList.toggle('hidden',!active);
+    hint.textContent=document.body.classList.contains('question-task-workspace')
+      ? 'The question window is open beside this task.'
+      : 'The question window stays open behind this task.';
+  }
 }
 function installQuestionTaskWindowDragging(){
   document.querySelectorAll('[data-window-drag-handle]').forEach(handle=>{
@@ -13275,7 +13310,8 @@ document.addEventListener('click', function(e) {
 function workModalPanelId(modalId) {
   return modalId === 'answer-modal' ? 'answer-modal-panel' :
     modalId === 'task-detail-modal' ? 'task-detail-panel' :
-    modalId === 'ticket-detail-modal' ? 'ticket-detail-panel' : '';
+    modalId === 'ticket-detail-modal' ? 'ticket-detail-panel' :
+    modalId === 'create-task-modal' ? 'create-task-panel' : '';
 }
 function clearWorkModalSizing(modalId) {
   const panelId = workModalPanelId(modalId);
@@ -13284,25 +13320,48 @@ function clearWorkModalSizing(modalId) {
   panel.style.width = '';
   panel.style.height = '';
 }
+function clearWorkModalPositioning(modalId) {
+  const panelId = workModalPanelId(modalId);
+  const panel = panelId ? document.getElementById(panelId) : null;
+  if (!panel) return;
+  ['position','left','top','right','bottom','transform','margin'].forEach(prop=>panel.style[prop]='');
+}
+function prepareTaskWindowModeChange(modalId) {
+  if(modalId==='create-task-modal'&&document.body.classList.contains('question-task-workspace')){
+    document.body.classList.remove('question-task-workspace');
+    clearQuestionTaskWindowPositions();
+    updateQuestionTaskLayoutToggle();
+  }
+}
 function resetWorkModal(modalId) {
   const modal = document.getElementById(modalId);
   if (!modal) return;
   modal.classList.remove('app-modal-minimized','app-modal-maximized');
   clearWorkModalSizing(modalId);
+  clearWorkModalPositioning(modalId);
 }
 function maximizeWorkModal(modalId) {
   const modal = document.getElementById(modalId);
   if (!modal) return;
+  prepareTaskWindowModeChange(modalId);
   clearWorkModalSizing(modalId);
+  clearWorkModalPositioning(modalId);
   modal.classList.remove('app-modal-minimized');
   modal.classList.add('app-modal-maximized');
 }
 function minimizeWorkModal(modalId) {
   const modal = document.getElementById(modalId);
   if (!modal) return;
+  prepareTaskWindowModeChange(modalId);
   clearWorkModalSizing(modalId);
+  clearWorkModalPositioning(modalId);
   modal.classList.remove('app-modal-maximized');
   modal.classList.add('app-modal-minimized');
+}
+function restoreWorkModal(modalId){
+  const modal=document.getElementById(modalId);
+  if(!modal)return;
+  modal.classList.remove('app-modal-minimized','app-modal-maximized');
 }
 
 // ============================================================================
