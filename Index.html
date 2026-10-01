@@ -2907,29 +2907,17 @@ function handleEditorPasteImage(e, editorId) {
     .filter(item => String(item.type || '').toLowerCase().startsWith('image/'))
     .map(item => { try { return item.getAsFile(); } catch (err) { return null; } })
     .filter(Boolean);
-  const clipboardHtml = String(clipboard.getData('text/html') || '');
-
-  // Prefer clipboard image files when present. Some browsers expose the same
-  // picture as both a file and an HTML data URL; handling both would upload it
-  // twice. Keep accompanying formatted text, but route pictures through Drive.
   if (imageFiles.length) {
+    // Avoid parsing clipboard HTML when image files are already supplied. Some
+    // apps include the full screenshot as a huge embedded data URL in that HTML.
     e.preventDefault();
-    if (clipboardHtml) {
-      const template = document.createElement('template');
-      template.innerHTML = clipboardHtml;
-      template.content.querySelectorAll('img').forEach(img => img.remove());
-      const safeRemainder = sanitizeRichHtml(template.innerHTML);
-      if (safeRemainder.trim()) execEditorCmd('insertHTML', safeRemainder);
-      else { const plainText = String(clipboard.getData('text/plain') || ''); if (plainText) execEditorCmd('insertText', plainText); }
-    } else {
-      const plainText = String(clipboard.getData('text/plain') || '');
-      if (plainText) execEditorCmd('insertText', plainText);
-    }
+    const plainText = String(clipboard.getData('text/plain') || '');
+    if (plainText) execEditorCmd('insertText', plainText);
     imageFiles.forEach(file => uploadRichTextImageFile(file, editorId, null));
     return;
   }
 
-  // Some apps put pasted pictures only in clipboard HTML as data URLs.
+  const clipboardHtml = String(clipboard.getData('text/html') || '');
   if (!clipboardHtml || !/data:image\/(?:png|jpe?g|gif|webp);base64,/i.test(clipboardHtml)) return;
   const template = document.createElement('template');
   template.innerHTML = clipboardHtml;
@@ -2937,51 +2925,21 @@ function handleEditorPasteImage(e, editorId) {
     .map(img => String(img.getAttribute('src') || '').trim())
     .filter(src => /^data:image\/(?:png|jpe?g|gif|webp);base64,/i.test(src));
   if (!dataImages.length) return;
-
   e.preventDefault();
   template.content.querySelectorAll('img').forEach(img => {
     if (/^data:image\/(?:png|jpe?g|gif|webp);base64,/i.test(String(img.getAttribute('src') || '').trim())) img.remove();
   });
   const safeRemainder = sanitizeRichHtml(template.innerHTML);
   if (safeRemainder.trim()) execEditorCmd('insertHTML', safeRemainder);
-  else { const plainText = String(clipboard.getData('text/plain') || ''); if (plainText) execEditorCmd('insertText', plainText); }
+  else {
+    const plainText = String(clipboard.getData('text/plain') || '');
+    if (plainText) execEditorCmd('insertText', plainText);
+  }
   dataImages.forEach((dataUrl, index) => {
-    try {
-      uploadRichTextImageFile(dataImageUrlToFile(dataUrl, index), editorId, null);
-    } catch (err) {
-      customAlert('One pasted image could not be prepared for upload. Please use the Image button instead.');
-    }
+    try { uploadRichTextImageFile(dataImageUrlToFile(dataUrl, index), editorId, null); }
+    catch (err) { customAlert('One pasted image could not be prepared for upload. Please use the Image button instead.'); }
   });
 }
-
-// Fallback for contenteditable rich-text boxes that do not declare an inline
-// paste handler (including dynamically-rendered answer editors). Editors with
-// their own handler are skipped, so one paste never triggers duplicate uploads.
-document.addEventListener('paste', event => {
-  const target = event.target && event.target.closest ? event.target.closest('[contenteditable="true"]') : null;
-  if (!target || target.hasAttribute('onpaste')) return;
-  handleEditorPasteImage(event, target.id);
-});
-document.addEventListener('dragover', event => {
-  const target = event.target && event.target.closest ? event.target.closest('[contenteditable="true"]') : null;
-  if (!target || target.hasAttribute('ondrop')) return;
-  const items = Array.from((event.dataTransfer && event.dataTransfer.items) || []);
-  if (items.some(item => item.kind === 'file' && String(item.type || '').toLowerCase().startsWith('image/'))) {
-    event.preventDefault();
-    event.dataTransfer.dropEffect = 'copy';
-  }
-});
-document.addEventListener('drop', event => {
-  const target = event.target && event.target.closest ? event.target.closest('[contenteditable="true"]') : null;
-  if (!target || target.hasAttribute('ondrop')) return;
-  const files = Array.from((event.dataTransfer && event.dataTransfer.files) || [])
-    .filter(file => String(file.type || '').toLowerCase().startsWith('image/'));
-  if (!files.length) return;
-  event.preventDefault();
-  event.stopPropagation();
-  files.forEach(file => uploadRichTextImageFile(file, target.id, null));
-});
-
 function dataImageUrlToFile(dataUrl, index) {
   const match = String(dataUrl || '').match(/^data:(image\/(?:png|jpe?g|gif|webp));base64,([\s\S]+)$/i);
   if (!match) throw new Error('Unsupported pasted image.');
@@ -3020,14 +2978,27 @@ function formatAttachmentSize(bytes) {
   return (size / (1024 * 1024)).toFixed(1) + ' MB';
 }
 
-function createRichImageUploadPlaceholder(editorId) {
+function createRichImageUploadPlaceholder(editorId, file, previewUrl) {
   const editor = document.getElementById(editorId);
   if (!editor) return null;
   const marker = document.createElement('span');
   marker.className = 'rich-image-upload-pending';
   marker.dataset.richImagePending = 'true';
   marker.contentEditable = 'false';
-  marker.textContent = 'Uploading image…';
+  if (file && previewUrl) {
+    const image = document.createElement('img');
+    image.src = previewUrl;
+    image.alt = file.name || 'Image upload in progress';
+    image.style.maxWidth = '100%';
+    image.style.maxHeight = '250px';
+    marker.appendChild(image);
+    const status = document.createElement('span');
+    status.className = 'text-[10px] text-slate-500';
+    status.textContent = 'Uploading image…';
+    marker.appendChild(status);
+  } else {
+    marker.textContent = 'Uploading image…';
+  }
   const selection = window.getSelection();
   let range = null;
   if (selection && selection.rangeCount) {
@@ -3047,7 +3018,6 @@ function createRichImageUploadPlaceholder(editorId) {
   if (selection) { selection.removeAllRanges(); selection.addRange(range); }
   return marker;
 }
-
 function appendUploadedImageToEditor(editorId, attachment, localPreviewUrl, placeholder) {
   const editor = document.getElementById(editorId);
   if (!editor) throw new Error('The question or answer window is no longer open.');
@@ -3068,6 +3038,7 @@ function appendUploadedImageToEditor(editorId, attachment, localPreviewUrl, plac
       }
       image.onload = null;
       image.onerror = null;
+      if (localPreviewUrl && /^blob:/.test(localPreviewUrl)) URL.revokeObjectURL(localPreviewUrl);
       localPreviewUrl = '';
     };
     image.onerror = function() {
@@ -3112,6 +3083,34 @@ function removeRichImageUploadPlaceholder(placeholder) {
   if (placeholder && placeholder.parentNode) placeholder.remove();
 }
 
+function makeRichImageUploadForm(file, meta, requesterEmail) {
+  if (typeof DataTransfer === 'undefined') return null;
+  const form = document.createElement('form');
+  form.style.display = 'none';
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.name = 'imageFile';
+  const transfer = new DataTransfer();
+  transfer.items.add(file);
+  input.files = transfer.files;
+  if (!input.files || !input.files.length) return null;
+  form.appendChild(input);
+  [
+    ['imageSize', String(Number(file.size) || 0)],
+    ['imageContext', String(meta.context || '')],
+    ['imageRecordId', String(meta.recordId || '')],
+    ['requestingEmail', String(requesterEmail || '')]
+  ].forEach(pair => {
+    const hidden = document.createElement('input');
+    hidden.type = 'hidden';
+    hidden.name = pair[0];
+    hidden.value = pair[1];
+    form.appendChild(hidden);
+  });
+  document.body.appendChild(form);
+  return form;
+}
+
 function uploadRichTextImageFile(file, editorId, input) {
   const mime = String(file.type || '').toLowerCase();
   if (!SUPPORTED_IMAGE_ATTACHMENT_TYPES.includes(mime)) {
@@ -3127,47 +3126,58 @@ function uploadRichTextImageFile(file, editorId, input) {
 
   const meta = imageAttachmentContext(editorId);
   const requesterEmail = currentUser.email;
-  const placeholder = createRichImageUploadPlaceholder(editorId);
-  if (!placeholder) { customAlert('The rich text editor is no longer available.'); return; }
+  const localPreviewUrl = URL.createObjectURL(file);
+  const placeholder = createRichImageUploadPlaceholder(editorId, file, localPreviewUrl);
+  if (!placeholder) { URL.revokeObjectURL(localPreviewUrl); customAlert('The rich text editor is no longer available.'); return; }
   if (input) input.disabled = true;
   setRichImageUploadBusy(editorId, true);
   showToast('Uploading image...');
-  const reader = new FileReader();
-  reader.onerror = function() {
-    reader.onerror = null;
-    reader.onload = null;
-    removeRichImageUploadPlaceholder(placeholder);
+  let uploadForm = null;
+  const finish = () => {
     if (input) { input.disabled = false; input.value = ''; }
     setRichImageUploadBusy(editorId, false);
+  };
+  const fail = err => {
+    if (uploadForm && uploadForm.parentNode) uploadForm.remove();
+    URL.revokeObjectURL(localPreviewUrl);
+    removeRichImageUploadPlaceholder(placeholder);
+    finish();
+    customAlert('Could not upload the image: ' + (err && err.message ? err.message : err));
+  };
+  const success = res => {
+    if (uploadForm && uploadForm.parentNode) uploadForm.remove();
+    finish();
+    try {
+      appendUploadedImageToEditor(editorId, res || {}, localPreviewUrl, placeholder);
+      showToast((res && res.warning) ? res.warning : 'Image attached.');
+    } catch (err) {
+      URL.revokeObjectURL(localPreviewUrl);
+      removeRichImageUploadPlaceholder(placeholder);
+      customAlert(err.message || String(err));
+    }
+  };
+
+  try { uploadForm = makeRichImageUploadForm(file, meta, requesterEmail); } catch (err) { uploadForm = null; }
+  if (uploadForm) {
+    google.script.run.withFailureHandler(fail).withSuccessHandler(success).uploadRichTextImageFromForm(uploadForm);
+    return;
+  }
+
+  // Compatibility path for browsers that cannot put a File into a form input.
+  const reader = new FileReader();
+  reader.onerror = function() {
+    URL.revokeObjectURL(localPreviewUrl);
+    removeRichImageUploadPlaceholder(placeholder);
+    finish();
     customAlert('The image could not be read. Please try again.');
   };
   reader.onload = function(evt) {
-    let dataUrl = String(evt.target.result || '');
-    reader.onload = null;
-    reader.onerror = null;
-    google.script.run.withFailureHandler(err => {
-      dataUrl = '';
-      removeRichImageUploadPlaceholder(placeholder);
-      if (input) { input.disabled = false; input.value = ''; }
-      setRichImageUploadBusy(editorId, false);
-      customAlert('Could not upload the image: ' + (err && err.message ? err.message : err));
-    }).withSuccessHandler(res => {
-      if (input) { input.disabled = false; input.value = ''; }
-      setRichImageUploadBusy(editorId, false);
-      try {
-        appendUploadedImageToEditor(editorId, res || {}, dataUrl, placeholder);
-        dataUrl = '';
-        showToast((res && res.warning) ? res.warning : 'Image attached.');
-      } catch (err) {
-        dataUrl = '';
-        removeRichImageUploadPlaceholder(placeholder);
-        customAlert(err.message || String(err));
-      }
-    }).uploadRichTextImage(dataUrl, file.name || 'screenshot.png', file.size, meta.context, meta.recordId, requesterEmail);
+    const dataUrl = String(evt.target.result || '');
+    google.script.run.withFailureHandler(fail).withSuccessHandler(success)
+      .uploadRichTextImage(dataUrl, file.name || 'screenshot.png', file.size, meta.context, meta.recordId, requesterEmail);
   };
   reader.readAsDataURL(file);
 }
-
 function getRichEditorHtml(editorId) {
   const editor = document.getElementById(editorId);
   if (!editor) return '';
