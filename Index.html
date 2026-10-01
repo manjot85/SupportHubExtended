@@ -3449,11 +3449,20 @@ function internalBadgeHtml() {
 
 
 let WORK_CATEGORIES_CLIENT = ['Talent','Event Plan','Client Communication','Photo','Video','Album / Print','Billing / Payment','Scheduling','Cancellation','System / Salesforce','General / Other'];
+function sortedWorkCategoryOptions_(values) {
+  const unique = Array.from(new Set((values || []).map(value => String(value || '').trim()).filter(Boolean)));
+  const hasNone = unique.some(value => value.toLowerCase() === 'none');
+  const categories = unique.filter(value => value.toLowerCase() !== 'none')
+    .sort((a, b) => a.localeCompare(b, undefined, {sensitivity: 'base', numeric: true}));
+  return hasNone ? ['None'].concat(categories) : categories;
+}
+
 function fillWorkCategorySelect(id, selected) {
   const el = document.getElementById(id); if (!el) return;
   const cleanSelected = String(selected || 'General / Other');
   let choices = WORK_CATEGORIES_CLIENT.slice();
-  if (cleanSelected && !choices.includes(cleanSelected)) choices.unshift(cleanSelected);
+  if (cleanSelected && !choices.includes(cleanSelected)) choices.push(cleanSelected);
+  choices = sortedWorkCategoryOptions_(choices);
   el.innerHTML = choices.map(c => '<option value="'+esc(c)+'">'+esc(c)+(WORK_CATEGORIES_CLIENT.includes(c)?'':' (Inactive)')+'</option>').join('');
   el.value = choices.includes(cleanSelected) ? cleanSelected : 'General / Other';
   if (!el.dataset.categorySuggestionBound) {
@@ -3472,7 +3481,7 @@ function refreshVisibleWorkCategoryControls() {
   const filter = document.getElementById('sup-filter-category');
   if (filter) {
     const selected = filter.value || 'ALL';
-    filter.innerHTML = '<option value="ALL">All Categories</option>' + WORK_CATEGORIES_CLIENT.map(c => '<option value="'+esc(c)+'">'+esc(c)+'</option>').join('');
+    filter.innerHTML = '<option value="ALL">All Categories</option>' + sortedWorkCategoryOptions_(WORK_CATEGORIES_CLIENT).map(c => '<option value="'+esc(c)+'">'+esc(c)+'</option>').join('');
     filter.value = Array.from(filter.options).some(o => o.value === selected) ? selected : 'ALL';
   }
 }
@@ -8611,7 +8620,7 @@ function scheduleSupervisorRender() {
 }
 
 function renderSupervisorDesk() {
-  const supCatFilter=document.getElementById('sup-filter-category'); if(supCatFilter && supCatFilter.options.length<=1){supCatFilter.innerHTML='<option value="ALL">All Categories</option>'+WORK_CATEGORIES_CLIENT.map(c=>'<option value="'+esc(c)+'">'+esc(c)+'</option>').join('');}
+  const supCatFilter=document.getElementById('sup-filter-category'); if(supCatFilter && supCatFilter.options.length<=1){supCatFilter.innerHTML='<option value="ALL">All Categories</option>'+sortedWorkCategoryOptions_(WORK_CATEGORIES_CLIENT).map(c=>'<option value="'+esc(c)+'">'+esc(c)+'</option>').join('');}
   const container = document.getElementById('sup-groups');
   if (!container || !currentUser) return;
 
@@ -10109,7 +10118,7 @@ function editTaskDetailCategory(){
   const edit=document.getElementById('task-detail-category-edit');
   const select=document.getElementById('task-detail-category-select');
   if(select){
-    const options=['None'].concat(WORK_CATEGORIES_CLIENT||[]);
+    const options=sortedWorkCategoryOptions_(['None'].concat(WORK_CATEGORIES_CLIENT||[]));
     select.innerHTML=options.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');
     select.value=(activeTask&&activeTask.category)||'None';
   }
@@ -10146,7 +10155,7 @@ function saveTaskDetailCategory(){
 }
 
 function renderTasks() {
-  const taskCatFilter=document.getElementById('task-category-filter'); if(taskCatFilter && taskCatFilter.options.length<=1){taskCatFilter.innerHTML='<option value="ALL">All Categories</option>'+WORK_CATEGORIES_CLIENT.map(c=>'<option value="'+esc(c)+'">'+esc(c)+'</option>').join('');}
+  const taskCatFilter=document.getElementById('task-category-filter'); if(taskCatFilter && taskCatFilter.options.length<=1){taskCatFilter.innerHTML='<option value="ALL">All Categories</option>'+sortedWorkCategoryOptions_(WORK_CATEGORIES_CLIENT).map(c=>'<option value="'+esc(c)+'">'+esc(c)+'</option>').join('');}
   if (!currentUser) return;
   const body = document.getElementById('task-table-body');
   if (!body) return;
