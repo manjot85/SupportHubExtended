@@ -294,6 +294,21 @@ html { font-size: 16px; }
 #home-create-menu { z-index:91; }
 #home-create-menu.radial-submenu-active > summary { visibility:hidden; pointer-events:none; }
 #global-create-card:not(.global-create-card-home) #global-create-home-copy { visibility:hidden; }
+/* Question -> Create Task workspace: keep both windows visible and independently scrollable. */
+@media (min-width:900px) {
+  body.question-task-active #task-create-layout-toggle { display:inline-flex !important; }
+  body.question-task-workspace::before { content:""; position:fixed; inset:0; z-index:48; background:rgba(15,23,42,.66); backdrop-filter:blur(3px); pointer-events:none; }
+  body.question-task-workspace #answer-modal { display:flex !important; position:fixed; inset:0; z-index:50; padding:12px; align-items:stretch; justify-content:flex-start; overflow:hidden; background:transparent; backdrop-filter:none; pointer-events:none; }
+  body.question-task-workspace #answer-modal-panel { position:absolute; left:12px; top:12px; width:calc(50vw - 18px); height:calc(100vh - 24px); min-width:0; min-height:0; max-width:calc(50vw - 18px); max-height:calc(100vh - 24px); margin:0; resize:both; overflow:hidden; pointer-events:auto; }
+  body.question-task-workspace #answer-modal .app-modal-tools button:not(.app-modal-tool-close) { display:none; }
+  body.question-task-workspace #answer-modal-panel .resolve-review-grid { grid-template-columns:1fr 1fr; }
+  body.question-task-workspace #create-task-modal { display:flex !important; position:fixed; inset:0; z-index:55; padding:12px; align-items:stretch; justify-content:flex-end; overflow:hidden; background:transparent; backdrop-filter:none; pointer-events:none; }
+  body.question-task-workspace #create-task-panel { position:absolute; right:12px; top:12px; width:calc(50vw - 18px); height:calc(100vh - 24px); min-width:0; min-height:0; max-width:calc(50vw - 18px); max-height:calc(100vh - 24px); margin:0; resize:both; overflow:hidden; pointer-events:auto; }
+  body.question-task-workspace #create-task-panel .task-form-grid { grid-template-columns:1fr; }
+}
+@media (max-width:899px) {
+  body.question-task-active #task-create-layout-toggle { display:none !important; }
+}
 #home-question-panel { width:min(900px,calc(100vw - 32px)) !important; height:min(88vh,900px) !important; max-width:calc(100vw - 32px) !important; max-height:calc(100vh - 32px) !important; min-height:420px; }
 @media (max-width:640px) { #home-question-composer { padding:8px; } #home-question-panel { width:calc(100vw - 16px) !important; height:calc(100vh - 16px) !important; max-width:calc(100vw - 16px) !important; max-height:calc(100vh - 16px) !important; min-height:0; border-radius:14px; } }
 #create-task-modal input,
@@ -1828,10 +1843,29 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 <div id="create-task-panel" class="task-responsive-panel bg-white rounded-2xl shadow-2xl my-8 border border-slate-200 flex flex-col">
   <div class="flex justify-between items-start p-5 border-b">
     <div><span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">New Task</span><h3 class="text-base font-bold text-slate-900 mt-1">Create Team Task</h3></div>
-    <button onclick="closeCreateTaskModal()" class="text-slate-400 hover:text-slate-700 font-bold text-xl">&times;</button>
+    <div class="flex items-center gap-2">
+      <button id="task-create-layout-toggle" type="button" onclick="toggleQuestionTaskWorkspace()" class="hidden px-2.5 py-1 rounded-lg border border-slate-200 text-[10px] font-semibold text-slate-600 hover:bg-slate-50">Side by side</button>
+      <button onclick="closeCreateTaskModal()" class="text-slate-400 hover:text-slate-700 font-bold text-xl">&times;</button>
+    </div>
   </div>
   <form id="create-task-form" autocomplete="off" novalidate onsubmit="submitCreateTask(event)" class="task-responsive-scroll p-5 space-y-4 flex-1">
     <div id="task-create-parent-banner" class="hidden bg-indigo-50 border border-indigo-200 rounded-xl px-3 py-2 text-[10px] text-indigo-700"><strong>Related to:</strong> <span id="task-create-parent-label"></span></div>
+    <div id="task-create-question-context" class="hidden rounded-xl border border-blue-200 bg-blue-50/70 p-3">
+      <div class="flex items-center justify-between gap-3 mb-2"><p class="text-[10px] font-bold uppercase tracking-wider text-blue-700">Question context</p><button type="button" onclick="copyQuestionContextToTaskInstructions()" class="text-[10px] font-semibold text-blue-700 hover:text-blue-900">Use question text in instructions</button></div>
+      <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-[10px] text-slate-600">
+        <p><span class="font-semibold text-slate-500">Event:</span> <span id="task-create-question-event"></span></p>
+        <p><span class="font-semibold text-slate-500">Asked by:</span> <span id="task-create-question-asker"></span></p>
+        <p><span class="font-semibold text-slate-500">Asked at:</span> <span id="task-create-question-created"></span></p>
+        <p><span class="font-semibold text-slate-500">Answered by:</span> <span id="task-create-question-answered-by"></span></p>
+        <p><span class="font-semibold text-slate-500">Answered at:</span> <span id="task-create-question-answered-at"></span></p>
+        <p><span class="font-semibold text-slate-500">Status:</span> <span id="task-create-question-status"></span></p>
+        <p><span class="font-semibold text-slate-500">Assigned to:</span> <span id="task-create-question-assigned"></span></p>
+        <p><span class="font-semibold text-slate-500">Category:</span> <span id="task-create-question-category"></span></p>
+        <p class="col-span-2"><span class="font-semibold text-slate-500">Event role:</span> <span id="task-create-question-role"></span></p>
+      </div>
+      <div id="task-create-question-body" class="mt-2 max-h-28 overflow-y-auto rounded-lg border border-blue-100 bg-white/80 p-2 text-[11px] leading-relaxed text-slate-700 preserve-lines"></div>
+      <a id="task-create-question-link" class="hidden mt-2 inline-block text-[10px] font-semibold text-blue-700 underline" target="_blank" rel="noopener noreferrer">Open related link</a>
+    </div>
     <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Task Title *</label><input id="task-create-title" maxlength="140" required class="w-full border border-slate-300 p-2.5 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Short action title"></div>
     <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Instructions *</label>
       <div class="border border-slate-300 rounded-t-xl bg-slate-50 p-1.5 flex items-center gap-1 border-b-0 text-xs text-slate-600">
@@ -2523,6 +2557,7 @@ let taskRefreshInFlight = false;
 let taskRefreshQueued = false;
 let activeTask = null;
 let createTaskParentContext = null;
+let createTaskQuestionContextHtml = '';
 let answerTaskDrafts = [];
 let taskActivityLoadedForId = null;
 let taskActivityLoading = false;
@@ -7824,12 +7859,9 @@ function openAnswerModalTaskCreator() {
   const q = allQuestions.find(row =>
     row.sheet === 'Questions Tracker' && String(row.ticketId) === ticketId
   );
-  const categoryEl = document.getElementById('modal-question-category');
-  const category = (q && q.category) || (categoryEl && categoryEl.value) || 'General / Other';
-
   openCreateTaskModal('Question', ticketId, {
-    category: category,
-    parentLabel: ticketId || 'Question'
+    parentLabel: (q && q.eventName) || ticketId || 'Question',
+    questionContext: q || null
   }, { launchSource: 'ticket' });
 }
 function toggleAnsweredStatusPanel(force) {
@@ -9438,6 +9470,8 @@ function renderAnswerTaskDrafts(){
 function closeAnswerModal() {
   activeModalTicketId = null;
   document.getElementById('answer-modal').classList.add('hidden');
+  document.body.classList.remove('question-task-active','question-task-workspace');
+  updateQuestionTaskLayoutToggle();
 }
 
 function setAnswerSubmitBusy(busy) {
@@ -10070,6 +10104,8 @@ function openCreateTaskModal(parentType, parentId, defaults, launchOptions) {
   if (!currentUser) return;
   createTaskParentContext = (parentType && parentId) ? { parentType:String(parentType), parentId:String(parentId) } : null;
   defaults = defaults || {};
+  const questionContext = defaults.questionContext || null;
+  createTaskQuestionContextHtml = questionContext ? String(questionContext.question || '') : '';
   launchOptions = launchOptions || {};
   createTaskLaunchSource = String(launchOptions.launchSource || '').trim().toLowerCase();
   const createTaskForm=document.getElementById('create-task-form');
@@ -10099,6 +10135,28 @@ function openCreateTaskModal(parentType, parentId, defaults, launchOptions) {
   if (createDue) createDue.value = defaults.dueDate || nextBusinessTaskDueDate();
   const banner=document.getElementById('task-create-parent-banner'), label=document.getElementById('task-create-parent-label');
   if(banner&&label){ banner.classList.toggle('hidden',!createTaskParentContext); label.innerText=createTaskParentContext ? ((createTaskParentContext.parentType==='Task'?'Task: ':'Related Question: ')+(defaults.parentLabel||createTaskParentContext.parentId)) : ''; }
+  const questionPanel=document.getElementById('task-create-question-context');
+  if(questionPanel){
+    questionPanel.classList.toggle('hidden',!questionContext);
+    if(questionContext){
+      const setContextText=(id,value)=>{const node=document.getElementById(id);if(node)node.textContent=String(value||'—');};
+      setContextText('task-create-question-event',questionContext.eventName);
+      setContextText('task-create-question-asker',questionContext.askedBy);
+      setContextText('task-create-question-created',questionContext.created);
+      setContextText('task-create-question-answered-by',questionContext.answeredBy);
+      setContextText('task-create-question-answered-at',questionContext.answeredDate);
+      setContextText('task-create-question-status',questionContext.status);
+      setContextText('task-create-question-assigned',questionContext.assignedTo);
+      setContextText('task-create-question-category',questionContext.category);
+      setContextText('task-create-question-role',questionContext.talentRole);
+      const body=document.getElementById('task-create-question-body');
+      if(body)body.innerHTML=renderStoredRichHtml(questionContext.question||'');
+      const link=document.getElementById('task-create-question-link');
+      const href=String(questionContext.caseLink||'').trim();
+      if(link&&/^https?:\/\//i.test(href)){link.href=href;link.classList.remove('hidden');}
+      else if(link){link.removeAttribute('href');link.classList.add('hidden');}
+    }
+  }
   const ticketWrap=document.getElementById('task-create-ticket-search-wrap'); if(ticketWrap)ticketWrap.classList.toggle('hidden',!!createTaskParentContext);
   // A Ticket-launched Task must remain a clean Create Task form. Explicitly
   // clear every user-entered Task field after browser/form reset and defaults
@@ -10113,17 +10171,44 @@ function openCreateTaskModal(parentType, parentId, defaults, launchOptions) {
     const attentionInput=document.getElementById('task-create-attention-today');
     if(titleInput)titleInput.value='';
     if(assigneeInput)assigneeInput.value='';
-    if(relatedNameInput)relatedNameInput.value='';
-    if(relatedTypeInput)relatedTypeInput.value='';
-    if(relatedLinkInput)relatedLinkInput.value='';
+    if(!questionContext){
+      if(relatedNameInput)relatedNameInput.value='';
+      if(relatedTypeInput)relatedTypeInput.value='';
+      if(relatedLinkInput)relatedLinkInput.value='';
+    }
     if(attentionInput)attentionInput.checked=false;
     clearRichEditor('task-create-instructions');
   }
   if (attentionInput) syncTaskAttentionDueDate('task-create-due', attentionInput.checked);
   syncTaskCreateRelationshipFields();
   document.getElementById('create-task-modal').classList.remove('hidden');
+  const answerModal=document.getElementById('answer-modal');
+  const fromQuestion=createTaskLaunchSource==='ticket'&&!!answerModal&&!answerModal.classList.contains('hidden');
+  document.body.classList.toggle('question-task-active',fromQuestion);
+  document.body.classList.toggle('question-task-workspace',fromQuestion&&window.innerWidth>=900);
+  updateQuestionTaskLayoutToggle();
 }
-function closeCreateTaskModal(){ document.getElementById('create-task-modal').classList.add('hidden'); clearRichEditor('task-create-instructions'); resetCreateTaskTicketSearch(); createTaskParentContext=null; createTaskLaunchSource=''; }
+function closeCreateTaskModal(){ document.getElementById('create-task-modal').classList.add('hidden'); clearRichEditor('task-create-instructions'); resetCreateTaskTicketSearch(); createTaskParentContext=null; createTaskLaunchSource=''; createTaskQuestionContextHtml=''; document.body.classList.remove('question-task-active','question-task-workspace'); }
+function toggleQuestionTaskWorkspace(){
+  if(!document.body.classList.contains('question-task-active'))return;
+  const useSideBySide=window.innerWidth>=900&&!document.body.classList.contains('question-task-workspace');
+  document.body.classList.toggle('question-task-workspace',useSideBySide);
+  updateQuestionTaskLayoutToggle();
+}
+function updateQuestionTaskLayoutToggle(){
+  const button=document.getElementById('task-create-layout-toggle');
+  if(!button)return;
+  button.textContent=document.body.classList.contains('question-task-workspace')?'Stack windows':'Side by side';
+}
+function copyQuestionContextToTaskInstructions(){
+  if(!createTaskQuestionContextHtml)return;
+  const current=getRichEditorHtml('task-create-instructions');
+  const combined=current ? current+'<p></p>'+createTaskQuestionContextHtml : createTaskQuestionContextHtml;
+  setRichEditorContent('task-create-instructions',combined);
+  const editor=document.getElementById('task-create-instructions');
+  if(editor)editor.focus();
+  showToast(current?'Question details added to the task instructions.':'Question details copied into the task instructions.');
+}
 function submitCreateTask(e){
   e.preventDefault();
   if(!currentUser)return;
