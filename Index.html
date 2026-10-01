@@ -6319,6 +6319,7 @@ function closeHomeCreateMenu() {
 
 const CREATE_SHORTCUTS = [
   {key:'peer',label:'Peer Questions',icon:'◎',role:()=>normalizeCategoryClient(currentUser&&(currentUser.category||currentUser.role))!=='Admin',run:()=>switchTab('peer')},
+  {key:'updates',label:'Updates',icon:'↻',note:()=>isSupportUser(currentUser)?'Open announcements or create an update.':'Open Updates to see new announcements.',role:()=>true,run:()=>switchTab('updates')},
   {key:'ask-support',label:'Ask Support',icon:'✉',role:()=>normalizeCategoryClient(currentUser&&(currentUser.category||currentUser.role))==='Coordinator',run:()=>openHomeQuestionComposer()},
   {key:'my-questions',label:'My Questions',icon:'⌂',role:()=>true,run:()=>switchTab('coordinator')},
   {key:'my-priority',label:'My Priority Questions',icon:'!',role:()=>isOperationalSupportUser(currentUser)||normalizeCategoryClient(currentUser&&(currentUser.category||currentUser.role))==='Coordinator',run:()=>switchTab('coordinator')},
@@ -6403,6 +6404,11 @@ function getCreateShortcutKeys(){
   return defaults.filter(key=>allowed.has(key)).slice(0,6);
 }
 function getCreateSubmenuItems(parentKey){
+  if(parentKey==='updates'){
+    const items=[{key:'updates:view',label:'View Updates',icon:'↗',run:()=>switchTab('updates')}];
+    if(isSupportUser(currentUser))items.unshift({key:'updates:create',label:'Create Update',icon:'+',run:()=>{switchTab('updates');setTimeout(()=>openAnnouncementComposer(),0);}});
+    return items;
+  }
   if(parentKey==='my-desk'){
     const keys=new Set(getCreateDeskFilterKeys());
     return CREATE_DESK_FILTERS.filter(item=>keys.has(item.key)).map(item=>({key:'desk:'+item.key,label:item.label,icon:item.icon,run:()=>openSupportQueueFilter(item.key)}));
@@ -6471,7 +6477,11 @@ function appendCreateShortcutSetting(container,item,checked){
   const label=document.createElement('label');label.className='flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer';
   const box=document.createElement('input');box.type='checkbox';box.value=item.key;box.checked=checked;box.className='w-4 h-4 accent-slate-900';
   if(container.id==='create-shortcut-options')box.addEventListener('change',updateCreateShortcutSettingsCount);
-  const text=document.createElement('span');text.className='text-xs font-semibold text-slate-700';text.textContent=item.label;label.append(box,text);container.appendChild(label);
+  const textWrap=document.createElement('span');textWrap.className='min-w-0 flex flex-col';
+  const text=document.createElement('span');text.className='text-xs font-semibold text-slate-700';text.textContent=item.label;textWrap.appendChild(text);
+  const note=typeof item.note==='function'?item.note():item.note;
+  if(note){const hint=document.createElement('span');hint.className='text-[10px] leading-4 text-slate-500 mt-0.5';hint.textContent=note;textWrap.appendChild(hint);}
+  label.append(box,textWrap);container.appendChild(label);
 }
 function ensurePriorityHomeMetrics(){
   if(!getCreatePriorityItems().length&&currentUser&&document.getElementById('my-work-dashboard'))renderMyWorkDashboard();
@@ -6538,7 +6548,7 @@ function updateCreateRadialSelection(clientX,clientY){
   if(nextKey!==createRadialSelectedKey){
     if(createRadialSubmenuTimer){clearTimeout(createRadialSubmenuTimer);createRadialSubmenuTimer=null;}
     createRadialSelectedKey=nextKey;
-    if(['my-desk','my-tasks','my-priority','peer'].includes(nextKey))scheduleCreateRadialSubmenu(nextKey);
+    if(['my-desk','my-tasks','my-priority','peer','updates'].includes(nextKey))scheduleCreateRadialSubmenu(nextKey);
   }
 }
 function closeCreateRadialMenu(){
