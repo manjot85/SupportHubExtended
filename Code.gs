@@ -128,6 +128,7 @@ const ATTACHMENT_FOLDER_NAME = 'Support Hub Attachments';
 // V2 uses one project-wide folder. The earlier UserProperties key created a
 // separate folder context for each signed-in user and then shared every image
 // individually, which generated Drive "shared with you" notifications.
+const SUPPORTED_IMAGE_ATTACHMENT_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
 const ATTACHMENT_FOLDER_SCRIPT_PROP = 'SUPPORT_HUB_ATTACHMENT_FOLDER_ID_V2';
 const ATTACHMENT_ACCESS_SIGNATURE_PROP = 'SUPPORT_HUB_ATTACHMENT_ACCESS_V2';
 const ATTACHMENT_ACCESS_FAILURES_PROP = 'SUPPORT_HUB_ATTACHMENT_ACCESS_FAILURE_COUNT_V1';
