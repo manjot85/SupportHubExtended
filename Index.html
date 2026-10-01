@@ -294,6 +294,7 @@ html { font-size: 16px; }
 #home-create-menu { z-index:91; }
 #home-create-menu.radial-submenu-active > summary { visibility:hidden; pointer-events:none; }
 #global-create-card:not(.global-create-card-home) #global-create-home-copy { visibility:hidden; }
+body.question-task-window-dragging, body.question-task-window-dragging * { cursor:grabbing !important; user-select:none !important; }
 /* Question -> Create Task workspace: keep both windows visible and independently scrollable. */
 @media (min-width:900px) {
   body.question-task-active #task-create-layout-toggle { display:inline-flex !important; }
@@ -1842,7 +1843,7 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 <div id="create-task-modal" class="fixed inset-0 bg-slate-950/70 z-[55] hidden flex items-center justify-center p-4 backdrop-blur-sm overflow-y-auto">
 <div id="create-task-panel" class="task-responsive-panel bg-white rounded-2xl shadow-2xl my-8 border border-slate-200 flex flex-col">
   <div class="flex justify-between items-start p-5 border-b">
-    <div><span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">New Task</span><h3 class="text-base font-bold text-slate-900 mt-1">Create Team Task</h3></div>
+    <div data-window-drag-handle="create-task-panel" class="cursor-grab active:cursor-grabbing select-none"><span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">New Task</span><h3 class="text-base font-bold text-slate-900 mt-1">Create Team Task</h3></div>
     <div class="flex items-center gap-2">
       <button id="task-create-layout-toggle" type="button" onclick="toggleQuestionTaskWorkspace()" class="hidden px-2.5 py-1 rounded-lg border border-slate-200 text-[10px] font-semibold text-slate-600 hover:bg-slate-50">Side by side</button>
       <button onclick="closeCreateTaskModal()" class="text-slate-400 hover:text-slate-700 font-bold text-xl">&times;</button>
@@ -2136,7 +2137,7 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 <div id="answer-modal-panel" class="bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col">
 <div class="p-5 border-b shrink-0 bg-white">
   <div class="flex justify-between items-start gap-4">
-    <div class="min-w-0 flex-1">
+    <div data-window-drag-handle="answer-modal-panel" class="min-w-0 flex-1 cursor-grab active:cursor-grabbing select-none">
       <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200/60">Resolve Question</span>
       <h3 id="amodal-event" class="text-base font-bold text-slate-900 mt-1 break-words">Event Name</h3>
     </div>
@@ -6813,6 +6814,7 @@ function refreshGlobalCreateVisibility(){
   const hasOpenModal=GLOBAL_CREATE_HIDE_MODAL_IDS.some(id=>{const modal=document.getElementById(id);return !!modal&&!modal.classList.contains('hidden')&&getComputedStyle(modal).display!=='none';});
   card.classList.toggle('hidden',hasOpenModal);
 }
+installQuestionTaskWindowDragging();
 function updateGlobalCreateHeaderCollision(){
   const card=document.getElementById('global-create-card');
   const header=document.querySelector('#app-container > header');
@@ -10185,13 +10187,20 @@ function openCreateTaskModal(parentType, parentId, defaults, launchOptions) {
   const answerModal=document.getElementById('answer-modal');
   const fromQuestion=createTaskLaunchSource==='ticket'&&!!answerModal&&!answerModal.classList.contains('hidden');
   document.body.classList.toggle('question-task-active',fromQuestion);
-  document.body.classList.toggle('question-task-workspace',fromQuestion&&window.innerWidth>=900);
+  document.body.classList.remove('question-task-workspace');
   updateQuestionTaskLayoutToggle();
 }
 function closeCreateTaskModal(){ document.getElementById('create-task-modal').classList.add('hidden'); clearRichEditor('task-create-instructions'); resetCreateTaskTicketSearch(); createTaskParentContext=null; createTaskLaunchSource=''; createTaskQuestionContextHtml=''; document.body.classList.remove('question-task-active','question-task-workspace'); }
+function clearQuestionTaskWindowPositions(){
+  ['answer-modal-panel','create-task-panel'].forEach(id=>{
+    const panel=document.getElementById(id);if(!panel)return;
+    ['position','left','top','right','bottom','transform','margin'].forEach(prop=>panel.style[prop]='');
+  });
+}
 function toggleQuestionTaskWorkspace(){
   if(!document.body.classList.contains('question-task-active'))return;
   const useSideBySide=window.innerWidth>=900&&!document.body.classList.contains('question-task-workspace');
+  clearQuestionTaskWindowPositions();
   document.body.classList.toggle('question-task-workspace',useSideBySide);
   updateQuestionTaskLayoutToggle();
 }
@@ -10200,6 +10209,57 @@ function updateQuestionTaskLayoutToggle(){
   if(!button)return;
   button.textContent=document.body.classList.contains('question-task-workspace')?'Stack windows':'Side by side';
 }
+function installQuestionTaskWindowDragging(){
+  document.querySelectorAll('[data-window-drag-handle]').forEach(handle=>{
+    if(handle.dataset.dragReady==='1')return;
+    handle.dataset.dragReady='1';
+    handle.addEventListener('pointerdown',event=>{
+      if(event.button!==0||event.target.closest('button,a,input,select,textarea,[contenteditable="true"]'))return;
+      const panel=document.getElementById(handle.dataset.windowDragHandle);
+      if(!panel)return;
+      const rect=panel.getBoundingClientRect();
+      const startX=event.clientX,startY=event.clientY;
+      const initialLeft=rect.left,initialTop=rect.top;
+      let moved=false;
+      event.preventDefault();
+      panel.style.position='fixed';
+      panel.style.left=initialLeft+'px';
+      panel.style.top=initialTop+'px';
+      panel.style.right='auto';
+      panel.style.bottom='auto';
+      panel.style.transform='none';
+      panel.style.margin='0';
+      const onMove=moveEvent=>{
+        const dx=moveEvent.clientX-startX,dy=moveEvent.clientY-startY;
+        if(!moved&&Math.abs(dx)+Math.abs(dy)<4)return;
+        moved=true;
+        const minLeft=Math.min(0,window.innerWidth-rect.width);
+        const maxLeft=Math.max(0,window.innerWidth-120);
+        const left=Math.max(minLeft,Math.min(maxLeft,initialLeft+dx));
+        const top=Math.max(0,Math.min(window.innerHeight-52,initialTop+dy));
+        panel.style.left=left+'px';panel.style.top=top+'px';
+        document.body.classList.add('question-task-window-dragging');
+      };
+      const finish=()=>{
+        document.removeEventListener('pointermove',onMove);
+        document.removeEventListener('pointerup',finish);
+        document.removeEventListener('pointercancel',finish);
+        document.body.classList.remove('question-task-window-dragging');
+      };
+      document.addEventListener('pointermove',onMove);
+      document.addEventListener('pointerup',finish,{once:true});
+      document.addEventListener('pointercancel',finish,{once:true});
+    });
+  });
+}
+window.addEventListener('resize',()=>{
+  if(window.innerWidth<900&&document.body.classList.contains('question-task-workspace')){
+    document.body.classList.remove('question-task-workspace');
+    clearQuestionTaskWindowPositions();
+  }
+  updateQuestionTaskLayoutToggle();
+});
+
 function copyQuestionContextToTaskInstructions(){
   if(!createTaskQuestionContextHtml)return;
   const current=getRichEditorHtml('task-create-instructions');
