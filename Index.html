@@ -3111,6 +3111,39 @@ function makeRichImageUploadForm(file, meta, requesterEmail) {
   return form;
 }
 
+async function prepareRichTextImageFile(file) {
+  const mime = String(file.type || '').toLowerCase();
+  // Small images, GIF animations, and already-compressed WebP files are faster
+  // to send unchanged. Large raster images are resized and encoded as WebP.
+  if (file.size <= 900 * 1024 || mime === 'image/gif' || mime === 'image/webp') return file;
+  if (typeof createImageBitmap !== 'function') return file;
+  let bitmap;
+  try { bitmap = await createImageBitmap(file); } catch (e) { return file; }
+  try {
+    const maxDimension = 1920;
+    const scale = Math.min(1, maxDimension / Math.max(bitmap.width, bitmap.height));
+    const width = Math.max(1, Math.round(bitmap.width * scale));
+    const height = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext('2d', { alpha: true });
+    if (!context) return file;
+    context.drawImage(bitmap, 0, 0, width, height);
+    const compressed = await new Promise(resolve => canvas.toBlob(resolve, 'image/webp', 0.84));
+    if (!compressed || compressed.size >= file.size * 0.92) return file;
+    const baseName = String(file.name || 'screenshot').replace(/\.[^.]+$/, '');
+    return new File([compressed], baseName + '.webp', {
+      type: 'image/webp',
+      lastModified: file.lastModified || Date.now()
+    });
+  } catch (e) {
+    return file;
+  } finally {
+    if (bitmap && typeof bitmap.close === 'function') bitmap.close();
+  }
+}
+
 function uploadRichTextImageFile(file, editorId, input) {
   const mime = String(file.type || '').toLowerCase();
   if (!SUPPORTED_IMAGE_ATTACHMENT_TYPES.includes(mime)) {
@@ -3131,7 +3164,10 @@ function uploadRichTextImageFile(file, editorId, input) {
   if (!placeholder) { URL.revokeObjectURL(localPreviewUrl); customAlert('The rich text editor is no longer available.'); return; }
   if (input) input.disabled = true;
   setRichImageUploadBusy(editorId, true);
-  showToast('Uploading image...');
+  const status = placeholder.querySelector('span');
+  if (status) status.textContent = file.size > 900 * 1024 ? 'Preparing image…' : 'Uploading image…';
+  showToast(file.size > 900 * 1024 ? 'Preparing image…' : 'Uploading image...');
+
   let uploadForm = null;
   const finish = () => {
     if (input) { input.disabled = false; input.value = ''; }
@@ -3157,26 +3193,29 @@ function uploadRichTextImageFile(file, editorId, input) {
     }
   };
 
-  try { uploadForm = makeRichImageUploadForm(file, meta, requesterEmail); } catch (err) { uploadForm = null; }
-  if (uploadForm) {
-    google.script.run.withFailureHandler(fail).withSuccessHandler(success).uploadRichTextImageFromForm(uploadForm);
-    return;
-  }
+  prepareRichTextImageFile(file).catch(() => file).then(uploadFile => {
+    if (status && status.isConnected) status.textContent = 'Uploading image…';
+    try { uploadForm = makeRichImageUploadForm(uploadFile, meta, requesterEmail); } catch (err) { uploadForm = null; }
+    if (uploadForm) {
+      google.script.run.withFailureHandler(fail).withSuccessHandler(success).uploadRichTextImageFromForm(uploadForm);
+      return;
+    }
 
-  // Compatibility path for browsers that cannot put a File into a form input.
-  const reader = new FileReader();
-  reader.onerror = function() {
-    URL.revokeObjectURL(localPreviewUrl);
-    removeRichImageUploadPlaceholder(placeholder);
-    finish();
-    customAlert('The image could not be read. Please try again.');
-  };
-  reader.onload = function(evt) {
-    const dataUrl = String(evt.target.result || '');
-    google.script.run.withFailureHandler(fail).withSuccessHandler(success)
-      .uploadRichTextImage(dataUrl, file.name || 'screenshot.png', file.size, meta.context, meta.recordId, requesterEmail);
-  };
-  reader.readAsDataURL(file);
+    // Compatibility path for browsers that cannot put a File into a form input.
+    const reader = new FileReader();
+    reader.onerror = function() {
+      URL.revokeObjectURL(localPreviewUrl);
+      removeRichImageUploadPlaceholder(placeholder);
+      finish();
+      customAlert('The image could not be read. Please try again.');
+    };
+    reader.onload = function(evt) {
+      const dataUrl = String(evt.target.result || '');
+      google.script.run.withFailureHandler(fail).withSuccessHandler(success)
+        .uploadRichTextImage(dataUrl, uploadFile.name || 'screenshot.png', uploadFile.size, meta.context, meta.recordId, requesterEmail);
+    };
+    reader.readAsDataURL(uploadFile);
+  }).catch(fail);
 }
 function getRichEditorHtml(editorId) {
   const editor = document.getElementById(editorId);
