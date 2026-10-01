@@ -1716,7 +1716,7 @@ function backfillTaskNotificationsForMember(member) {
     if (taskSheet.getLastRow() >= 2) {
       const taskRows = taskSheet.getRange(2, 1, taskSheet.getLastRow() - 1, T_WIDTH).getValues();
       taskRows.forEach(row => {
-        const task = taskRowToObject(row);
+        const task = taskRowToObject(row, categoryLookup);
         if (task.assignedToEmail !== email || existing[task.taskId]) return;
         if (task.status === TASK_STATUS_COMPLETED || task.status === TASK_STATUS_CANCELLED) return;
         if (emailsRepresentSameWorkspaceIdentity(task.createdByEmail, email)) return;
@@ -6053,7 +6053,13 @@ function taskDueDateString(value) {
   return isNaN(d.getTime()) ? '' : Utilities.formatDate(d, APP_TIMEZONE, 'yyyy-MM-dd');
 }
 
-function taskRowToObject(row) {
+function taskRowToObject(row, categoryLookup) {
+  const rawCategory = String(row[T_COL.WORK_CATEGORY - 1] || '').trim();
+  const category = rawCategory.toLowerCase() === 'none'
+    ? 'None'
+    : (categoryLookup
+      ? (categoryLookup.get(rawCategory.toLowerCase()) || 'General / Other')
+      : normalizeWorkCategory(rawCategory));
   return {
     taskId: String(row[T_COL.TASK_ID - 1] || '').trim(),
     title: String(row[T_COL.TITLE - 1] || '').trim(),
@@ -6072,7 +6078,7 @@ function taskRowToObject(row) {
     relatedEvent: String(row[T_COL.RELATED_EVENT - 1] || '').trim(),
     updatedAt: row[T_COL.UPDATED_AT - 1] ? safeIsoDate(row[T_COL.UPDATED_AT - 1]) : '',
     updatedBy: stripNoraPrefix(String(row[T_COL.UPDATED_BY - 1] || '').trim()),
-    category: String(row[T_COL.WORK_CATEGORY - 1] || '').trim().toLowerCase() === 'none' ? 'None' : normalizeWorkCategory(row[T_COL.WORK_CATEGORY - 1]),
+    category: category,
     relatedClientTalent: String(row[T_COL.RELATED_CLIENT_TALENT - 1] || '').trim(),
     relatedLink: String(row[T_COL.RELATED_LINK - 1] || '').trim(),
     relatedEntityType: String(row[T_COL.RELATED_ENTITY_TYPE - 1] || '').trim(),
@@ -6093,6 +6099,9 @@ function getTasksDataForMember_(member, sheet) {
   const email = normalizeEmail(member.email);
   if (sheet.getLastRow() < 2) return [];
   const data = sheet.getRange(2, 1, sheet.getLastRow() - 1, T_WIDTH).getValues();
+  const categoryLookup = new Map(getWorkCategoryConfigs(true).map(config => [
+    String(config.category || '').trim().toLowerCase(), config.category
+  ]));
   const out = [];
   let ownerLookup = null;
 
