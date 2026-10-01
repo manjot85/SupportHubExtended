@@ -289,6 +289,7 @@ html { font-size: 16px; }
 @keyframes createRadialIn { from { opacity:0; transform:translate(-50%,-50%) scale(.86); } to { opacity:1; transform:translate(-50%,-50%) scale(1); } }
 @media (prefers-reduced-motion:reduce) { .create-radial-menu.is-open { animation:none; } .create-radial-item { transition:none; } }
 
+#global-create-card { position:sticky; top:var(--global-create-sticky-top, 108px); z-index:35; }
 #home-create-menu { z-index:91; }
 #home-create-menu.radial-submenu-active > summary { visibility:hidden; pointer-events:none; }
 #global-create-card:not(.global-create-card-home) #global-create-home-copy { visibility:hidden; }
@@ -6776,8 +6777,21 @@ function refreshGlobalCreateVisibility(){
   const hasOpenModal=GLOBAL_CREATE_HIDE_MODAL_IDS.some(id=>{const modal=document.getElementById(id);return !!modal&&!modal.classList.contains('hidden')&&getComputedStyle(modal).display!=='none';});
   card.classList.toggle('hidden',hasOpenModal);
 }
+function syncGlobalCreateStickyOffset(){
+  const header=document.querySelector('#app-container > header');
+  if(!header)return;
+  const height=Math.ceil(header.getBoundingClientRect().height);
+  if(height>0)document.documentElement.style.setProperty('--global-create-sticky-top',height+'px');
+}
 function observeGlobalCreateVisibility(){
   refreshGlobalCreateVisibility();
+  syncGlobalCreateStickyOffset();
+  const header=document.querySelector('#app-container > header');
+  if(header&&typeof ResizeObserver!=='undefined'){
+    const headerObserver=new ResizeObserver(syncGlobalCreateStickyOffset);
+    headerObserver.observe(header);
+  }
+  window.addEventListener('resize',syncGlobalCreateStickyOffset,{passive:true});
   if(!document.body||typeof MutationObserver==='undefined')return;
   let queued=false;
   const observer=new MutationObserver(()=>{
