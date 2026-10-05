@@ -1716,7 +1716,7 @@ function backfillTaskNotificationsForMember(member) {
     if (taskSheet.getLastRow() >= 2) {
       const taskRows = taskSheet.getRange(2, 1, taskSheet.getLastRow() - 1, T_WIDTH).getValues();
       taskRows.forEach(row => {
-        const task = taskRowToObject(row, categoryLookup);
+        const task = taskRowToObject(row);
         if (task.assignedToEmail !== email || existing[task.taskId]) return;
         if (task.status === TASK_STATUS_COMPLETED || task.status === TASK_STATUS_CANCELLED) return;
         if (emailsRepresentSameWorkspaceIdentity(task.createdByEmail, email)) return;
@@ -3909,7 +3909,7 @@ function getRelatedTasksForTicket(ticketId, requestingEmail) {
   const sheet = ensureTasksSheet(SpreadsheetApp.getActiveSpreadsheet());
   if (sheet.getLastRow() < 2) return [];
   const rows = sheet.getRange(2, 1, sheet.getLastRow() - 1, T_WIDTH).getValues();
-  return rows.map(taskRowToObject).filter(function(task) {
+  return rows.map(function(row) { return taskRowToObject(row); }).filter(function(task) {
     const relatedId = String(task.relatedTicketId || '').trim().toLowerCase();
     const parentId = String(task.parentId || '').trim().toLowerCase();
     const parentType = String(task.parentType || '').trim().toLowerCase();
@@ -3932,7 +3932,7 @@ function getTaskChain(taskId, requestingEmail) {
   const sheet = ensureTasksSheet(SpreadsheetApp.getActiveSpreadsheet());
   if (sheet.getLastRow() < 2) throw new Error('This task no longer exists.');
   const tasks = sheet.getRange(2, 1, sheet.getLastRow() - 1, T_WIDTH).getValues()
-    .map(taskRowToObject).filter(function(task) { return !!task.taskId; });
+    .map(function(row) { return taskRowToObject(row); }).filter(function(task) { return !!task.taskId; });
   const byId = {};
   tasks.forEach(function(task) { byId[task.taskId] = task; });
   if (!byId[wantedId]) throw new Error('This task no longer exists.');
@@ -6057,7 +6057,7 @@ function taskRowToObject(row, categoryLookup) {
   const rawCategory = String(row[T_COL.WORK_CATEGORY - 1] || '').trim();
   const category = rawCategory.toLowerCase() === 'none'
     ? 'None'
-    : (categoryLookup
+    : (categoryLookup && typeof categoryLookup.get === 'function'
       ? (categoryLookup.get(rawCategory.toLowerCase()) || 'General / Other')
       : normalizeWorkCategory(rawCategory));
   return {
