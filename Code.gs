@@ -94,7 +94,8 @@ const EVENT_ROLE_OPTIONS = [
   'Lead Videographer',
   'Associate Videographer',
   'Client 1',
-  'Client 2'
+  'Client 2',
+  'Case'
 ];
 
 const TEAM_COL = {
@@ -6283,7 +6284,7 @@ function normalizeTaskCategoryValue_(value, fallbackValue) {
 function normalizeTaskRelatedEntityType_(value) {
   const raw = String(value || '').trim();
   if (!raw) return '';
-  const allowed = ['Event','Lead Photographer','Associate Photographer','Lead Videographer','Associate Videographer','Client 1','Client 2','CR','TR','Vendor'];
+  const allowed = ['Event','Lead Photographer','Associate Photographer','Lead Videographer','Associate Videographer','Client 1','Client 2','CR','TR','Vendor','Case'];
   const match = allowed.find(function(item) { return item.toLowerCase() === raw.toLowerCase(); });
   if (!match) throw new Error('Please choose a valid relationship type for the related Event / Client / Talent / CR / TR.');
   return match;
@@ -7446,8 +7447,8 @@ function adminBulkDeleteTickets(records, requestingEmail) {
 // Lightweight Coordinator-to-Coordinator help. Kept separate from Supervisor
 // Desk so peer help does not affect Support SLA/queue reporting until escalated.
 // ==========================================
-const P_COL = { ID:1, QUESTION:2, EVENT:3, ASKED_BY:4, ASKED_EMAIL:5, ASSIGNED_TO:6, ASSIGNED_EMAIL:7, CREATED:8, UPDATED:9, STATUS:10, THREAD:11, CASE_LINK:12, CLOSED_AT:13, CLOSED_BY:14 };
-const P_WIDTH = 14;
+const P_COL = { ID:1, QUESTION:2, EVENT:3, ASKED_BY:4, ASKED_EMAIL:5, ASSIGNED_TO:6, ASSIGNED_EMAIL:7, CREATED:8, UPDATED:9, STATUS:10, THREAD:11, CASE_LINK:12, CLOSED_AT:13, CLOSED_BY:14, RELATED_ENTITY_TYPE:15 };
+const P_WIDTH = 15;
 const PEER_STATUS_OPEN = 'Open';
 const PEER_STATUS_CLOSED = 'Closed';
 const CONFIG_KEY_PEER_VERSION = 'PEER_DATA_VERSION_COUNTER';
@@ -7457,8 +7458,10 @@ function ensurePeerQuestionsSheet(ss) {
   let sh = ss.getSheetByName(SHEET_PEER_QUESTIONS);
   if (!sh) {
     sh = ss.insertSheet(SHEET_PEER_QUESTIONS);
-    sh.appendRow(['Peer Ticket ID','Question','Event / Client / Talent Name','Asked By','Asked By Email','Assigned To','Assigned To Email','Created At','Updated At','Status','Conversation JSON','Case / Event Link','Closed At','Closed By']);
+    sh.appendRow(['Peer Ticket ID','Question','Event / Client / Talent Name','Asked By','Asked By Email','Assigned To','Assigned To Email','Created At','Updated At','Status','Conversation JSON','Case / Event Link','Closed At','Closed By','Relationship']);
     sh.setFrozenRows(1);
+  } else if (!String(sh.getRange(1, P_COL.RELATED_ENTITY_TYPE).getValue() || '').trim()) {
+    sh.getRange(1, P_COL.RELATED_ENTITY_TYPE).setValue('Relationship');
   }
   return sh;
 }
@@ -7493,7 +7496,7 @@ function requirePeerEligible(email){
 }
 function parsePeerThread(raw){ try{ const a=JSON.parse(String(raw||'[]')); return Array.isArray(a)?a:[]; }catch(e){ return []; } }
 function peerRowToObject(row){
-  return { id:String(row[0]||''), question:String(row[1]||''), eventName:String(row[2]||''), askedBy:String(row[3]||''), askedByEmail:normalizeEmail(row[4]), assignedTo:String(row[5]||''), assignedToEmail:normalizeEmail(row[6]), created:safeIsoDate(row[7]), updated:safeIsoDate(row[8]), status:String(row[9]||PEER_STATUS_OPEN), thread:parsePeerThread(row[10]), caseLink:String(row[11]||''), closedAt:row[12]?safeIsoDate(row[12]):'', closedBy:String(row[13]||'') };
+  return { id:String(row[0]||''), question:String(row[1]||''), eventName:String(row[2]||''), askedBy:String(row[3]||''), askedByEmail:normalizeEmail(row[4]), assignedTo:String(row[5]||''), assignedToEmail:normalizeEmail(row[6]), created:safeIsoDate(row[7]), updated:safeIsoDate(row[8]), status:String(row[9]||PEER_STATUS_OPEN), thread:parsePeerThread(row[10]), caseLink:String(row[11]||''), closedAt:row[12]?safeIsoDate(row[12]):'', closedBy:String(row[13]||''), relatedEntityType:String(row[14]||'') };
 }
 function getPeerQuestionsData(requestingEmail){
   const actor=requireAuthenticatedMember(requestingEmail);
@@ -7559,6 +7562,7 @@ function createPeerQuestion(payload){
     const assignee=requirePeerEligible(payload.assignedToEmail);
     if(normalizeEmail(assignee.email)===normalizeEmail(actor.email)) throw new Error('Choose another team member for a Peer Question.');
     const q=String(payload.question||'').trim(), ev=String(payload.eventName||'').trim();
+    const relatedEntityType=normalizeTaskRelatedEntityType_(payload.relatedEntityType);
     const link=requirePeerRelatedLink(payload.caseLink);
     if(!q) throw new Error('Please enter your question.');
     requireSheetCellLength(q, 'The Peer Question');
@@ -7566,7 +7570,7 @@ function createPeerQuestion(payload){
     const now=new Date(), id=Utilities.getUuid();
     const thread=[{type:'question',text:q,by:actor.name,email:actor.email,at:now.toISOString()}];
     const serializedThread=JSON.stringify(thread); requireSheetCellLength(serializedThread,'The Peer Question conversation');
-    ensurePeerQuestionsSheet().appendRow([id,q,ev,actor.name,actor.email,assignee.name,assignee.email,now,now,PEER_STATUS_OPEN,serializedThread,link,'','']);
+    ensurePeerQuestionsSheet().appendRow([id,q,ev,actor.name,actor.email,assignee.name,assignee.email,now,now,PEER_STATUS_OPEN,serializedThread,link,'','',relatedEntityType]);
     bumpPeerDataVersion();
     logAudit('PEER_QUESTION_CREATE',actor.email,actor.name,id,{assignedTo:assignee.email,event:ev});
     return {success:true,id:id};
