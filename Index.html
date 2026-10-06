@@ -709,9 +709,9 @@ body.question-task-window-dragging, body.question-task-window-dragging * { curso
 <input type="url" id="inp-link" required class="w-full border border-slate-300 p-2.5 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none transition" placeholder="https://salesforce.com/...">
 </div>
 <div>
-<label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Event Role <span class="normal-case font-medium text-slate-400">(optional)</span></label>
+<label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Event Role / Relationship <span class="normal-case font-medium text-slate-400">(optional)</span></label>
 <select id="inp-talent-role" class="w-full border border-slate-300 p-2.5 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none transition bg-white">
-<option value="">Select Event Role</option><option>Lead Photographer</option><option>Associate Photographer</option><option>Lead Videographer</option><option>Associate Videographer</option><option>Client 1</option><option>Client 2</option><option>Case</option>
+<option value="">Select Event Role / Relationship</option><option>Lead Photographer</option><option>Associate Photographer</option><option>Lead Videographer</option><option>Associate Videographer</option><option>Client 1</option><option>Client 2</option><option>Case</option>
 </select>
 </div>
 <div id="coord-event-date-wrap">
@@ -1785,7 +1785,7 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div><label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Event / Client / Talent Name *</label><input id="quick-question-event" type="text" class="w-full border border-slate-300 rounded-xl p-2.5 text-xs" placeholder="e.g. GS-EMook1-MEvers2-Weddings-1-2027-06-26 / Elizabeth Mook / Eric Lee"></div>
         <div><label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Case / Event URL *</label><input id="quick-question-link" type="url" class="w-full border border-slate-300 rounded-xl p-2.5 text-xs" placeholder="https://salesforce.com/..."></div>
-        <div><label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Event Role <span class="normal-case font-medium text-slate-400">(optional)</span></label><select id="quick-question-role" class="w-full border border-slate-300 rounded-xl p-2.5 text-xs bg-white"><option value="">Select Event Role</option><option>Lead Photographer</option><option>Associate Photographer</option><option>Lead Videographer</option><option>Associate Videographer</option><option>Client 1</option><option>Client 2</option><option>Case</option></select></div>
+        <div><label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Event Role / Relationship <span class="normal-case font-medium text-slate-400">(optional)</span></label><select id="quick-question-role" class="w-full border border-slate-300 rounded-xl p-2.5 text-xs bg-white"><option value="">Select Event Role / Relationship</option><option>Lead Photographer</option><option>Associate Photographer</option><option>Lead Videographer</option><option>Associate Videographer</option><option>Client 1</option><option>Client 2</option><option>Case</option></select></div>
         <div id="quick-event-date-wrap"><label for="quick-question-event-date" class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Event Date <span class="normal-case font-medium text-slate-400">(optional)</span></label><input id="quick-question-event-date" type="date" class="w-full border border-slate-300 px-2.5 py-2 rounded-xl text-xs outline-none"></div>
       </div>
       <div>
@@ -2449,7 +2449,7 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 
 <div><label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Work Category</label><select id="edit-work-category" class="w-full border border-slate-300 p-2.5 rounded-xl text-xs outline-none"></select></div>
 
-<div><label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Event Role</label><select id="edit-talent-role" class="w-full border border-slate-300 p-2.5 rounded-xl text-xs outline-none bg-white"><option value="">Select Event Role</option><option>Lead Photographer</option><option>Associate Photographer</option><option>Lead Videographer</option><option>Associate Videographer</option><option>Client 1</option><option>Client 2</option></select></div>
+<div><label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Event Role</label><select id="edit-talent-role" class="w-full border border-slate-300 p-2.5 rounded-xl text-xs outline-none bg-white"><option value="">Select Event Role / Relationship</option><option>Lead Photographer</option><option>Associate Photographer</option><option>Lead Videographer</option><option>Associate Videographer</option><option>Client 1</option><option>Client 2</option><option>Case</option></select></div>
 
 <div id="edit-urgent-row" class="flex flex-wrap items-center gap-3">
 <label id="edit-weekend-label" class="inline-flex items-center gap-2"><input type="checkbox" id="edit-urgent" onchange="toggleAdminEditEventDate()" class="w-4 h-4 accent-amber-600"><span class="text-xs font-bold text-amber-700">Event this weekend</span></label>
