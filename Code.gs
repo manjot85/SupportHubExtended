@@ -19,6 +19,36 @@ const SHEET_MENTION_NOTIFICATIONS = "Mention Notifications";
 const SHEET_TASK_NOTIFICATIONS = "Task Notifications";
 const SHEET_TASKS = "Tasks";
 const SHEET_PEER_QUESTIONS = "Peer Questions";
+
+// ============================================================================
+// FEEDBACK - PHASE 1
+// Private recipient feedback with required acknowledgement.
+// ============================================================================
+const SHEET_FEEDBACK = 'Feedback';
+const F_COL = {
+  FEEDBACK_ID:1, FEEDBACK_TYPE:2, CATEGORY:3, REASON:4,
+  SUBMITTED_BY:5, SUBMITTED_BY_EMAIL:6, CREATED_AT:7,
+  FEEDBACK_FOR:8, FEEDBACK_FOR_EMAIL:9, REVIEWER:10, REVIEWER_EMAIL:11,
+  RELATED_TYPE:12, RELATED_ID:13, RELATED_LINK:14,
+  DETAILS:15, EXPECTED_PROCESS:16, IMPACT:17, SUGGESTED_ACTION:18,
+  STATUS:19, ACKNOWLEDGED_BY:20, ACKNOWLEDGED_BY_EMAIL:21, ACKNOWLEDGED_AT:22,
+  COACHED:23, COACHED_BY:24, COACHED_BY_EMAIL:25, COACHED_AT:26, COACHING_NOTE:27,
+  ACTIONED_BY:28, ACTIONED_AT:29, CLOSED_BY:30, CLOSED_AT:31,
+  UPDATED_AT:32, UPDATED_BY:33
+};
+const F_WIDTH = 33;
+const FEEDBACK_STATUS_NEW = 'New';
+const FEEDBACK_STATUS_PENDING_ACKNOWLEDGEMENT = 'Pending Acknowledgement';
+const FEEDBACK_STATUS_ACKNOWLEDGED = 'Acknowledged';
+const FEEDBACK_TEAM_CATEGORIES = [
+  'Client Communication', 'Talent Communication', 'SOP / Process',
+  'Understanding the Issue', 'Escalation / Resolution', 'Cancellation / COD',
+  'PN / Booking Process', 'Other'
+];
+const FEEDBACK_IT_CATEGORIES = [
+  'Bug', 'UI Issue', 'Login / Access', 'Performance', 'Data Issue',
+  'Feature Not Working', 'Improvement Request', 'Other'
+];
 const SHEET_WORK_CATEGORIES = "Work Categories";
 const SHEET_CATEGORY_SUGGESTIONS = "Category Suggestions";
 const SHEET_PERFORMANCE = "Performance Log";
@@ -1309,6 +1339,230 @@ function ensureDeletedSheet(ss) {
     s.setFrozenRows(1);
   }
   return s;
+}
+
+
+function ensureFeedbackSheet(ss) {
+  ss = ss || SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(SHEET_FEEDBACK);
+  const expected = [
+    'Feedback ID','Feedback Type','Category','Reason','Submitted By','Submitted By Email','Created At',
+    'Feedback For','Feedback For Email','Reviewer','Reviewer Email','Related Type','Related ID','Related Link',
+    'Details','Expected Process / Behavior','Impact','Suggested Action / Guidance','Status',
+    'Acknowledged By','Acknowledged By Email','Acknowledged At','Coached','Coached By','Coached By Email',
+    'Coached At','Coaching Note','Actioned By','Actioned At','Closed By','Closed At','Updated At','Updated By'
+  ];
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEET_FEEDBACK);
+    sheet.appendRow(expected);
+    sheet.setFrozenRows(1);
+    return sheet;
+  }
+  const width = Math.max(sheet.getLastColumn(), expected.length);
+  const headers = sheet.getRange(1,1,1,width).getValues()[0];
+  for (let i=0;i<expected.length;i++) {
+    if (String(headers[i] || '').trim() !== expected[i]) sheet.getRange(1,i+1).setValue(expected[i]);
+  }
+  sheet.setFrozenRows(1);
+  return sheet;
+}
+
+function isValidFeedbackRelatedLink(value) {
+  const link = String(value || '').trim();
+  return !link || /^https?:\\/\\/[^\\s]+$/i.test(link);
+}
+
+function requireFeedbackRelatedLink(value, required) {
+  const link = String(value || '').trim();
+  if (!required && !link) return '';
+  if (!link) throw new Error('Related Link is required when a related item is provided.');
+  if (!isValidFeedbackRelatedLink(link)) throw new Error('Enter a valid Related Link starting with http:// or https://.');
+  return link;
+}
+
+function feedbackRecipientMember(email) {
+  const wanted = normalizeEmail(email);
+  if (!wanted) throw new Error('Please select who the feedback is for.');
+  const matches = _getTeamMembersInternal()
+    .filter(m => String(m.status || '').trim().toLowerCase() === 'active')
+    .filter(m => normalizeEmail(m.email) === wanted)
+    .filter(m => !isAdminMember(m));
+  if (!matches.length) throw new Error('Feedback can only be given to an active non-Admin team member.');
+  return matches[0];
+}
+
+function feedbackRowToObject_(row) {
+  return {
+    feedbackId:String(row[F_COL.FEEDBACK_ID-1] || ''),
+    feedbackType:String(row[F_COL.FEEDBACK_TYPE-1] || ''),
+    category:String(row[F_COL.CATEGORY-1] || ''),
+    reason:String(row[F_COL.REASON-1] || ''),
+    submittedBy:String(row[F_COL.SUBMITTED_BY-1] || ''),
+    submittedByEmail:normalizeEmail(row[F_COL.SUBMITTED_BY_EMAIL-1]),
+    createdAt:row[F_COL.CREATED_AT-1] || '',
+    feedbackFor:String(row[F_COL.FEEDBACK_FOR-1] || ''),
+    feedbackForEmail:normalizeEmail(row[F_COL.FEEDBACK_FOR_EMAIL-1]),
+    reviewer:String(row[F_COL.REVIEWER-1] || ''),
+    reviewerEmail:normalizeEmail(row[F_COL.REVIEWER_EMAIL-1]),
+    relatedType:String(row[F_COL.RELATED_TYPE-1] || ''),
+    relatedId:String(row[F_COL.RELATED_ID-1] || ''),
+    relatedLink:String(row[F_COL.RELATED_LINK-1] || ''),
+    details:String(row[F_COL.DETAILS-1] || ''),
+    expectedProcess:String(row[F_COL.EXPECTED_PROCESS-1] || ''),
+    impact:String(row[F_COL.IMPACT-1] || ''),
+    suggestedAction:String(row[F_COL.SUGGESTED_ACTION-1] || ''),
+    status:String(row[F_COL.STATUS-1] || ''),
+    acknowledgedBy:String(row[F_COL.ACKNOWLEDGED_BY-1] || ''),
+    acknowledgedByEmail:normalizeEmail(row[F_COL.ACKNOWLEDGED_BY_EMAIL-1]),
+    acknowledgedAt:row[F_COL.ACKNOWLEDGED_AT-1] || '',
+    updatedAt:row[F_COL.UPDATED_AT-1] || '',
+    updatedBy:String(row[F_COL.UPDATED_BY-1] || '')
+  };
+}
+
+function feedbackUserCanView_(feedback, member) {
+  if (!feedback || !member) return false;
+  const email = normalizeEmail(member.email);
+  if (emailsRepresentSameWorkspaceIdentity(feedback.feedbackForEmail, email)) return true;
+  if (!isSupportMember(member)) return false;
+  if (isAdminMember(member)) return true;
+  if (String(feedback.feedbackType || '') !== 'Team Feedback') return false;
+  const recipient = findTeamMemberByEmail(feedback.feedbackForEmail);
+  return !!recipient && String(recipient.status || '').trim().toLowerCase() === 'active' &&
+    String(recipient.category || '').trim().toLowerCase() === 'coordinator';
+}
+
+function getFeedbackCreateOptions(requestingEmail) {
+  const actor = requireAuthenticatedMember(requestingEmail);
+  const recipients = _getTeamMembersInternal()
+    .filter(m => String(m.status || '').trim().toLowerCase() === 'active')
+    .filter(m => !isAdminMember(m))
+    .map(m => ({name:String(m.name || ''),email:normalizeEmail(m.email),title:String(m.title || '')}))
+    .filter(m => !!m.email)
+    .sort((a,b) => a.name.localeCompare(b.name));
+  return {
+    success:true,
+    canSubmitTeamFeedback:true,
+    canSubmitItFeedback:isAdminMember(actor),
+    recipients:recipients,
+    teamCategories:FEEDBACK_TEAM_CATEGORIES,
+    itCategories:FEEDBACK_IT_CATEGORIES
+  };
+}
+
+function createFeedback(payload) {
+  return withLock(() => {
+    payload = payload || {};
+    const actor = requireAuthenticatedMember(payload.submittedByEmail);
+    const type = String(payload.feedbackType || 'Team Feedback').trim();
+    const category = String(payload.category || '').trim();
+    const details = String(payload.details || '').trim();
+    const expected = String(payload.expectedProcess || '').trim();
+    const impact = String(payload.impact || '').trim();
+    const suggestedAction = String(payload.suggestedAction || '').trim();
+    const relatedType = String(payload.relatedType || '').trim();
+    const relatedId = String(payload.relatedId || '').trim();
+    const relatedLink = requireFeedbackRelatedLink(payload.relatedLink, !!relatedId);
+
+    if (type !== 'Team Feedback' && type !== 'IT / Bug Feedback') throw new Error('Choose a valid Feedback type.');
+    if (type === 'IT / Bug Feedback' && !isAdminMember(actor)) throw new Error('IT / Bug Feedback can only be submitted by an active Admin profile.');
+    if (!category) throw new Error('Please choose a Feedback category.');
+    if (!details || !stripHtmlToText(details)) throw new Error('Feedback details are required.');
+    requireSheetCellLength(details,'Feedback details');
+    requireSheetCellLength(expected,'Expected process / behavior');
+    requireSheetCellLength(impact,'Feedback impact');
+    requireSheetCellLength(suggestedAction,'Suggested action / guidance');
+    rejectEmbeddedBase64Image(details,'Feedback details');
+    rejectEmbeddedBase64Image(expected,'Expected process / behavior');
+    rejectEmbeddedBase64Image(impact,'Feedback impact');
+    rejectEmbeddedBase64Image(suggestedAction,'Suggested action / guidance');
+
+    let recipient = null;
+    if (type === 'Team Feedback') {
+      recipient = feedbackRecipientMember(payload.feedbackForEmail);
+      if (normalizeEmail(recipient.email) === normalizeEmail(actor.email)) throw new Error('Choose a team member other than yourself.');
+      if (!FEEDBACK_TEAM_CATEGORIES.includes(category)) throw new Error('Choose a valid Feedback category.');
+    } else if (!FEEDBACK_IT_CATEGORIES.includes(category)) {
+      throw new Error('Choose a valid IT / Bug Feedback category.');
+    }
+    if (relatedId && !relatedType) throw new Error('Choose a Related To type for the related record.');
+    if (relatedType && !relatedId) throw new Error('Enter the Related Name / ID or clear Related To.');
+
+    const now = new Date();
+    const id = 'FB-' + Utilities.getUuid().replace(/-/g,'').slice(0,10).toUpperCase();
+    const status = type === 'Team Feedback' ? FEEDBACK_STATUS_PENDING_ACKNOWLEDGEMENT : FEEDBACK_STATUS_NEW;
+    const sheet = ensureFeedbackSheet(SpreadsheetApp.getActiveSpreadsheet());
+    sheet.appendRow([
+      id,type,category,'',actor.name,actor.email,now,
+      recipient ? recipient.name : '',recipient ? recipient.email : '', '', '',
+      relatedType,relatedId,relatedLink,details,expected,impact,suggestedAction,status,
+      '', '', '', false, '', '', '', '', '', '', '', '', now, actor.name
+    ]);
+    SpreadsheetApp.flush();
+    logAudit('FEEDBACK_CREATE',actor.email,actor.name,id,{feedbackType:type,category:category,feedbackFor:recipient ? recipient.email : '',status:status});
+    const row = sheet.getRange(sheet.getLastRow(),1,1,F_WIDTH).getValues()[0];
+    return {success:true,feedbackId:id,status:status,feedback:feedbackRowToObject_(row)};
+  }, {bumpDataVersion:false,operation:'createFeedback'});
+}
+
+function getFeedbackData(requestingEmail) {
+  const member = requireAuthenticatedMember(requestingEmail);
+  const sheet = ensureFeedbackSheet(SpreadsheetApp.getActiveSpreadsheet());
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return {data:[],pendingAcknowledgement:[],version:'0',diagnostics:{sheetName:SHEET_FEEDBACK,lastRow:0,requestingEmail:normalizeEmail(member.email),visibleCount:0}};
+  const rows = sheet.getRange(2,1,lastRow-1,F_WIDTH).getValues();
+  const parsed = rows.map(feedbackRowToObject_).filter(f => !!f.feedbackId);
+  const data = parsed.filter(f => feedbackUserCanView_(f,member)).sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
+  const me = normalizeEmail(member.email);
+  return {
+    data:data,
+    pendingAcknowledgement:data.filter(f => emailsRepresentSameWorkspaceIdentity(f.feedbackForEmail,me) && f.status === FEEDBACK_STATUS_PENDING_ACKNOWLEDGEMENT),
+    version:String(lastRow)+':'+String(sheet.getLastColumn()),
+    diagnostics:{sheetName:SHEET_FEEDBACK,lastRow:lastRow,dataRowCount:parsed.length,visibleCount:data.length,requestingEmail:me,latestFeedbackId:parsed.length ? parsed[parsed.length-1].feedbackId : ''}
+  };
+}
+
+function getFeedbackDetail(feedbackId, requestingEmail) {
+  const member = requireAuthenticatedMember(requestingEmail);
+  const id = String(feedbackId || '').trim();
+  if (!id) throw new Error('Feedback ID is required.');
+  const sheet = ensureFeedbackSheet(SpreadsheetApp.getActiveSpreadsheet());
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) throw new Error('Feedback not found.');
+  const rows = sheet.getRange(2,1,lastRow-1,F_WIDTH).getValues();
+  for (let i=0;i<rows.length;i++) {
+    const item=feedbackRowToObject_(rows[i]);
+    if (item.feedbackId !== id) continue;
+    if (!feedbackUserCanView_(item,member)) throw new Error('You do not have access to this feedback.');
+    return {success:true,feedback:item};
+  }
+  throw new Error('Feedback not found.');
+}
+
+function acknowledgeFeedback(feedbackId, requestingEmail) {
+  const member = requireAuthenticatedMember(requestingEmail);
+  const id = String(feedbackId || '').trim();
+  if (!id) throw new Error('Feedback ID is required.');
+  const sheet = ensureFeedbackSheet(SpreadsheetApp.getActiveSpreadsheet());
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) throw new Error('Feedback not found.');
+  const rows = sheet.getRange(2,1,lastRow-1,F_WIDTH).getValues();
+  let rowIndex=-1, item=null;
+  for (let i=0;i<rows.length;i++) {
+    if (String(rows[i][F_COL.FEEDBACK_ID-1] || '') === id) { rowIndex=i+2; item=feedbackRowToObject_(rows[i]); break; }
+  }
+  if (!item) throw new Error('Feedback not found.');
+  if (!emailsRepresentSameWorkspaceIdentity(item.feedbackForEmail,member.email)) throw new Error('Only the person the feedback is for can acknowledge it.');
+  if (item.status !== FEEDBACK_STATUS_PENDING_ACKNOWLEDGEMENT) return {success:true,alreadyAcknowledged:true,feedback:item};
+  const now=new Date(), email=normalizeEmail(member.email);
+  sheet.getRange(rowIndex,F_COL.STATUS).setValue(FEEDBACK_STATUS_ACKNOWLEDGED);
+  sheet.getRange(rowIndex,F_COL.ACKNOWLEDGED_BY).setValue(member.name || '');
+  sheet.getRange(rowIndex,F_COL.ACKNOWLEDGED_BY_EMAIL).setValue(email);
+  sheet.getRange(rowIndex,F_COL.ACKNOWLEDGED_AT).setValue(now);
+  sheet.getRange(rowIndex,F_COL.UPDATED_AT).setValue(now);
+  sheet.getRange(rowIndex,F_COL.UPDATED_BY).setValue(member.name || '');
+  logAudit('FEEDBACK_ACKNOWLEDGED',email,member.name || '',id,{feedbackId:id});
+  return {success:true,alreadyAcknowledged:false,feedback:feedbackRowToObject_(sheet.getRange(rowIndex,1,1,F_WIDTH).getValues()[0])};
 }
 
 function ensureTasksSheet(ss) {
