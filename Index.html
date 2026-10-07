@@ -12424,11 +12424,12 @@ function feedbackEditorLink() {
   editor.focus();
   const url = window.prompt('Enter the link URL');
   if (!url) return;
-  if (!/^https?://[^s]+$/i.test(url.trim())) {
+  const cleanUrl = String(url).trim();
+  if (!(cleanUrl.indexOf('https://') === 0 || cleanUrl.indexOf('http://') === 0)) {
     showToast('Enter a valid link starting with http:// or https://.');
     return;
   }
-  document.execCommand('createLink', false, url.trim());
+  document.execCommand('createLink', false, cleanUrl);
 }
 
 function resetCreateFeedbackForm() {
