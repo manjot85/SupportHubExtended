@@ -139,33 +139,16 @@ const FEEDBACK_STATUS_ACTIONED = 'Actioned';
 const FEEDBACK_STATUS_NO_ACTION_NEEDED = 'No Action Needed';
 const FEEDBACK_STATUS_CLOSED = 'Closed';
 const FEEDBACK_TEAM_CATEGORIES = [
-  'Client Miscommunication',
-  'Talent Miscommunication',
-  'Internal Communication',
-  'SOP - Missed / Incorrect Steps',
-  'Did Not Understand the Issue',
-  'Incorrect Process',
-  'Knowledge Gap',
-  'Training Needed',
-  'Incorrect Information',
-  'Incomplete Work',
-  'Follow-up Needed',
+  'Client Communication',
+  'Talent Communication',
+  'SOP / Process',
+  'Understanding the Issue',
+  'Escalation / Resolution',
+  'Cancellation / COD',
+  'PN / Booking Process',
   'Other'
 ];
-const FEEDBACK_TEAM_REASONS = {
-  'Client Miscommunication': ['Incorrect Information Given','Expectation Not Set Clearly','Response / Tone','Other'],
-  'Talent Miscommunication': ['Incorrect Information Given','Expectation Not Set Clearly','Response / Tone','Other'],
-  'Internal Communication': ['Information Not Shared','Expectation Not Clear','Response / Tone','Other'],
-  'SOP - Missed / Incorrect Steps': ['Missed Step','Incorrect Step','Process Not Followed','Other'],
-  'Did Not Understand the Issue': ['Issue Was Not Understood','Wrong Resolution Path','Needed Clarification','Other'],
-  'Incorrect Process': ['Wrong Process Used','Process Not Followed','Other'],
-  'Knowledge Gap': ['Missing Knowledge','Needed Guidance','Other'],
-  'Training Needed': ['New Process','Refresher Needed','Other'],
-  'Incorrect Information': ['Wrong Information','Outdated Information','Other'],
-  'Incomplete Work': ['Missing Information','Missing Action','Other'],
-  'Follow-up Needed': ['Follow-up Missed','Follow-up Delayed','Other'],
-  'Other': ['Other']
-};
+const FEEDBACK_TEAM_REASONS = {};
 const FEEDBACK_IT_CATEGORIES = [
   'Bug',
   'UI Issue',
@@ -7512,7 +7495,9 @@ function createFeedback(payload) {
       if (!FEEDBACK_IT_CATEGORIES.includes(category)) throw new Error('Choose a valid IT / Bug Feedback category.');
     }
 
-    const reviewer = feedbackReviewerMember(actor.email) || actor;
+    // Phase 1 sends Team Feedback directly to the selected recipient.
+    // Supervisor review is not part of normal submission.
+    const reviewer = null;
     const now = new Date();
     const id = 'FB-' + Utilities.getUuid().replace(/-/g, '').slice(0, 10).toUpperCase();
     const status = type === 'Team Feedback' ? FEEDBACK_STATUS_PENDING_ACKNOWLEDGEMENT : FEEDBACK_STATUS_NEW;
@@ -7522,7 +7507,7 @@ function createFeedback(payload) {
       id, type, category, reason,
       actor.name, actor.email, now,
       recipient ? recipient.name : '', recipient ? recipient.email : '',
-      reviewer.name, reviewer.email,
+      '', '',
       relatedType, relatedId, relatedLink,
       details, expected, impact, suggestedAction,
       status,
@@ -7539,7 +7524,7 @@ function createFeedback(payload) {
       category: category,
       reason: reason,
       feedbackFor: recipient ? recipient.email : '',
-      reviewer: reviewer.email,
+      reviewer: '',
       relatedType: relatedType,
       relatedId: relatedId,
       status: status
@@ -7640,12 +7625,27 @@ function getFeedbackUpdates_(feedbackId) {
 
 function feedbackUserCanView_(feedback, member) {
   if (!feedback || !member) return false;
+
   const email = normalizeEmail(member.email);
-  const sameIdentity = (storedEmail) => emailsRepresentSameWorkspaceIdentity(storedEmail, email);
-  return isAdminMember(member)
-    || sameIdentity(feedback.submittedByEmail)
-    || sameIdentity(feedback.feedbackForEmail)
-    || sameIdentity(feedback.reviewerEmail);
+  const recipientMatches = emailsRepresentSameWorkspaceIdentity(feedback.feedbackForEmail, email);
+
+  // The recipient sees feedback addressed to them.
+  if (recipientMatches) return true;
+
+  // Supervisor+ / Support and Admin can review Team Feedback for active
+  // Coordinator-category recipients. A submitter does not gain visibility
+  // merely because they created the feedback.
+  if (isAdminMember(member) || isSupportMember(member)) {
+    if (String(feedback.feedbackType || '') !== 'Team Feedback') {
+      return isAdminMember(member);
+    }
+    const recipient = findTeamMemberByEmail(feedback.feedbackForEmail);
+    return !!recipient &&
+      String(recipient.status || '').toLowerCase() === 'active' &&
+      String(recipient.category || '').toLowerCase() === 'coordinator';
+  }
+
+  return false;
 }
 
 function getFeedbackData(requestingEmail) {
@@ -7680,14 +7680,11 @@ function getFeedbackData(requestingEmail) {
     emailsRepresentSameWorkspaceIdentity(f.feedbackForEmail, me) &&
     f.status === FEEDBACK_STATUS_PENDING_ACKNOWLEDGEMENT
   );
-  const submitted = data.filter(f =>
-    emailsRepresentSameWorkspaceIdentity(f.submittedByEmail, me)
-  );
 
   return {
     data: data,
     pendingAcknowledgement: pendingAcknowledgement,
-    submitted: submitted,
+    submitted: [],
     version: String(lastRow) + ':' + String(sheet.getLastColumn()),
     diagnostics: {
       sheetName: SHEET_FEEDBACK,
