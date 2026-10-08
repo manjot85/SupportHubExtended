@@ -13686,7 +13686,7 @@ function syncFeedbackCreateType(){
   if(rec && isTeam){rec.innerHTML='<option value="">Select team member…</option>'+(opts.recipients||[]).map(r=>'<option value="'+esc(r.email)+'">'+esc(r.name)+(r.title?' · '+esc(r.title):'')+'</option>').join('');}
   const cats=isTeam?(opts.teamCategories||[]):(opts.itCategories||[]); if(cat)cat.innerHTML='<option value="">Select category…</option>'+cats.map(c=>'<option>'+esc(c)+'</option>').join('');
 }
-function feedbackEditorLink(){const url=prompt('Enter a URL (https://...)');if(!url)return;const clean=String(url).trim();if(!/^https?:\\/\\//i.test(clean)){customAlert('Links must start with http:// or https://.');return;}execEditorCmd('createLink',clean,'feedback-create-details');}
+function feedbackEditorLink(){const url=prompt('Enter a URL (https://...)');if(!url)return;const clean=String(url).trim();if(!/^https?:\/\//i.test(clean)){customAlert('Links must start with http:// or https://.');return;}execEditorCmd('createLink',clean,'feedback-create-details');}
 function handleFeedbackEditorDragOver(event){if(event.dataTransfer&&Array.from(event.dataTransfer.types||[]).includes('Files')){event.preventDefault();event.dataTransfer.dropEffect='copy';}}
 function handleFeedbackEditorDrop(event){const files=Array.from(event.dataTransfer&&event.dataTransfer.files||[]);if(!files.length)return;event.preventDefault();event.stopPropagation();files.forEach(file=>uploadRichTextImageFile(file,'feedback-create-details',null));}
 function submitCreateFeedback(event){

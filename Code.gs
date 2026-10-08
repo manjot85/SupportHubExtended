@@ -1369,7 +1369,7 @@ function ensureFeedbackSheet(ss) {
 
 function isValidFeedbackRelatedLink(value) {
   const link = String(value || '').trim();
-  return !link || /^https?:\\/\\/[^\\s]+$/i.test(link);
+  return !link || /^https?:\/\/[^\s]+$/i.test(link);
 }
 
 function requireFeedbackRelatedLink(value, required) {
