@@ -1136,6 +1136,7 @@ function doGet(e) {
   ensureSheetsExist();
   const template = HtmlService.createTemplateFromFile('Index');
   template.initialItemId = String((e && e.parameter && e.parameter.item) || '').trim().slice(0, 200);
+  template.initialItemKind = String((e && e.parameter && e.parameter.kind) || '').trim().toLowerCase().slice(0, 20);
   return template
     .evaluate()
     .setTitle('Support Hub')

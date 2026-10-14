@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="support-hub-item" content="<?= initialItemId ?>">
+<meta name="support-hub-kind" content="<?= initialItemKind ?>">
 <title>Support Hub</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
@@ -363,6 +364,7 @@ body.question-task-window-dragging, body.question-task-window-dragging * { curso
 </style>
 </head>
 <body class="bg-slate-50/80 font-sans text-slate-800 antialiased selection:bg-emerald-500 selection:text-white">
+<div id="support-hub-record-context-menu" class="hidden fixed z-[200] rounded-lg border border-slate-200 bg-white shadow-xl p-1"><button type="button" onclick="copySupportHubRecordContextUrl()" class="px-3 py-2 text-xs font-semibold text-slate-800 hover:bg-slate-50 rounded-md">Copy direct link</button></div>
 
 <!-- LOGIN SCREEN OVERLAY -->
 <div id="login-overlay" class="fixed inset-0 bg-slate-950 z-50 flex items-center justify-center p-4">
@@ -4060,7 +4062,7 @@ function readSupportHubDeepLink() {
   if (!item) {
     try { item = String(new URLSearchParams(window.location.search).get('item') || '').trim(); } catch (e) {}
   }
-  if (item) return { kind: 'item', id: item };
+  if (item) { const kindMeta = document.querySelector('meta[name="support-hub-kind"]'); const kind = kindMeta ? String(kindMeta.content || '').trim().toLowerCase() : ''; return { kind: ['peer','update'].includes(kind) ? kind : 'item', id: item }; }
 
   const raw = String(window.location.hash || '').replace(/^#/, '');
   if (raw) {
@@ -4075,7 +4077,7 @@ function readSupportHubDeepLink() {
 
   try {
     const stored = JSON.parse(sessionStorage.getItem(SUPPORT_HUB_DEEP_LINK_STORAGE_KEY) || 'null');
-    if (stored && stored.id && (stored.kind === 'item' || stored.kind === 'ticket' || stored.kind === 'task')) return stored;
+    if (stored && stored.id && (['item','ticket','task','peer','update'].includes(stored.kind))) return stored;
   } catch (e) {}
   return null;
 }
@@ -4134,11 +4136,14 @@ function openPendingEmailDeepLink() {
   try {
     const url = new URL(window.location.href);
     url.searchParams.delete('item');
+    url.searchParams.delete('kind');
     url.hash = '';
     history.replaceState(null, '', url.pathname + url.search);
   } catch (e) {}
   pendingEmailDeepLinkHighlightKind = link.kind;
   if (link.kind === 'task') openTaskDetail(link.id);
+  else if (link.kind === 'peer') openPeerDeepLink(link.id);
+  else if (link.kind === 'update') openUpdateDeepLink(link.id);
   else if (link.kind === 'item') openEmailItemDeepLink(link.id);
   else openTicketDetail('Questions Tracker', link.id);
 }
@@ -5425,8 +5430,29 @@ let announcementPreviewReady=false;
 let announcementExpiryTimer=null;
 let activeAnnouncementDetailId='';
 function findAnnouncementById_(id){return (announcementState.active||[]).concat(announcementState.archive||[]).find(item=>String(item.id)===String(id))||null;}
+
+function openPeerDeepLink(id){
+  const user=currentUser;if(!user)return;
+  google.script.run.withSuccessHandler(result=>{
+    if(currentUser!==user)return;
+    allPeerQuestions=(result&&result.data)||[];
+    const peer=allPeerQuestions.find(x=>String(x.id)===String(id));
+    if(peer)openPeerDetail(id);else showToast('This Peer Question is unavailable or you do not have access.');
+  }).withFailureHandler(()=>showToast('This Peer Question is unavailable or you do not have access.')).getPeerQuestionsData(user.email);
+}
+function openUpdateDeepLink(id){
+  const user=currentUser;if(!user)return;
+  google.script.run.withSuccessHandler(result=>{
+    if(currentUser!==user)return;
+    announcementState=Object.assign(announcementState,result||{});
+    const item=findAnnouncementById_(id);
+    if(item)openAnnouncementDetail(id);else showToast('This update is unavailable.');
+  }).withFailureHandler(()=>showToast('This update is unavailable.')).getAnnouncementsData(user.email,true);
+}
+
 function openAnnouncementDetail(id){
   const item=findAnnouncementById_(id);if(!item)return;
+  bindSupportHubRecordContextMenu(document.getElementById('announcement-detail-modal'),'update',item.id);
   activeAnnouncementDetailId=String(id);renderAnnouncementDetail_(item);
   const modal=document.getElementById('announcement-detail-modal');modal.classList.remove('hidden');modal.classList.add('flex');
 }
@@ -8411,13 +8437,14 @@ async function openTicketDetail(sheet, ticketId) {
   if (q.sheet === 'Questions Tracker') recordAttentionFirstReview(q);
 
   activeTicketDetailQuestion = q.sheet === 'Answered' ? null : q;
+  bindSupportHubRecordContextMenu(document.getElementById('ticket-detail-panel'),'ticket',q.ticketId);
   resetWorkModal('ticket-detail-modal');
 
   // One answered-question experience everywhere in Support Hub. This ensures
   // Support/Admin see the same update/task/status actions whether the record
   // was opened from Answered Only, Global Search, reports, Tasks, or any
   // other view that calls openTicketDetail().
-  if (q.sheet === 'Answered') { openViewModal(q); return; }
+  if (q.sheet === 'Answered') { bindSupportHubRecordContextMenu(document.getElementById('view-modal'),'ticket',q.ticketId); openViewModal(q); return; }
 
   const isAnswered = false;
   document.getElementById('tdmodal-event').innerText = q.eventName || '—';
@@ -10855,6 +10882,7 @@ function openTaskDetail(taskId) {
     return;
   }
   activeTask = Object.assign({}, t);
+  bindSupportHubRecordContextMenu(document.getElementById('task-detail-panel'),'task',t.taskId);
   clearRichEditor('task-modal-update-input');
   const taskMentionDropdown = document.getElementById('task-update-mention-dropdown');
   if (taskMentionDropdown) taskMentionDropdown.classList.add('hidden');
@@ -13381,6 +13409,40 @@ document.addEventListener('click', function(e) {
 });
 
 
+
+function supportHubDirectUrl(kind,id){
+  const u=new URL(window.location.href);u.search='';u.hash='';
+  u.searchParams.set('item',String(id||''));u.searchParams.set('kind',String(kind||'item'));
+  return u.toString();
+}
+function copySupportHubRecordUrl(kind,id){
+  const url=supportHubDirectUrl(kind,id);
+  const copy=navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(url):Promise.reject(new Error('Clipboard unavailable'));
+  copy.then(()=>showToast('Direct link copied.')).catch(()=>{window.prompt('Copy this Support Hub link:',url);});
+}
+function bindSupportHubRecordContextMenu(el,kind,id){
+  if(!el||!id)return;
+  el.dataset.supportHubRecordKind=kind;el.dataset.supportHubRecordId=String(id);
+}
+document.addEventListener('contextmenu',function(e){
+  const el=e.target&&e.target.closest?e.target.closest('[data-support-hub-record-id]'):null;
+  if(!el)return;
+  e.preventDefault();
+  const menu=document.getElementById('support-hub-record-context-menu');
+  if(!menu)return;
+  menu.dataset.kind=el.dataset.supportHubRecordKind;menu.dataset.id=el.dataset.supportHubRecordId;
+  menu.style.left=Math.min(e.clientX,window.innerWidth-190)+'px';menu.style.top=Math.min(e.clientY,window.innerHeight-52)+'px';menu.classList.remove('hidden');
+});
+document.addEventListener('click',function(e){
+  const menu=document.getElementById('support-hub-record-context-menu');
+  if(menu&&!menu.contains(e.target))menu.classList.add('hidden');
+});
+function copySupportHubRecordContextUrl(){
+  const menu=document.getElementById('support-hub-record-context-menu');
+  if(!menu)return;
+  copySupportHubRecordUrl(menu.dataset.kind,menu.dataset.id);menu.classList.add('hidden');
+}
+
 // ============================================================================
 // SHARED TASK / TICKET WINDOW CONTROLS
 // ============================================================================
@@ -13528,7 +13590,7 @@ function submitPeerQuestion(ev){
   const b=document.getElementById('peer-create-btn');b.disabled=true;b.innerText='Sending...';
   google.script.run.withFailureHandler(e=>{b.disabled=false;b.innerText='Send Question';showToast('Could not send peer question: '+(e&&e.message?e.message:e));}).withSuccessHandler(()=>{b.disabled=false;b.innerText='Send Question';closePeerCreateModal();showToast('Peer question sent.');refreshPeerQuestionsData(true);}).createPeerQuestion(payload);
 }
-function openPeerDetail(id){activePeerQuestion=allPeerQuestions.find(p=>String(p.id)===String(id));if(!activePeerQuestion)return;document.getElementById('peer-detail-modal').classList.remove('hidden');renderPeerDetail();}
+function openPeerDetail(id){activePeerQuestion=allPeerQuestions.find(p=>String(p.id)===String(id));if(!activePeerQuestion)return;bindSupportHubRecordContextMenu(document.getElementById('peer-detail-modal'),'peer',activePeerQuestion.id);document.getElementById('peer-detail-modal').classList.remove('hidden');renderPeerDetail();}
 function closePeerDetailModal(){document.getElementById('peer-detail-modal').classList.add('hidden');activePeerQuestion=null;}
 function renderPeerDetail(){
   const p=activePeerQuestion;if(!p)return;
