@@ -4064,6 +4064,23 @@ function getTicketForNavigation(ticketId, requestingEmail) {
   throw new Error('The linked ticket no longer exists.');
 }
 
+// Resolve a generic ?item= record URL after authentication. Task lookup is tried
+// first; question lookup retains its existing per-user visibility checks.
+function getSupportHubRecordForNavigation(itemId, requestingEmail) {
+  const member = requireAuthenticatedMember(requestingEmail);
+  const id = String(itemId || '').trim();
+  if (!id) throw new Error('The linked Support Hub item ID is missing.');
+  try {
+    const target = requireTaskRow(id);
+    const task = taskRowToObject(target.sheet.getRange(target.rowIndex, 1, 1, T_WIDTH).getValues()[0]);
+    return { kind:'task', record:task };
+  } catch (taskError) {}
+  try {
+    return { kind:'ticket', record:getTicketForNavigation(id, member.email) };
+  } catch (ticketError) {}
+  throw new Error('The linked Support Hub item could not be found or is not available to this account.');
+}
+
 // ==========================================
 // PHASE 13F - SERVER SEARCH + GROUP PAGINATION
 // ==========================================

@@ -4008,17 +4008,24 @@ window.onload = function() {
 
 // Email notifications can link directly to one Support Hub record. The hash is
 // kept client-side by the browser, so it does not change Apps Script routing.
-let pendingEmailDeepLink = null;
+let pendingEmailDeepLink = readSupportHubDeepLink();
 function readSupportHubDeepLink() {
-  const raw = String(window.location.hash || '').replace(/^#/, '');
-  if (!raw) return null;
-  const eq = raw.indexOf('=');
-  if (eq < 1) return null;
-  const kind = raw.slice(0, eq).toLowerCase();
-  let id = raw.slice(eq + 1);
-  try { id = decodeURIComponent(id); } catch (e) {}
-  if (!id || (kind !== 'ticket' && kind !== 'task')) return null;
-  return { kind, id };
+  const rawHash = String(window.location.hash || '').replace(/^#/, '');
+  if (rawHash) {
+    const eq = rawHash.indexOf('=');
+    if (eq > 0) {
+      const hashKind = rawHash.slice(0, eq).toLowerCase();
+      let hashId = rawHash.slice(eq + 1);
+      try { hashId = decodeURIComponent(hashId); } catch (e) {}
+      if (hashId && (hashKind === 'ticket' || hashKind === 'task')) return { kind:hashKind, id:hashId };
+    }
+  }
+  const params = new URLSearchParams(window.location.search || '');
+  const id = String(params.get('item') || '').trim();
+  if (!id) return null;
+  const requestedKind = String(params.get('type') || params.get('kind') || '').trim().toLowerCase();
+  const kind = requestedKind === 'task' ? 'task' : ((requestedKind === 'question' || requestedKind === 'ticket') ? 'ticket' : 'item');
+  return { kind:kind, id:id };
 }
 function openPendingEmailDeepLink() {
   if (!currentUser) return;
@@ -4026,9 +4033,29 @@ function openPendingEmailDeepLink() {
   if (!pendingEmailDeepLink) return;
   const link = pendingEmailDeepLink;
   pendingEmailDeepLink = null;
-  try { history.replaceState(null, '', window.location.pathname + window.location.search); } catch (e) {}
-  if (link.kind === 'task') openTaskDetail(link.id);
-  else openTicketDetail('Questions Tracker', link.id);
+  try {
+    const cleanUrl = new URL(window.location.href);
+    ['item','type','kind'].forEach(key=>cleanUrl.searchParams.delete(key));
+    cleanUrl.hash = '';
+    history.replaceState(null, '', cleanUrl.pathname + cleanUrl.search);
+  } catch (e) {}
+  if (link.kind === 'task') { openTaskDetail(link.id); return; }
+  if (link.kind === 'ticket') { openTicketDetail('Questions Tracker', link.id); return; }
+  const user = currentUser;
+  showToast('Opening linked Support Hub item...');
+  google.script.run.withSuccessHandler(result=>{
+    if (currentUser !== user || !result || !result.record) return;
+    if (result.kind === 'task') {
+      mergeNavigationTasks([result.record]);
+      openTaskDetail(result.record.taskId || link.id);
+    } else {
+      mergeNavigationQuestions([result.record]);
+      openTicketDetail(result.record.sheet || 'Questions Tracker', result.record.ticketId || link.id);
+    }
+  }).withFailureHandler(err=>{
+    if (currentUser !== user) return;
+    showToast(err && err.message ? err.message : 'The linked Support Hub item could not be opened.');
+  }).getSupportHubRecordForNavigation(link.id, user.email);
 }
 
 function attemptAdminAutoLogin() {
@@ -4361,7 +4388,7 @@ function finishLogin(member) {
   configureAnnouncementControls();
   loadAnnouncements(false);
   // Preserve any direct record link from an email while login/data loading starts.
-  pendingEmailDeepLink = readSupportHubDeepLink();
+  pendingEmailDeepLink = pendingEmailDeepLink || readSupportHubDeepLink();
 
   if (support) {
     // Give operational users the small open-question feed first. A large
