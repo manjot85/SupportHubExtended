@@ -269,29 +269,6 @@ html { font-size: 16px; }
 .task-detail-category-editor { display:flex; align-items:center; gap:6px; flex-wrap:wrap; min-width:0; }
 .task-detail-category-editor select { min-width:120px; max-width:210px; }
 
-/* Right-click navigation fan around the shared Create control. */
-.create-radial-menu { display:none; position:absolute; z-index:90; top:50%; left:50%; width:264px; height:264px; transform:translate(-50%,-50%); border-radius:50%; pointer-events:none; }
-.create-radial-menu.is-open { display:block; pointer-events:auto; animation:createRadialIn .16s ease-out; }
-.create-radial-menu::before { content:none; display:none; }
-.create-radial-item { position:absolute; z-index:2; left:50%; top:50%; width:76px; height:76px; padding:6px; border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; border:1px solid rgba(203,213,225,.92); background:rgba(255,255,255,.88); backdrop-filter:blur(9px); -webkit-backdrop-filter:blur(9px); color:#1e293b; box-shadow:0 7px 20px rgba(15,23,42,.14); font-size:9px; line-height:1.05; font-weight:800; text-align:center; transform:translate(-50%,-50%) translate(var(--shortcut-x,0px),var(--shortcut-y,0px)); transition:background .14s ease,box-shadow .14s ease,border-color .14s ease,color .14s ease; }
-.create-radial-item.hidden { display:none; }
-.create-radial-item.is-selected,.create-radial-item:hover,.create-radial-item:focus-visible { background:#0f172a; border-color:#0f172a; color:#fff; box-shadow:0 10px 26px rgba(15,23,42,.34); outline:none; }
-.create-radial-item.is-selected span:first-child,.create-radial-item.is-selected span:last-child,.create-radial-item:hover span:first-child,.create-radial-item:hover span:last-child,.create-radial-item:focus-visible span:first-child,.create-radial-item:focus-visible span:last-child { color:#fff; }
-.create-radial-item.is-selected span:last-child { text-decoration:underline; text-decoration-thickness:1px; text-underline-offset:3px; }
-.create-radial-item span:first-child { font-size:18px; line-height:1; color:#059669; }
-.create-radial-menu.submenu-open > .create-radial-item:not(.submenu-anchor) { opacity:0; pointer-events:none; }
-.create-radial-menu.submenu-open > .create-radial-item.submenu-anchor { z-index:7; }
-.create-radial-submenu { position:absolute; z-index:6; width:244px; height:244px; border-radius:50%; pointer-events:auto; animation:createRadialSubmenuIn .14s ease-out; }
-.create-radial-submenu::before { content:none; display:none; }
-.create-radial-child { position:absolute; left:50%; top:50%; width:68px; height:68px; padding:4px; border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; border:1px solid rgba(203,213,225,.92); background:rgba(255,255,255,.96); color:#334155; box-shadow:0 5px 15px rgba(15,23,42,.15); font-size:8px; line-height:1.05; font-weight:800; text-align:center; transform:translate(-50%,-50%) translate(var(--filter-x),var(--filter-y)); transition:background .12s ease,color .12s ease,box-shadow .12s ease; }
-.create-desk-filter-item { position:absolute; left:50%; top:50%; width:58px; height:58px; padding:3px; border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; border:1px solid rgba(203,213,225,.92); background:rgba(255,255,255,.96); color:#334155; box-shadow:0 5px 15px rgba(15,23,42,.15); font-size:8px; line-height:1; font-weight:800; text-align:center; transform:translate(-50%,-50%) translate(var(--filter-x),var(--filter-y)); transition:background .12s ease,color .12s ease,box-shadow .12s ease; }
-.create-radial-child span:first-child,.create-desk-filter-item span:first-child { font-size:13px; line-height:1; color:#059669; }
-.create-radial-child.is-selected,.create-radial-child:hover,.create-desk-filter-item.is-selected,.create-desk-filter-item:hover { background:#0f172a; border-color:#0f172a; color:#fff; box-shadow:0 8px 20px rgba(15,23,42,.34); }
-.create-radial-child.is-selected span:first-child,.create-radial-child:hover span:first-child,.create-desk-filter-item.is-selected span:first-child,.create-desk-filter-item:hover span:first-child { color:#fff; }
-@keyframes createRadialSubmenuIn { from { opacity:0; transform:scale(.9); } to { opacity:1; transform:scale(1); } }
-
-@keyframes createRadialIn { from { opacity:0; transform:translate(-50%,-50%) scale(.86); } to { opacity:1; transform:translate(-50%,-50%) scale(1); } }
-@media (prefers-reduced-motion:reduce) { .create-radial-menu.is-open { animation:none; } .create-radial-item { transition:none; } }
 
 #global-create-card { position:relative; z-index:auto; }
 #global-create-card.is-crossing-sticky-header { visibility:hidden; pointer-events:none; }
@@ -574,10 +551,10 @@ body.question-task-window-dragging, body.question-task-window-dragging * { curso
     <div class="flex items-center gap-3 shrink-0">
       <button id="home-admin-button" type="button" onclick="switchTab('team')" class="hidden bg-purple-700 hover:bg-purple-800 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-md transition shrink-0">Open Admin Setup</button>
       <div id="create-dock-global" class="relative shrink-0 flex items-center gap-2">
-        <button id="create-shortcut-settings-button" type="button" onclick="openCreateShortcutSettings()" aria-label="Configure radial shortcuts" title="Configure radial shortcuts" class="inline-flex items-center justify-center w-10 h-10 rounded-xl border-0 bg-transparent text-slate-500 hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-300" style="font-size:18px">⚙</button>
+        
         <div id="global-create-control" class="relative shrink-0">
         <details id="home-create-menu" class="relative shrink-0">
-          <summary onclick="handleCreateButtonClick(event)" onpointerdown="startCreateButtonHold(event)" oncontextmenu="suppressCreateContextMenu(event)" title="Click to create · Right-click and hold for shortcuts" aria-label="Create or right-click and hold for shortcuts" class="list-none cursor-pointer bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-md transition whitespace-nowrap">+ Create</summary>
+          <summary title="Create" aria-label="Create new item" class="list-none cursor-pointer bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-md transition whitespace-nowrap">+ Create</summary>
           <div class="absolute right-0 mt-2 w-52 bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden text-xs">
             <button type="button" onclick="closeHomeCreateMenu(); openHomeQuestionComposer()" class="w-full text-left px-4 py-3 hover:bg-slate-50 font-semibold text-slate-800">Ask a Question</button>
             <button id="home-create-announcement" type="button" onclick="closeHomeCreateMenu(); openAnnouncementComposer()" class="hidden w-full text-left px-4 py-3 hover:bg-slate-50 font-semibold text-slate-800 border-t border-slate-100">Publish an Announcement</button>
@@ -585,51 +562,15 @@ body.question-task-window-dragging, body.question-task-window-dragging * { curso
             <button id="home-create-peer" type="button" onclick="closeHomeCreateMenu(); openPeerCreateModal()" class="hidden w-full text-left px-4 py-3 hover:bg-slate-50 font-semibold text-slate-800 border-t border-slate-100">Ask a Peer Question</button>
           </div>
         </details>
-        <div id="create-radial-menu" class="create-radial-menu" role="menu" aria-label="Quick navigation">
-           
-        </div>
       </div>
       </div>
     </div>
   </div>
 
-  <div id="create-shortcut-settings-modal" class="hidden fixed inset-0 z-[120] items-center justify-center bg-slate-950/50 p-4" onclick="if(event.target===this&&!createSettingsHoldTriggered)closeCreateShortcutSettings()">
-    <div class="w-full max-w-lg rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden" role="dialog" aria-modal="true" aria-labelledby="create-shortcut-settings-title">
-      <div class="px-5 py-4 border-b border-slate-200 flex items-start justify-between gap-4">
-        <div><h2 id="create-shortcut-settings-title" class="text-base font-bold text-slate-900">Radial shortcuts</h2><p class="text-xs text-slate-500 mt-1">Choose up to six shortcuts for right-click navigation.</p></div>
-        <button type="button" onclick="closeCreateShortcutSettings()" aria-label="Close shortcut settings" class="text-slate-400 hover:text-slate-700 text-xl leading-none">×</button>
-      </div>
-      <div class="max-h-[60vh] overflow-y-auto px-4">
-        <p class="pt-4 pb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">Main radial shortcuts · up to 6</p>
-        <div id="create-shortcut-options" class="grid grid-cols-1 sm:grid-cols-2 gap-2 pb-4"></div>
-        <div id="create-priority-filter-section" class="hidden border-t border-slate-200">
-          <p class="pt-4 pb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">My Priority Questions filters</p>
-          <p class="text-[11px] text-slate-500 pb-2">Choose which role-specific priority cards appear after holding on My Priority Questions.</p>
-          <div id="create-priority-filter-options" class="grid grid-cols-1 sm:grid-cols-2 gap-2 pb-4"></div>
-        </div>
-        <div id="create-task-filter-section" class="border-t border-slate-200">
-          <p class="pt-4 pb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">My Tasks filters</p>
-          <p class="text-[11px] text-slate-500 pb-2">Choose which task filters appear after holding on My Tasks.</p>
-          <div id="create-task-filter-options" class="grid grid-cols-1 sm:grid-cols-2 gap-2 pb-4"></div>
-        </div>
-        <div id="create-desk-filter-section" class="hidden border-t border-slate-200">
-          <p class="pt-4 pb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">My Desk quick filters</p>
-          <p class="text-[11px] text-slate-500 pb-2">Choose which filters appear after holding on My Desk for one second.</p>
-          <div id="create-desk-filter-options" class="grid grid-cols-1 sm:grid-cols-2 gap-2 pb-4"></div>
-        </div>
-      </div>
-      <div class="px-5 py-4 border-t border-slate-200 flex items-center justify-between gap-3">
-        <p id="create-shortcut-count" class="text-xs text-slate-500">0 of 6 selected</p>
-        <div class="flex items-center gap-2"><button type="button" onclick="closeCreateShortcutSettings()" class="px-4 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100">Cancel</button><button type="button" onclick="saveCreateShortcutSettings()" class="px-4 py-2 rounded-lg bg-slate-900 text-white text-xs font-bold hover:bg-slate-800">Save shortcuts</button></div>
-      </div>
-    </div>
-  </div>
+  
 <!-- TAB 1: COORDINATOR WORKSPACE -->
 <section id="view-coordinator" class="space-y-6">
-<section id="home-announcements" class="hidden bg-white border border-amber-200 rounded-2xl shadow-sm overflow-hidden">
-  <div class="px-4 py-3 flex items-center justify-between border-b border-amber-100 bg-amber-50/70 gap-3"><div><p class="text-[10px] font-bold uppercase tracking-wider text-amber-700">Team Updates</p><h2 class="text-sm font-bold text-slate-900">Announcements</h2></div><button id="announcement-create-home" type="button" onclick="openAnnouncementComposer()" class="hidden px-3 py-2 rounded-lg bg-slate-900 text-white text-xs font-bold hover:bg-slate-800">+ Announce</button></div>
-  <div id="home-announcement-list" class="divide-y divide-amber-100"></div><div class="px-4 py-2 text-right"><button type="button" onclick="switchTab('updates')" class="text-xs font-semibold text-blue-700 hover:underline">View all updates →</button></div>
-</section>
+
 <div id="my-work-dashboard" class="space-y-4">
   
 
@@ -656,7 +597,10 @@ body.question-task-window-dragging, body.question-task-window-dragging * { curso
       </div>
       <div id="home-task-metrics" class="grid grid-cols-2 xl:grid-cols-1 gap-2 p-3"></div>
     </section>
-  </div>
+  <section id="home-announcements" class="hidden xl:col-span-3 bg-white border border-amber-200 rounded-2xl shadow-sm overflow-hidden">
+  <div class="px-4 py-3 flex items-center justify-between border-b border-amber-100 bg-amber-50/70 gap-3"><div><p class="text-[10px] font-bold uppercase tracking-wider text-amber-700">Team Updates</p><div class="flex items-center gap-2"><h2 class="text-sm font-bold text-slate-900">Announcements</h2><span id="home-announcement-pending-count" class="hidden rounded-full bg-amber-100 text-amber-800 px-2 py-0.5 text-[10px] font-bold"></span></div></div><button type="button" onclick="switchTab('updates')" class="text-xs font-semibold text-blue-700 hover:underline whitespace-nowrap">View all updates →</button></div>
+  <div id="home-announcement-list" class="divide-y divide-amber-100"></div>
+</section></div>
 
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
     <div id="home-list-panel-1" class="bg-white border border-slate-200 border-t-4 border-t-rose-400 rounded-2xl overflow-hidden shadow-sm">
@@ -1711,11 +1655,27 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 </section>
 
 <section id="view-updates" class="hidden space-y-4">
-  <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-5"><div class="flex items-center justify-between gap-3"><div><p class="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Team communication</p><h2 class="text-lg font-bold text-slate-900">Updates</h2><p class="text-xs text-slate-500 mt-1">Announcements shared with everyone.</p></div><button id="announcement-create-updates" type="button" onclick="openAnnouncementComposer()" class="hidden px-4 py-2.5 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800">+ New announcement</button></div></div>
-  <div id="announcement-bulk-toolbar" class="hidden mb-3 p-3 bg-white border border-slate-200 rounded-xl shadow-sm flex items-center justify-between gap-3"><span id="announcement-bulk-count" class="text-xs text-slate-500">0 selected</span><button id="announcement-bulk-delete" type="button" onclick="bulkDeleteSelectedAnnouncements()" disabled class="px-3 py-2 rounded-lg bg-rose-600 text-white text-xs font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-rose-700">Delete selected</button></div>
-<div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden"><div class="px-4 py-3 border-b border-slate-200"><h3 class="text-sm font-bold text-slate-800">Active updates</h3></div><div id="updates-active-list" class="divide-y divide-slate-100"></div></div>
-  <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden"><div class="px-4 py-3 border-b border-slate-200"><h3 class="text-sm font-bold text-slate-800">Past updates</h3></div><div id="updates-archive-list" class="divide-y divide-slate-100"><p class="p-4 text-xs text-slate-400">Open Updates to load the archive.</p></div></div>
-</section>
+  <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-5"><div><p class="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Team communication</p><h2 class="text-lg font-bold text-slate-900">Updates</h2><p class="text-xs text-slate-500 mt-1">Announcements from the last 30 days. Use filters to search up to 90 days.</p></div></div>
+  <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-4 space-y-3">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <label class="text-[10px] font-bold uppercase tracking-wide text-slate-500 md:col-span-1">Title or keyword<input id="updates-search" type="search" oninput="renderAnnouncementViews()" placeholder="Search updates..." class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-xs font-normal normal-case tracking-normal text-slate-800"></label>
+      <label class="text-[10px] font-bold uppercase tracking-wide text-slate-500">From<input id="updates-date-from" type="date" onchange="onUpdateDateFilterChanged()" class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-xs font-normal text-slate-800"></label>
+      <label class="text-[10px] font-bold uppercase tracking-wide text-slate-500">Through<input id="updates-date-to" type="date" onchange="onUpdateDateFilterChanged()" class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-xs font-normal text-slate-800"></label>
+    </div>
+    <div id="announcement-bulk-toolbar" class="hidden p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-3"><span id="announcement-bulk-count" class="text-xs text-slate-500">0 selected</span><button id="announcement-bulk-delete" type="button" onclick="bulkDeleteSelectedAnnouncements()" disabled class="px-3 py-2 rounded-lg bg-rose-600 text-white text-xs font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-rose-700">Delete selected</button></div>
+    <div class="text-[10px] text-slate-500"><span id="updates-result-count">Loading updates…</span><span class="ml-2">Available for up to 90 days.</span></div>
+  </div>
+  <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+    <div class="overflow-x-auto"><table class="w-full min-w-[760px] text-left text-xs">
+      <thead class="bg-slate-50 text-slate-500"><tr class="border-b border-slate-200">
+        <th class="p-3"><button type="button" onclick="sortUpdatesBy('title')" class="font-bold hover:text-slate-900">Title <span id="updates-sort-title"></span></button></th>
+        <th class="p-3 w-52"><button type="button" onclick="sortUpdatesBy('publishedAt')" class="font-bold hover:text-slate-900">Published <span id="updates-sort-date"></span></button></th>
+        <th class="p-3 w-24"><button type="button" onclick="sortUpdatesBy('status')" class="font-bold hover:text-slate-900">Status <span id="updates-sort-status"></span></button></th>
+        <th class="p-3 w-56 text-right">Actions</th>
+      </tr></thead><tbody id="updates-unified-list" class="divide-y divide-slate-100"><tr><td colspan="4" class="p-5 text-center text-slate-400">Open Updates to load announcements.</td></tr></tbody>
+    </table></div>
+  </div>
+</section></section>
 </main>
 </div>
 
@@ -5370,7 +5330,7 @@ function renderAnnouncementDetail_(item){
   const review=document.getElementById('announcement-detail-review');
   if(review){review.classList.toggle('hidden',!item.reviewRequired||!!item.reviewed||Date.parse(item.expiresAt)<=Date.now());review.innerText='Mark as reviewed';}
   const edit=document.getElementById('announcement-detail-edit');
-  if(edit)edit.classList.toggle('hidden',!announcementState.canEdit);
+  if(edit)edit.classList.toggle('hidden',!item.canEdit);
 }
 function closeAnnouncementDetail(){const modal=document.getElementById('announcement-detail-modal');if(modal){modal.classList.add('hidden');modal.classList.remove('flex');}activeAnnouncementDetailId='';}
 function handleAnnouncementEditorDragOver(event){
@@ -5384,8 +5344,8 @@ function handleAnnouncementEditorDrop(event){
 }
 
 function configureAnnouncementControls(){
-  const allowed=isSupportUser(currentUser);
-  ['announcement-create-home','announcement-create-updates','home-create-announcement'].forEach(id=>{const e=document.getElementById(id);if(e)e.classList.toggle('hidden',!allowed);});
+  const button=document.getElementById('home-create-announcement');
+  if(button)button.classList.toggle('hidden',!isSupportUser(currentUser));
 }
 function loadAnnouncements(includeArchive){
   if(!currentUser)return;
@@ -5394,7 +5354,7 @@ function loadAnnouncements(includeArchive){
   announcementLoadInFlight=true;const user=currentUser;
   google.script.run.withFailureHandler(err=>{
     if(currentUser!==user)return;announcementLoadInFlight=false;console.warn('Announcements could not be loaded.',err);
-    if(includeArchive){const e=document.getElementById('updates-archive-list');if(e)e.innerHTML='<p class="p-4 text-xs text-rose-600">Updates could not be loaded. Please try again.</p>';}
+    if(includeArchive){const e=document.getElementById('updates-unified-list');if(e)e.innerHTML='<tr><td colspan="4" class="p-4 text-center text-rose-600">Updates could not be loaded. Please try again.</td></tr>';}
     if(announcementArchiveNeedsLoad){announcementArchiveNeedsLoad=false;loadAnnouncements(true);}
   }).withSuccessHandler(result=>{
     if(currentUser!==user)return;announcementLoadInFlight=false;result=result||{};
@@ -5413,32 +5373,110 @@ function scheduleAnnouncementExpiry(){
   const delay=Math.max(1000,Math.min(2147483647,Math.min.apply(null,times)-Date.now()+1000));
   announcementExpiryTimer=setTimeout(()=>{announcementArchiveLoaded=false;loadAnnouncements(currentTab==='updates');},delay);
 }
+let updatesSortKey = 'publishedAt';
+let updatesSortAscending = false;
+let updatesDateFiltersInitialized = false;
+
+function localUpdateDateValue(date) {
+  const y=date.getFullYear(), m=String(date.getMonth()+1).padStart(2,'0'), d=String(date.getDate()).padStart(2,'0');
+  return y+'-'+m+'-'+d;
+}
+function initializeUpdatesDateFilters() {
+  const from=document.getElementById('updates-date-from'),to=document.getElementById('updates-date-to');
+  if(!from||!to||updatesDateFiltersInitialized)return;
+  const today=new Date();today.setHours(0,0,0,0);
+  const earliest=new Date(today);earliest.setDate(earliest.getDate()-89);
+  const defaultFrom=new Date(today);defaultFrom.setDate(defaultFrom.getDate()-29);
+  from.min=localUpdateDateValue(earliest);from.max=localUpdateDateValue(today);
+  to.min=from.min;to.max=from.max;
+  from.value=localUpdateDateValue(defaultFrom);to.value=localUpdateDateValue(today);
+  updatesDateFiltersInitialized=true;
+}
+function onUpdateDateFilterChanged() {
+  initializeUpdatesDateFilters();
+  const from=document.getElementById('updates-date-from'),to=document.getElementById('updates-date-to');
+  if(!from||!to)return;
+  const today=new Date();today.setHours(0,0,0,0);
+  const earliest=new Date(today);earliest.setDate(earliest.getDate()-89);
+  const min=localUpdateDateValue(earliest),max=localUpdateDateValue(today);
+  from.min=min;from.max=max;to.min=min;to.max=max;
+  if(from.value<min)from.value=min;
+  if(from.value>max)from.value=max;
+  if(to.value<min)to.value=min;
+  if(to.value>max)to.value=max;
+  if(from.value>to.value)to.value=from.value;
+  renderAnnouncementViews();
+}
+function sortUpdatesBy(key) {
+  if(updatesSortKey===key)updatesSortAscending=!updatesSortAscending;
+  else {updatesSortKey=key;updatesSortAscending=(key!=='publishedAt');}
+  renderUnifiedUpdates_();
+}
+function announcementStatus_(item) {
+  return Date.parse(item.expiresAt)>Date.now()?'Active':'Past';
+}
+function renderUnifiedUpdates_() {
+  const body=document.getElementById('updates-unified-list');
+  if(!body)return;
+  initializeUpdatesDateFilters();
+  const search=String((document.getElementById('updates-search')||{}).value||'').trim().toLowerCase();
+  const from=String((document.getElementById('updates-date-from')||{}).value||'');
+  const to=String((document.getElementById('updates-date-to')||{}).value||'');
+  const all=(announcementState.active||[]).concat(announcementState.archive||[]);
+  const rows=all.filter(item=>{
+    const day=String(item.publishedAt||'').slice(0,10);
+    const searchable=[item.title,item.message,item.createdBy,item.updatedBy].join(' ').toLowerCase();
+    return (!from||day>=from)&&(!to||day<=to)&&(!search||searchable.includes(search));
+  }).sort((a,b)=>{
+    let cmp=0;
+    if(updatesSortKey==='title')cmp=String(a.title||'').localeCompare(String(b.title||''),undefined,{sensitivity:'base'});
+    else if(updatesSortKey==='status')cmp=announcementStatus_(a).localeCompare(announcementStatus_(b));
+    else cmp=Date.parse(a.publishedAt)-Date.parse(b.publishedAt);
+    return updatesSortAscending?cmp:-cmp;
+  });
+  const count=document.getElementById('updates-result-count');
+  if(count)count.innerText=rows.length+' update'+(rows.length===1?'':'s')+' shown';
+  [['updates-sort-title','title'],['updates-sort-date','publishedAt'],['updates-sort-status','status']].forEach(pair=>{
+    const el=document.getElementById(pair[0]);if(el)el.innerText=updatesSortKey===pair[1]?(updatesSortAscending?'↑':'↓'):'';
+  });
+  if(!rows.length){body.innerHTML='<tr><td colspan="4" class="p-6 text-center text-slate-400">No updates match these filters.</td></tr>';return;}
+  body.innerHTML=rows.map(item=>{
+    const status=announcementStatus_(item),review=item.reviewRequired?(item.reviewed?'<span class="ml-2 text-[9px] font-bold text-emerald-700">Reviewed</span>':'<span class="ml-2 text-[9px] font-bold text-amber-700">Pending review</span>'):'';
+    const bulk=announcementState.canBulkDelete?'<label class="inline-flex items-center px-1" title="Select update"><input type="checkbox" class="rounded border-slate-300" '+(selectedAnnouncementIds.indexOf(String(item.id))>=0?'checked':'')+' onchange="toggleAnnouncementBulkSelection(event,&quot;'+esc(item.id)+'&quot;)"></label>':'';
+    const edit=item.canEdit?'<button type="button" onclick="openAnnouncementEdit(&quot;'+esc(item.id)+'&quot;)" class="px-2.5 py-1.5 rounded-lg border border-blue-200 text-blue-700 text-[10px] font-bold hover:bg-blue-50">Edit</button>':'';
+    const del=item.canDelete?'<button type="button" onclick="deleteHomeAnnouncement(&quot;'+esc(item.id)+'&quot;)" class="px-2.5 py-1.5 rounded-lg border border-rose-200 text-rose-700 text-[10px] font-bold hover:bg-rose-50">Delete</button>':'';
+    const mark=item.reviewRequired&&!item.reviewed&&status==='Active'?'<button type="button" onclick="markAnnouncementReviewedUi(&quot;'+esc(item.id)+'&quot;)" class="px-2.5 py-1.5 rounded-lg border border-amber-300 text-amber-800 text-[10px] font-bold hover:bg-amber-50">Mark reviewed</button>':'';
+    return '<tr class="hover:bg-slate-50"><td class="p-3 align-top"><button type="button" onclick="openAnnouncementDetail(&quot;'+esc(item.id)+'&quot;)" class="text-left font-bold text-slate-900 hover:text-blue-700 hover:underline whitespace-normal break-words">'+esc(item.title)+'</button>'+review+'<p class="mt-1 text-[10px] text-slate-500">'+esc(item.createdBy||'Support')+'</p></td><td class="p-3 align-top whitespace-nowrap text-slate-600">'+esc(formatCSTDateTime(item.publishedAt))+'</td><td class="p-3 align-top"><span class="rounded-full px-2 py-1 text-[9px] font-bold '+(status==='Active'?'bg-emerald-50 text-emerald-700':'bg-slate-100 text-slate-600')+'">'+status+'</span></td><td class="p-3 align-top"><div class="flex justify-end items-center gap-1.5">'+bulk+mark+edit+del+'</div></td></tr>';
+  }).join('');
+}
 function renderAnnouncementViews(){
   configureAnnouncementControls();
   updateAnnouncementBulkControls_();
   const active=announcementState.active||[];
-  const home=document.getElementById('home-announcement-list'),section=document.getElementById('home-announcements');
-  if(home&&section){section.classList.toggle('hidden',!active.length);home.innerHTML=active.map(item=>renderAnnouncementCard_(item,true,true)).join('');}
-  const activeList=document.getElementById('updates-active-list');
-  if(activeList)activeList.innerHTML=active.length?active.map(item=>renderAnnouncementCard_(item,false,false)).join(''):'<p class="p-5 text-xs text-slate-400">There are no active announcements.</p>';
-  const archiveList=document.getElementById('updates-archive-list');
-  if(archiveList&&announcementArchiveLoaded){const archive=announcementState.archive||[];
-    archiveList.innerHTML=archive.length?archive.map(item=>renderAnnouncementCard_(item,true,false)).join(''):'<p class="p-5 text-xs text-slate-400">No past updates yet.</p>';
+  const home= document.getElementById('home-announcement-list');
+  const section=document.getElementById('home-announcements');
+  const visibleHome=active.filter(item=>!item.reviewed);
+  const pending=visibleHome.filter(item=>item.reviewRequired).length;
+  const pendingCount=document.getElementById('home-announcement-pending-count');
+  if(pendingCount){pendingCount.innerText=pending+' pending review';pendingCount.classList.toggle('hidden',pending===0);}
+  if(home&&section){
+    section.classList.remove('hidden');
+    home.innerHTML=visibleHome.length?visibleHome.map(item=>renderAnnouncementCard_(item)).join(''):'<div class="p-5 text-center text-xs text-slate-400">No new updates to review.</div>';
   }
-}function renderAnnouncementCard_(item,compact,homeSurface){
+  renderUnifiedUpdates_();
+}
+function renderAnnouncementCard_(item){
   const summary=stripHtml(item.message||'').replace(/\s+/g,' ').trim();
-  const preview=summary.length>220?summary.slice(0,217)+'…':summary;
-  const review=item.reviewRequired&&Date.parse(item.expiresAt)>Date.now()?(item.reviewed?'<span class="text-[10px] font-semibold text-emerald-700">Reviewed</span>':'<button type="button" onclick="event.preventDefault();event.stopPropagation();markAnnouncementReviewedUi(&quot;'+item.id+'&quot;)" class="px-3 py-1.5 rounded-lg border border-amber-300 text-amber-800 text-[10px] font-bold hover:bg-amber-50">Mark as reviewed</button>'):'';
-  const bulkSelect=announcementState.canBulkDelete&&currentTab==='updates'?'<label onclick="event.stopPropagation()" onkeydown="event.stopPropagation()" class="inline-flex items-center px-2 py-1 text-slate-500" title="Select update"><input type="checkbox" class="rounded border-slate-300" '+(selectedAnnouncementIds.indexOf(String(item.id))>=0?'checked':'')+' onchange="toggleAnnouncementBulkSelection(event,&quot;'+item.id+'&quot;)"></label>':'';
-  const homeDelete=!homeSurface&&currentTab==='updates'&&announcementState.canDeleteHome&&Date.parse(item.expiresAt)>Date.now()?'<button type="button" onclick="event.preventDefault();event.stopPropagation();deleteHomeAnnouncement(&quot;'+item.id+'&quot;)" class="px-3 py-1.5 rounded-lg border border-rose-200 text-rose-700 text-[10px] font-bold hover:bg-rose-50">Delete</button>':'';
-  const edit=announcementState.canEdit&&currentTab==='updates'&&Date.parse(item.expiresAt)>Date.now()?'<button type="button" onclick="event.preventDefault();event.stopPropagation();openAnnouncementEdit(&quot;'+item.id+'&quot;)" class="px-3 py-1.5 rounded-lg border border-blue-200 text-blue-700 text-[10px] font-bold hover:bg-blue-50">Edit</button>':'';
-  const updated=item.updatedAt?'<p class="text-[10px] text-slate-500 mt-1">Last updated '+esc(formatCSTDateTime(item.updatedAt))+' by '+esc(item.updatedBy||'Manager')+'</p>':'';
-  const published=item.updatedAt?'':'<p class="text-[10px] text-slate-400 mt-1">From '+esc(item.createdBy||'Support')+' · '+esc(formatCSTDateTime(item.publishedAt))+'</p>';
-  if(homeSurface){
-    const timeLabel=item.updatedAt?'Updated '+formatCSTDateTime(item.updatedAt)+' · '+(item.updatedBy||'Manager'):'Published '+formatCSTDateTime(item.publishedAt)+' · '+(item.createdBy||'Support');
-    return '<article role="button" tabindex="0" aria-label="Open announcement: '+esc(item.title)+'" onclick="openAnnouncementDetail(&quot;'+item.id+'&quot;)" onkeydown="if(event.key===&quot;Enter&quot;||event.key===&quot; &quot;){event.preventDefault();openAnnouncementDetail(&quot;'+item.id+'&quot;)}" class="px-4 py-2.5 cursor-pointer hover:bg-amber-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-amber-300"><div class="flex items-center gap-4 min-w-0"><h3 class="text-xs font-bold text-slate-900 truncate w-1/4">'+esc(item.title)+'</h3><p class="text-xs text-slate-600 truncate flex-1">'+esc(preview)+'</p><span class="shrink-0 max-w-[14rem] truncate text-[10px] text-slate-400" title="'+esc(timeLabel)+'">'+esc(timeLabel)+'</span></div></article>';
-  }
-  return '<article role="button" tabindex="0" onclick="openAnnouncementDetail(&quot;'+item.id+'&quot;)" onkeydown="if(event.key===&quot;Enter&quot;||event.key===&quot; &quot;){event.preventDefault();openAnnouncementDetail(&quot;'+item.id+'&quot;)}" class="p-4 cursor-pointer hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-emerald-300"><div class="flex flex-wrap items-start justify-between gap-3"><div class="min-w-0 flex-1"><div class="flex items-center gap-2"><h3 class="text-sm font-bold text-slate-900">'+esc(item.title)+'</h3></div>'+published+updated+'</div><div class="flex items-center gap-2">'+bulkSelect+review+edit+homeDelete+'</div></div><p class="text-xs leading-5 text-slate-600 mt-2">'+esc(preview)+'</p></article>';
+  const preview=summary.length>260?summary.slice(0,257)+'…':summary;
+  const pending=item.reviewRequired&&!item.reviewed;
+  const review=pending?'<button type="button" onclick="event.stopPropagation();markAnnouncementReviewedUi(&quot;'+esc(item.id)+'&quot;)" class="shrink-0 px-3 py-1.5 rounded-lg border border-amber-300 text-amber-800 text-[10px] font-bold hover:bg-amber-50">Mark reviewed</button>':'';
+  const badge=pending?'<span class="rounded-full bg-amber-100 text-amber-800 px-2 py-0.5 text-[9px] font-bold">Pending review</span>':'';
+  const date=item.updatedAt?'Updated '+formatCSTDateTime(item.updatedAt):'Published '+formatCSTDateTime(item.publishedAt);
+  return '<article class="px-4 py-3 hover:bg-amber-50/50"><div class="flex flex-col md:flex-row md:items-start justify-between gap-2"><div class="min-w-0 flex-1"><button type="button" onclick="openAnnouncementDetail(&quot;'+esc(item.id)+'&quot;)" class="block text-left text-sm font-bold text-slate-900 hover:text-blue-700 hover:underline whitespace-normal break-words">'+esc(item.title)+'</button><div class="flex items-center gap-2 mt-1">'+badge+'<span class="text-[9px] text-slate-400">'+esc(date)+' · '+esc(item.createdBy||'Support')+'</span></div><p class="mt-2 text-xs leading-5 text-slate-600">'+esc(preview)+'</p></div>'+review+'</div></article>';
+}
+function renderAnnouncementsArchive(){
+  initializeUpdatesDateFilters();
+  renderAnnouncementViews();
 }
 function updateAnnouncementBulkControls_(){
   const toolbar=document.getElementById('announcement-bulk-toolbar');
@@ -5456,9 +5494,10 @@ function toggleAnnouncementBulkSelection(event,id){
   updateAnnouncementBulkControls_();
 }
 function deleteHomeAnnouncement(id){
-  if(!currentUser||!announcementState.canDeleteHome)return;
+  if(!currentUser)return;
   const item=findAnnouncementById_(id);if(!item)return;
-  if(!confirm('Delete “'+item.title+'” from Home? This permanently removes the announcement and its review records.'))return;
+  if(!item.canDelete){showToast('Only the Support user who posted this update or an Admin can delete it.');return;}
+  if(!confirm('Permanently delete “'+item.title+'” and its review records?'))return;
   const user=currentUser;
   google.script.run.withFailureHandler(err=>showToast(err&&err.message?err.message:'Could not delete announcement.')).withSuccessHandler(()=>{
     announcementArchiveLoaded=false;showToast('Announcement deleted.');loadAnnouncements(currentTab==='updates');
@@ -5513,8 +5552,8 @@ function showAnnouncementPreview(){
   setAnnouncementPreview(true);
 }
 function openAnnouncementEdit(id){
-  if(!announcementState.canEdit){showToast('Editing Updates requires the Manager or Director title.');return;}
   const item=findAnnouncementById_(id);if(!item){showToast('This update is no longer available.');return;}
+  if(!item.canEdit){showToast('Only the Support user who posted this update or an Admin can edit it.');return;}
   closeAnnouncementDetail();activeAnnouncementEditId=String(item.id);announcementPreviewReady=false;
   document.getElementById('announcement-title').value=item.title||'';
   setRichEditorContent('announcement-message',item.message||'');
@@ -5528,7 +5567,7 @@ function openAnnouncementEdit(id){
 function submitAnnouncement(event){
   event.preventDefault();
   const editing=!!activeAnnouncementEditId;
-  if(editing&&!announcementState.canEdit){showToast('Editing Updates requires an Assistant Manager, Manager, or Director title.');return;}
+  if(editing){const item=findAnnouncementById_(activeAnnouncementEditId);if(!item||!item.canEdit){showToast('Only the Support user who posted this update or an Admin can edit it.');return;}}
   if(!editing&&!isSupportUser(currentUser)){showToast('Only Support can publish announcements.');return;}
   if(!announcementPreviewReady){showAnnouncementPreview();return;}
   if(Number(richImageUploadsInFlight['announcement-message'])>0){showToast('Wait for image uploads to finish before saving.');return;}
@@ -6833,7 +6872,7 @@ function handleCreateButtonClick(event){
   closeCreateRadialMenu();
 }
 function suppressCreateContextMenu(event){if(event)event.preventDefault();}
-const GLOBAL_CREATE_HIDE_MODAL_IDS=['login-overlay','admin-test-modal','notification-settings-modal','create-shortcut-settings-modal','home-question-composer','quick-guide-modal','quick-question-modal','quick-mydesk-modal','quick-unread-modal','quick-report-modal','create-task-modal','task-detail-modal','task-completion-decision-modal','edit-task-modal','custom-dialog-overlay','answer-modal','view-modal','admin-edit-modal','ticket-detail-modal','peer-create-modal','peer-detail-modal'];
+const GLOBAL_CREATE_HIDE_MODAL_IDS=['login-overlay','admin-test-modal','notification-settings-modal','home-question-composer','quick-guide-modal','quick-question-modal','quick-mydesk-modal','quick-unread-modal','quick-report-modal','create-task-modal','task-detail-modal','task-completion-decision-modal','edit-task-modal','custom-dialog-overlay','answer-modal','view-modal','admin-edit-modal','ticket-detail-modal','peer-create-modal','peer-detail-modal'];
 function refreshGlobalCreateVisibility(){
   const card=document.getElementById('global-create-card');if(!card)return;
   const hasOpenModal=GLOBAL_CREATE_HIDE_MODAL_IDS.some(id=>{const modal=document.getElementById(id);return !!modal&&!modal.classList.contains('hidden')&&getComputedStyle(modal).display!=='none';});

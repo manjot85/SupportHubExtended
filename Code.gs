@@ -5863,10 +5863,9 @@ function ensureAnnouncementsSheets_() {
 }
 
 // Narrow update-editor permission only. Title grants no operational Support access.
-function canEditAnnouncements_(member) {
-  if (!member || String(member.status || '').trim().toLowerCase() !== 'active') return false;
-  const title = String(member.title || '').trim().toLowerCase();
-  return title === 'manager' || title === 'assistant manager' || title === 'director';
+function canManageAnnouncement_(member, row) {
+  if (!member || String(member.status || '').trim().toLowerCase() !== 'active' || !row) return false;
+  return isAdminMember(member) || (isSupportMember(member) && normalizeEmail(member.email) === normalizeEmail(row[4]));
 }
 
 function cleanupAnnouncementReviews_(sheet, ids) {
@@ -5885,17 +5884,17 @@ function deleteAnnouncementFromUpdates(announcementId, requestingEmail) {
   if (!id) throw new Error('This announcement could not be identified.');
   return withLock(() => {
     const member = requireAuthenticatedMember(requestingEmail);
-    if (!canEditAnnouncements_(member)) throw new Error('Access denied: deleting active announcements requires the Assistant Manager, Manager, or Director title.');
     const sheets = ensureAnnouncementsSheets_(), last = sheets.announcements.getLastRow();
     if (last < 2) throw new Error('This announcement is no longer available.');
     const rows = sheets.announcements.getRange(2, 1, last - 1, 12).getValues();
     const offset = rows.findIndex(row => String(row[0] || '').trim() === id);
     if (offset < 0) throw new Error('This announcement is no longer available.');
     const row = rows[offset], now = Date.now();
+    if (!canManageAnnouncement_(member, row)) throw new Error('Access denied: only the Support user who posted this update or an Admin can delete it.');
     const published = row[5] instanceof Date ? row[5] : new Date(row[5]);
     const expires = row[6] instanceof Date ? row[6] : new Date(row[6]);
-    if (isNaN(published.getTime()) || isNaN(expires.getTime()) || published.getTime() > now || expires.getTime() <= now) {
-      throw new Error('Only active announcements can be deleted here.');
+    if (isNaN(published.getTime()) || published.getTime() > now) {
+      throw new Error('Only published updates can be deleted.');
     }
     sheets.announcements.deleteRow(offset + 2);
     cleanupAnnouncementReviews_(sheets.reviews, [id]);
@@ -5933,18 +5932,58 @@ function validateAnnouncementContent_(title,message) {
   requireSheetCellLength(message,'Announcement message');
   return {title:title,message:message};
 }
-function getAnnouncementsData(requestingEmail,includeArchive){
-  const m=requireAuthenticatedMember(requestingEmail),s=ensureAnnouncementsSheets_(),now=Date.now(),n=s.announcements.getLastRow();
-  const rows=n>1?s.announcements.getRange(2,1,n-1,12).getValues():[],rn=s.reviews.getLastRow(),reviewed=new Set();
-  if(rn>1){const email=normalizeEmail(m.email);s.reviews.getRange(2,1,rn-1,4).getValues().forEach(r=>{if(normalizeEmail(r[2])===email)reviewed.add(String(r[0])+'|'+String(r[1]||'1'));});}
-  const active=[],archive=[];
-  rows.forEach(r=>{const id=String(r[0]||'').trim(),p=r[5] instanceof Date?r[5]:new Date(r[5]),x=r[6] instanceof Date?r[6]:new Date(r[6]);if(!id||isNaN(p.getTime())||isNaN(x.getTime()))return;
-    const item={id:id,title:String(r[1]||''),message:String(r[2]||''),createdBy:String(r[3]||''),publishedAt:announcementDateIso_(p),expiresAt:announcementDateIso_(x),reviewRequired:r[7]===true||String(r[7]).toLowerCase()==='true',revision:Number(r[8])||1,updatedAt:announcementDateIso_(r[9]),updatedBy:String(r[10]||'')};
-    item.reviewed=reviewed.has(id+'|'+item.revision);if(p.getTime()<=now&&x.getTime()>now)active.push(item);else if(includeArchive&&p.getTime()<=now&&x.getTime()<=now)archive.push(item);
+function getAnnouncementsData(requestingEmail, includeArchive) {
+  const member = requireAuthenticatedMember(requestingEmail);
+  const sheets = ensureAnnouncementsSheets_();
+  const now = Date.now();
+  const cutoff = now - 90 * 24 * 60 * 60 * 1000;
+  const lastRow = sheets.announcements.getLastRow();
+  const rows = lastRow > 1 ? sheets.announcements.getRange(2, 1, lastRow - 1, 12).getValues() : [];
+  const reviewLastRow = sheets.reviews.getLastRow();
+  const reviewed = new Set();
+  if (reviewLastRow > 1) {
+    const email = normalizeEmail(member.email);
+    sheets.reviews.getRange(2, 1, reviewLastRow - 1, 4).getValues().forEach(function(row) {
+      if (normalizeEmail(row[2]) === email) reviewed.add(String(row[0]) + '|' + String(row[1] || '1'));
+    });
+  }
+  const active = [], archive = [];
+  rows.forEach(function(row) {
+    const id = String(row[0] || '').trim();
+    const publishedAt = row[5] instanceof Date ? row[5] : new Date(row[5]);
+    const expiresAt = row[6] instanceof Date ? row[6] : new Date(row[6]);
+    if (!id || isNaN(publishedAt.getTime()) || isNaN(expiresAt.getTime()) || publishedAt.getTime() > now || publishedAt.getTime() < cutoff) return;
+    const item = {
+      id: id,
+      title: String(row[1] || ''),
+      message: String(row[2] || ''),
+      createdBy: String(row[3] || ''),
+      authorEmail: normalizeEmail(row[4]),
+      publishedAt: announcementDateIso_(publishedAt),
+      expiresAt: announcementDateIso_(expiresAt),
+      reviewRequired: row[7] === true || String(row[7]).toLowerCase() === 'true',
+      revision: Number(row[8]) || 1,
+      updatedAt: announcementDateIso_(row[9]),
+      updatedBy: String(row[10] || '')
+    };
+    item.reviewed = reviewed.has(id + '|' + item.revision);
+    item.canEdit = canManageAnnouncement_(member, row);
+    item.canDelete = item.canEdit;
+    if (expiresAt.getTime() > now) active.push(item);
+    else if (includeArchive) archive.push(item);
   });
-  const sort=(a,b)=>Date.parse(b.publishedAt)-Date.parse(a.publishedAt);active.sort(sort);archive.sort(sort);
-  return {active:active,archive:archive,canPublish:isSupportMember(m),canEdit:canEditAnnouncements_(m),canDeleteHome:canEditAnnouncements_(m),canBulkDelete:isAdminMember(m)};
-}function publishAnnouncement(payload,requestingEmail){
+  const sort = function(a, b) { return Date.parse(b.publishedAt) - Date.parse(a.publishedAt); };
+  active.sort(sort); archive.sort(sort);
+  return {
+    active: active,
+    archive: archive,
+    canPublish: isSupportMember(member),
+    canEdit: false,
+    canDeleteHome: false,
+    canBulkDelete: isAdminMember(member)
+  };
+}
+function publishAnnouncement(payload,requestingEmail){
   const d=payload||{},clean=validateAnnouncementContent_(d.title,d.message),hours=Number(d.durationHours);
   if([24,48,72,168,336].indexOf(hours)<0)throw new Error('Choose a supported announcement duration.');
   return withLock(()=>{const m=requireSupportRole(requestingEmail),s=ensureAnnouncementsSheets_(),now=new Date(),expires=new Date(now.getTime()+hours*3600000),id=Utilities.getUuid(),review=d.reviewRequired===true;
@@ -5955,12 +5994,13 @@ function getAnnouncementsData(requestingEmail,includeArchive){
 function editAnnouncement(payload,requestingEmail){
   const d=payload||{},id=String(d.id||'').trim(),clean=validateAnnouncementContent_(d.title,d.message);
   if(!id)throw new Error('This update could not be identified.');
-  return withLock(()=>{const m=requireAuthenticatedMember(requestingEmail);if(!canEditAnnouncements_(m))throw new Error('Access denied: editing Updates requires the Manager, Assistant Manager, or Director title.');
+  return withLock(()=>{const m=requireAuthenticatedMember(requestingEmail);
     const s=ensureAnnouncementsSheets_(),last=s.announcements.getLastRow();if(last<2)throw new Error('This update is no longer available.');
     const rows=s.announcements.getRange(2,1,last-1,12).getValues(),offset=rows.findIndex(row=>String(row[0]||'')===id);if(offset<0)throw new Error('This update is no longer available.');
+    if(!canManageAnnouncement_(m,rows[offset]))throw new Error('Access denied: only the Support user who posted this update or an Admin can edit it.');
     const rowIndex=offset+2,oldRevision=Number(rows[offset][8])||1,now=new Date();
-    const published=rows[offset][5] instanceof Date?rows[offset][5]:new Date(rows[offset][5]),expires=rows[offset][6] instanceof Date?rows[offset][6]:new Date(rows[offset][6]);
-    if(isNaN(published.getTime())||isNaN(expires.getTime())||published.getTime()>now.getTime()||expires.getTime()<=now.getTime())throw new Error('Only active announcements can be edited by title-based roles.');
+    const published=rows[offset][5] instanceof Date?rows[offset][5]:new Date(rows[offset][5]);
+    if(isNaN(published.getTime())||published.getTime()>now.getTime())throw new Error('Only published updates can be edited.');
     const revision=oldRevision+1;
     s.announcements.getRange(rowIndex,2,1,2).setValues([[clean.title,clean.message]]);
     s.announcements.getRange(rowIndex,9,1,4).setValues([[revision,now,String(m.name||''),normalizeEmail(m.email)]]);
