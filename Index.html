@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="support-hub-item" content="<?= initialItemId ?>">
 <title>Support Hub</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
@@ -4045,28 +4046,100 @@ window.onload = function() {
 };
 
 
-// Email notifications can link directly to one Support Hub record. The hash is
-// kept client-side by the browser, so it does not change Apps Script routing.
+// Email notifications can link directly to one Support Hub record.
+// Legacy hash links remain supported. The item query is captured from the
+// Apps Script event/meta tag before login and kept in sessionStorage until opened.
+const SUPPORT_HUB_DEEP_LINK_STORAGE_KEY = 'supportHubPendingEmailDeepLink';
 let pendingEmailDeepLink = null;
+let pendingEmailDeepLinkHighlightKind = '';
+
 function readSupportHubDeepLink() {
+  let item = '';
+  const itemMeta = document.querySelector('meta[name="support-hub-item"]');
+  if (itemMeta) item = String(itemMeta.content || '').trim();
+  if (!item) {
+    try { item = String(new URLSearchParams(window.location.search).get('item') || '').trim(); } catch (e) {}
+  }
+  if (item) return { kind: 'item', id: item };
+
   const raw = String(window.location.hash || '').replace(/^#/, '');
-  if (!raw) return null;
-  const eq = raw.indexOf('=');
-  if (eq < 1) return null;
-  const kind = raw.slice(0, eq).toLowerCase();
-  let id = raw.slice(eq + 1);
-  try { id = decodeURIComponent(id); } catch (e) {}
-  if (!id || (kind !== 'ticket' && kind !== 'task')) return null;
-  return { kind, id };
+  if (raw) {
+    const eq = raw.indexOf('=');
+    if (eq > 0) {
+      const kind = raw.slice(0, eq).toLowerCase();
+      let id = raw.slice(eq + 1);
+      try { id = decodeURIComponent(id); } catch (e) {}
+      if (id && (kind === 'ticket' || kind === 'task')) return { kind, id };
+    }
+  }
+
+  try {
+    const stored = JSON.parse(sessionStorage.getItem(SUPPORT_HUB_DEEP_LINK_STORAGE_KEY) || 'null');
+    if (stored && stored.id && (stored.kind === 'item' || stored.kind === 'ticket' || stored.kind === 'task')) return stored;
+  } catch (e) {}
+  return null;
 }
+
+function captureSupportHubDeepLink() {
+  const link = readSupportHubDeepLink();
+  if (!link) return null;
+  pendingEmailDeepLink = link;
+  try { sessionStorage.setItem(SUPPORT_HUB_DEEP_LINK_STORAGE_KEY, JSON.stringify(link)); } catch (e) {}
+  return link;
+}
+captureSupportHubDeepLink();
+
+function openEmailItemDeepLink(id) {
+  const user = currentUser;
+  if (!user || !id) return;
+  google.script.run.withSuccessHandler(task => {
+    if (currentUser !== user) return;
+    if (task && task.taskId) {
+      mergeNavigationTasks([task]);
+      openTaskDetail(task.taskId);
+      return;
+    }
+    openTicketDetail('Questions Tracker', id);
+  }).withFailureHandler(() => {
+    if (currentUser === user) openTicketDetail('Questions Tracker', id);
+  }).getTaskForNavigation(id, user.email);
+}
+
+function highlightPendingEmailDeepLink(kind) {
+  const expected = pendingEmailDeepLinkHighlightKind;
+  if (!expected || (expected !== 'item' && expected !== kind)) return;
+  let target = null;
+  if (kind === 'task') {
+    target = document.getElementById('task-detail-panel');
+  } else {
+    const ticketModal = document.getElementById('ticket-detail-modal');
+    target = ticketModal && !ticketModal.classList.contains('hidden')
+      ? document.getElementById('ticket-detail-panel')
+      : document.getElementById('view-modal');
+  }
+  if (!target) return;
+  pendingEmailDeepLinkHighlightKind = '';
+  target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  target.classList.add('ring-2', 'ring-amber-400');
+  setTimeout(() => target.classList.remove('ring-2', 'ring-amber-400'), 2200);
+}
+
 function openPendingEmailDeepLink() {
   if (!currentUser) return;
   pendingEmailDeepLink = pendingEmailDeepLink || readSupportHubDeepLink();
   if (!pendingEmailDeepLink) return;
   const link = pendingEmailDeepLink;
   pendingEmailDeepLink = null;
-  try { history.replaceState(null, '', window.location.pathname + window.location.search); } catch (e) {}
+  try { sessionStorage.removeItem(SUPPORT_HUB_DEEP_LINK_STORAGE_KEY); } catch (e) {}
+  try {
+    const url = new URL(window.location.href);
+    url.searchParams.delete('item');
+    url.hash = '';
+    history.replaceState(null, '', url.pathname + url.search);
+  } catch (e) {}
+  pendingEmailDeepLinkHighlightKind = link.kind;
   if (link.kind === 'task') openTaskDetail(link.id);
+  else if (link.kind === 'item') openEmailItemDeepLink(link.id);
   else openTicketDetail('Questions Tracker', link.id);
 }
 
@@ -4400,7 +4473,7 @@ function finishLogin(member) {
   configureAnnouncementControls();
   loadAnnouncements(false);
   // Preserve any direct record link from an email while login/data loading starts.
-  pendingEmailDeepLink = readSupportHubDeepLink();
+  pendingEmailDeepLink = pendingEmailDeepLink || readSupportHubDeepLink();
 
   if (support) {
     // Give operational users the small open-question feed first. A large
@@ -7834,6 +7907,7 @@ async function openViewModal(q) {
 
   updateModalReadUI(q.isRead);
   document.getElementById('view-modal').classList.remove('hidden');
+  highlightPendingEmailDeepLink('ticket');
   updateDetailNavigationButtons();
 
   if (!q.isRead) {
@@ -8404,6 +8478,7 @@ async function openTicketDetail(sheet, ticketId) {
   if (infoBtn) infoBtn.classList.toggle('hidden', !isOwnerOf(q) || isAdminUser(currentUser));
   if (adminEditBtn) adminEditBtn.classList.toggle('hidden', !isAdminUser(currentUser));
   document.getElementById('ticket-detail-modal').classList.remove('hidden');
+  highlightPendingEmailDeepLink('ticket');
   updateDetailNavigationButtons();
 }
 
@@ -10878,6 +10953,7 @@ function openTaskDetail(taskId) {
   syncTaskJourneyDrawerNavigation(t.taskId);
   resetWorkModal('task-detail-modal');
   document.getElementById('task-detail-modal').classList.remove('hidden');
+  highlightPendingEmailDeepLink('task');
   updateDetailNavigationButtons();
   loadTaskActivity(t.taskId);
   loadTaskChain(t.taskId);

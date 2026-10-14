@@ -1132,9 +1132,11 @@ function getTeamMembersForCurrentUser() {
 const BASE_TITLES = ["Coordinator", "Sr. Coordinator", "Supervisor", "Escalation Supervisor", "Assistant Manager", "Manager", "Director"];
 const CONFIG_KEY_CUSTOM_TITLES = 'CUSTOM_TITLES_LIST';
 
-function doGet() {
+function doGet(e) {
   ensureSheetsExist();
-  return HtmlService.createTemplateFromFile('Index')
+  const template = HtmlService.createTemplateFromFile('Index');
+  template.initialItemId = String((e && e.parameter && e.parameter.item) || '').trim().slice(0, 200);
+  return template
     .evaluate()
     .setTitle('Support Hub')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
