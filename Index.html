@@ -72,6 +72,7 @@ html { font-size: 16px; }
 .quick-search-title { font-size:12px; font-weight:700; color:#1e293b; line-height:1.25; }
 .quick-search-meta { font-size:10px; color:#64748b; margin-top:2px; line-height:1.35; }
 .quick-search-empty { padding:16px 12px; text-align:center; font-size:11px; color:#94a3b8; }
+.hub-record-id{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:5px;font-size:10px;color:#64748b}.hub-record-id code{font-size:10px;font-weight:400;color:#475569;overflow-wrap:anywhere}.hub-record-id button{border:1px solid #dbe3ee;border-radius:6px;background:#fff;padding:2px 7px;font-size:10px;font-weight:500;color:#475569}.hub-record-id button:hover{background:#f1f5f9;color:#0f172a}
 .global-search-page{position:fixed;inset:0;z-index:120;background:#f8fafc;overflow:auto;color:#334155;font-size:13px}.global-search-page-header{position:sticky;top:0;z-index:2;background:#0f172a;color:#fff;padding:14px 24px;box-shadow:0 4px 18px rgba(15,23,42,.16)}.global-search-header-inner{max-width:1180px;margin:auto;display:flex;align-items:center;gap:16px}.global-search-back{border:0;border-radius:9px;background:#334155;color:#fff;padding:8px 12px;font-size:12px;font-weight:600}.global-search-heading{min-width:0;flex:1}.global-search-page-title{font-size:17px;font-weight:700}.global-search-query{font-size:13px;color:#cbd5e1;margin-top:2px}.global-search-close{color:#cbd5e1;font-size:20px}.global-search-layout{max-width:1260px;margin:24px auto;padding:0 20px 48px;display:grid;grid-template-columns:190px minmax(0,1fr);gap:20px;align-items:start}.global-search-sidebar{position:sticky;top:92px;background:#fff;border:1px solid #dbe3ee;border-radius:12px;padding:10px}.global-search-sidebar-label{padding:7px 9px 9px;font-size:10px;font-weight:700;letter-spacing:.08em;color:#94a3b8}.global-search-nav-link{display:flex;width:100%;justify-content:space-between;align-items:center;gap:8px;text-align:left;padding:9px;border-radius:8px;color:#475569;font-size:12px;font-weight:500}.global-search-nav-link:hover{background:#f1f5f9;color:#0f172a}.global-search-nav-count{color:#94a3b8;font-size:11px}.global-search-page-body{min-width:0}.global-search-summary{font-size:13px;color:#64748b;margin:0 0 12px}.global-search-status{font-size:12px;color:#64748b;background:#eff6ff;border:1px solid #dbeafe;border-radius:9px;padding:9px 12px;margin:0 0 14px}.global-search-status.error{color:#9f1239;background:#fff1f2;border-color:#ffe4e6}.global-search-section{background:#fff;border:1px solid #dbe3ee;border-radius:12px;margin:0 0 14px;overflow:hidden;scroll-margin-top:86px}.global-search-section-title{display:flex;width:100%;justify-content:space-between;align-items:center;padding:11px 14px;border:0;border-bottom:1px solid #e2e8f0;background:#fff;text-align:left;font-size:14px;font-weight:600;color:#334155}.global-search-collapse-icon{font-size:14px;font-weight:400;color:#94a3b8}.global-search-page-result{display:block;width:100%;text-align:left;padding:11px 14px;border-bottom:1px solid #f1f5f9}.global-search-page-result:hover{background:#f8fafc}.global-search-page-result:last-child{border-bottom:0}.global-search-result-title{display:block;font-size:14px;font-weight:700;color:#1e293b;line-height:1.35}.global-search-result-meta{display:block;margin-top:3px;font-size:12px;font-weight:400;color:#64748b}.global-search-result-detail{display:block;margin-top:4px;font-size:12px;font-weight:400;line-height:1.45;color:#475569}.global-search-empty{padding:20px;text-align:center;color:#64748b}.global-search-pagination{display:flex;align-items:center;justify-content:center;gap:12px;padding:18px;font-size:12px;color:#64748b}.global-search-pagination button{border:1px solid #cbd5e1;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:500;color:#334155}.global-search-pagination button:disabled{opacity:.4}.global-search-capped{text-align:center;color:#a16207;font-size:12px}@media(max-width:760px){.global-search-layout{grid-template-columns:minmax(0,1fr);gap:12px}.global-search-sidebar{position:static;display:flex;overflow:auto;gap:4px}.global-search-sidebar-label{display:none}.global-search-nav-link{width:auto;flex:0 0 auto;border:1px solid #e2e8f0}}
 .quick-command-item { width:100%; display:flex; align-items:center; gap:10px; padding:10px 12px; text-align:left; border-bottom:1px solid #f1f5f9; }
 .quick-command-item:last-child { border-bottom:0; }
@@ -1920,6 +1921,7 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 
         </div>
         <h3 id="task-modal-title" class="task-top-title font-bold text-slate-900 break-words">Task</h3>
+        <div class="hub-record-id"><span>Record ID</span><code id="task-modal-record-id"></code><button type="button" onclick="copySupportHubRecordId(activeTask &amp;&amp; activeTask.taskId)" aria-label="Copy task record ID">Copy ID</button></div>
         <button id="task-modal-related-ticket-top" type="button" onclick="openRelatedTicketFromTask()" class="hidden mt-1.5 text-left text-[10px] font-semibold text-blue-700 hover:text-blue-900 hover:underline">From Related Question: <span id="task-modal-related-ticket-top-title">Open question</span> <span aria-hidden="true">↗</span></button>
       </div>
       <div class="app-modal-tools" aria-label="Task window controls">
@@ -2282,6 +2284,7 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 <div class="min-w-0 flex-1">
 <div class="flex flex-wrap items-center gap-1.5"><span class="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-emerald-700 text-white">Answered Question</span><span id="vmodal-read-badge" class="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-rose-500 text-white">UNREAD</span></div>
 <h3 id="vmodal-event" class="text-lg font-bold text-slate-900 mt-1 break-all">Event Name</h3>
+<div class="hub-record-id"><span>Record ID</span><code id="vmodal-record-id"></code><button type="button" onclick="copySupportHubRecordId(activeViewQuestion &amp;&amp; activeViewQuestion.ticketId)" aria-label="Copy answered question record ID">Copy ID</button></div>
 <div class="resolve-review-grid mt-2">
 <div class="resolve-review-item"><span class="resolve-review-label">Asked by</span><span id="vmodal-asked" class="resolve-review-value"></span></div>
 <div class="resolve-review-item"><span class="resolve-review-label">Asked at</span><span id="vmodal-created" class="resolve-review-value"></span></div>
@@ -2436,6 +2439,7 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 <div class="min-w-0 flex-1">
 <div class="flex flex-wrap items-center gap-1.5"><span class="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-slate-900 text-white">Question</span><span id="tdmodal-status-badge" class="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200/60">Open</span></div>
 <h3 id="tdmodal-event" class="text-lg font-bold text-slate-900 mt-1 break-all">Event Name</h3>
+<div class="hub-record-id"><span>Record ID</span><code id="tdmodal-record-id"></code><button type="button" onclick="copySupportHubRecordId(activeTicketDetailQuestion &amp;&amp; activeTicketDetailQuestion.ticketId)" aria-label="Copy question record ID">Copy ID</button></div>
 <div class="resolve-review-grid mt-2">
 <div class="resolve-review-item"><span class="resolve-review-label">Asked by</span><span id="tdmodal-asked" class="resolve-review-value"></span></div>
 <div class="resolve-review-item"><span class="resolve-review-label">Asked at</span><span id="tdmodal-created" class="resolve-review-value"></span></div>
@@ -7941,6 +7945,7 @@ async function openViewModal(q) {
   }
   activeViewQuestion = q;
   document.getElementById('vmodal-event').innerText = q.eventName || '—';
+  document.getElementById('vmodal-record-id').innerText = q.ticketId || '';
   document.getElementById('vmodal-context').innerText = ticketContextText(q, isSupportUser(currentUser));
   document.getElementById('vmodal-asked').innerText = getUserDisplayName(q.askedBy);
   document.getElementById('vmodal-created').innerText = ticketAuditTimestamp(q.created);
@@ -8493,6 +8498,7 @@ async function openTicketDetail(sheet, ticketId) {
 
   const isAnswered = false;
   document.getElementById('tdmodal-event').innerText = q.eventName || '—';
+  document.getElementById('tdmodal-record-id').innerText = q.ticketId || '';
   document.getElementById('tdmodal-context').innerText = ticketContextText(q, isSupportUser(currentUser));
   document.getElementById('tdmodal-asked').innerText = getUserDisplayName(q.askedBy);
   document.getElementById('tdmodal-created').innerText = ticketAuditTimestamp(q.created);
@@ -10907,6 +10913,22 @@ function openRelatedTaskFromActiveTask(taskId){
 function createRelatedTaskFromActiveTask(){
   if(!activeTask)return; const p=Object.assign({},activeTask); if(taskJourneySessionOpen)exitTaskJourneySession(); closeTaskDetailModal(); openCreateTaskModal('Task',p.taskId,{title:p.status==='Completed'?'Follow-up: '+(p.title||'Task'):'',assignedToEmail:p.assignedToEmail||'',category:p.category||'General / Other',relatedClientTalent:p.relatedClientTalent||p.relatedEvent||'',relatedEntityType:p.relatedEntityType||'',relatedLink:p.relatedLink||'',parentLabel:p.title||'Parent task'});
 }
+function copySupportHubRecordId(id) {
+  const value=String(id||'').trim();
+  if(!value){showToast('This record ID is not available.');return;}
+  const copied=()=>showToast('Record ID copied.');
+  const fallback=()=>{
+    const field=document.createElement('textarea');
+    field.value=value;field.setAttribute('readonly','');field.style.position='fixed';field.style.opacity='0';
+    document.body.appendChild(field);field.select();
+    let ok=false;try{ok=document.execCommand('copy');}catch(e){}
+    field.remove();
+    if(ok)copied();else showToast('Could not copy the ID. Select and copy it from the record details.');
+  };
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(value).then(copied).catch(fallback);
+  else fallback();
+}
+
 function openTaskDetail(taskId) {
   const t = allTasks.find(x => String(x.taskId) === String(taskId));
   if (!t) {
@@ -10948,6 +10970,7 @@ function openTaskDetail(taskId) {
   const taskRelName=document.getElementById('task-modal-related-name'); if(taskRelName) taskRelName.innerText=t.relatedClientTalent||t.relatedEvent||'—';
   const taskRelRow=document.getElementById('task-modal-related-link-row'); const taskRelLink=document.getElementById('task-modal-related-link'); const taskRelLabel=document.getElementById('task-modal-related-link-label'); if(taskRelLabel)taskRelLabel.innerText=(t.relatedEntityType?t.relatedEntityType+' Link':'Related Link'); if(taskRelRow&&taskRelLink){ if(t.relatedLink){taskRelLink.href=/^https?:\/\//i.test(t.relatedLink)?t.relatedLink:reconstructCaseUrl(t.relatedLink); taskRelRow.classList.remove('hidden');} else taskRelRow.classList.add('hidden'); }
   document.getElementById('task-modal-title').innerText = t.title || 'Task';
+  document.getElementById('task-modal-record-id').innerText = t.taskId || '';
   document.getElementById('task-modal-instructions').innerHTML = t.instructions ? renderStoredRichHtml(t.instructions) : '—';
   document.getElementById('task-modal-assigned').innerText = t.assignedTo || '—';
   document.getElementById('task-modal-created-by').innerText = t.createdBy || '—';
