@@ -72,6 +72,7 @@ html { font-size: 16px; }
 .quick-search-title { font-size:12px; font-weight:700; color:#1e293b; line-height:1.25; }
 .quick-search-meta { font-size:10px; color:#64748b; margin-top:2px; line-height:1.35; }
 .quick-search-empty { padding:16px 12px; text-align:center; font-size:11px; color:#94a3b8; }
+.global-search-page{position:fixed;inset:0;z-index:120;background:#f8fafc;overflow:auto}.global-search-page-header{position:sticky;top:0;z-index:2;background:#0f172a;color:#fff;padding:18px max(24px,calc((100vw - 1180px)/2));box-shadow:0 4px 18px rgba(15,23,42,.16)}.global-search-page-body{max-width:1180px;margin:24px auto;padding:0 20px 48px}.global-search-section{background:#fff;border:1px solid #dbe3ee;border-radius:14px;margin:0 0 16px;overflow:hidden}.global-search-section-title{padding:13px 16px;border-bottom:1px solid #e2e8f0;font-weight:800;color:#334155}.global-search-page-result{display:block;width:100%;text-align:left;padding:13px 16px;border-bottom:1px solid #f1f5f9}.global-search-page-result:hover{background:#f8fafc}.global-search-page-result:last-child{border-bottom:0}
 .quick-command-item { width:100%; display:flex; align-items:center; gap:10px; padding:10px 12px; text-align:left; border-bottom:1px solid #f1f5f9; }
 .quick-command-item:last-child { border-bottom:0; }
 .quick-command-item:hover, .quick-command-item.active { background:#f8fafc; }
@@ -4756,10 +4757,21 @@ function globalSearchTypeLabel(type,count) {
   if(type==='ticket') return pluralQuickSearch(count,'Question');
   if(type==='task') return pluralQuickSearch(count,'Task');
   if(type==='peer') return pluralQuickSearch(count,'Peer Question','Peer Questions');
+  if(type==='update') return pluralQuickSearch(count,'Update');
   if(type==='team') return pluralQuickSearch(count,'Team Member','Team Members');
   return pluralQuickSearch(count,'Report');
 }
-function globalSearchTypeOrder(type){ return ({ticket:1,peer:2,task:3,team:4,report:5})[type] || 9; }
+function globalSearchTypeOrder(type){ return ({ticket:1,peer:2,task:3,update:4,team:5,report:6})[type] || 9; }
+
+function getGlobalUpdateSearchItems(query){
+  const needle=quickSearchText(query);
+  const items=(announcementState.active||[]).concat(announcementState.archive||[]);
+  return items.filter(item=>quickSearchIncludes(needle,[item.title,item.message,item.createdBy,item.updatedBy])).map(item=>({
+    type:'update',id:item.id,title:item.title||'Team update',
+    meta:(item.createdBy||'Support')+' · '+(item.updatedAt?'Updated ':'Published ')+(item.updatedAt||item.publishedAt),
+    detail:stripHtml(item.message||'').replace(/\\s+/g,' ').trim().slice(0,180),announcement:item
+  }));
+}
 function mergeGlobalSearchPeer(record) {
   if(!record||!record.id)return;
   const index=allPeerQuestions.findIndex(p=>String(p.id)===String(record.id));
@@ -4771,6 +4783,7 @@ function globalSearchClientResult(item) {
   if(result.type==='ticket') result.run=()=>openTicketDetail(result.sheet,result.ticketId||result.id);
   else if(result.type==='task') result.run=()=>openTaskDetail(result.taskId||result.id);
   else if(result.type==='peer') result.run=()=>{ if(result.record)mergeGlobalSearchPeer(result.record); openPeerDetail(result.id); };
+  else if(result.type==='update') result.run=()=>{ const item=result.announcement; if(item){ const list=Date.parse(item.expiresAt)>Date.now()?announcementState.active:announcementState.archive; if(!list.some(x=>String(x.id)===String(item.id)))list.push(item); openAnnouncementDetail(item.id); } };
   else result.run=null;
   return result;
 }
@@ -4779,7 +4792,10 @@ function renderGlobalSearchResponse(rawQuery,response) {
   if(!menu)return;
   const serverResults=Array.isArray(response&&response.results)?response.results.map(globalSearchClientResult):[];
   const localResults=getGlobalReportSearchItems(quickSearchText(rawQuery));
-  quickGlobalSearchResults=serverResults.concat(localResults);
+  const updateResults=getGlobalUpdateSearchItems(rawQuery);
+  const seen=new Set(serverResults.filter(r=>r.type==='update').map(r=>String(r.id)));
+  const uniqueUpdates=updateResults.filter(r=>{const id=String(r.id);if(seen.has(id))return false;seen.add(id);return true;});
+  quickGlobalSearchResults=serverResults.concat(localResults,uniqueUpdates);
   quickGlobalSearchMeta=response||{};
   quickCommandActiveIndex=0;
   if(!quickGlobalSearchResults.length){
@@ -4789,6 +4805,7 @@ function renderGlobalSearchResponse(rawQuery,response) {
   }
   const counts=Object.assign({},response&&response.counts||{});
   localResults.forEach(result=>{counts[result.type]=(Number(counts[result.type])||0)+1;});
+  uniqueUpdates.forEach(()=>{counts.update=(Number(counts.update)||0)+1;});
   const types=Object.keys(counts).sort((a,b)=>globalSearchTypeOrder(a)-globalSearchTypeOrder(b));
   const summary=types.filter(t=>Number(counts[t])>0).map(t=>globalSearchTypeLabel(t,Number(counts[t])||0)).join(' · ');
   const serverMs=response&&response.serverTiming?Number(response.serverTiming.totalMs)||0:0;
@@ -4816,6 +4833,8 @@ function renderGlobalSearchResponse(rawQuery,response) {
     '<button type="button" class="text-[11px] font-semibold text-blue-700 disabled:text-slate-300" '+(response.hasMore?'onclick="changeGlobalSearchPage(1)"':'disabled')+'>Next →</button></div>';
   menu.innerHTML=html;
   menu.classList.remove('hidden');
+  if(globalSearchOpenAfterResponse){globalSearchOpenAfterResponse=false;renderGlobalSearchResultsPage(rawQuery,response);}
+  else if(document.getElementById('global-search-results-page'))renderGlobalSearchResultsPage(rawQuery,response);
 }
 function requestGlobalSearch(rawQuery,page) {
   const menu=document.getElementById('quick-command-menu');
@@ -4869,10 +4888,37 @@ function changeGlobalSearchPage(delta) {
   if(quickGlobalSearchMode==='server')requestServerGlobalSearch(quickGlobalSearchQuery,next);
   else requestGlobalSearch(quickGlobalSearchQuery,next);
 }
+let globalSearchOpenAfterResponse=false;
+function openGlobalSearchResults(rawQuery){
+  const raw=String(rawQuery||'').trim();
+  if(quickSearchText(raw).length<2)return;
+  globalSearchOpenAfterResponse=true;
+  const menu=document.getElementById('quick-command-menu');if(menu)menu.classList.add('hidden');
+  requestServerGlobalSearch(raw,1);
+}
+function renderGlobalSearchResultsPage(rawQuery,response){
+  let page=document.getElementById('global-search-results-page');
+  if(!page){page=document.createElement('div');page.id='global-search-results-page';document.body.appendChild(page);}
+  const results=quickGlobalSearchResults||[],counts=Object.assign({},response&&response.counts||{});
+  const types=Object.keys(counts).sort((a,b)=>globalSearchTypeOrder(a)-globalSearchTypeOrder(b));
+  let groups='';
+  types.forEach(type=>{
+    const group=results.map((r,index)=>({r,index})).filter(x=>x.r.type===type);
+    if(!group.length)return;
+    groups+='<section class="global-search-section"><h2 class="global-search-section-title">'+esc(globalSearchTypeLabel(type,Number(counts[type])||group.length))+'</h2>'+
+      group.map(({r,index})=>'<button type="button" class="global-search-page-result" '+(typeof r.run==='function'?'onclick="runGlobalSearchResult('+index+')"':'disabled')+'><span class="block font-bold text-slate-800">'+esc(r.title||'Untitled record')+'</span><span class="block mt-1 text-xs text-slate-500">'+esc(r.meta||'')+'</span>'+(r.detail?'<span class="block mt-1 text-xs text-slate-600">'+esc(r.detail)+'</span>':'')+'</button>').join('')+'</section>';
+  });
+  const summary=types.filter(t=>Number(counts[t])>0).map(t=>globalSearchTypeLabel(t,Number(counts[t])||0)).join(' · ');
+  page.className='global-search-page';
+  page.innerHTML='<header class="global-search-page-header"><div class="flex items-center gap-4 max-w-[1180px] mx-auto"><button type="button" onclick="closeGlobalSearchResultsPage()" class="rounded-lg bg-slate-700 px-3 py-2 text-sm font-bold hover:bg-slate-600">← Back</button><div class="min-w-0 flex-1"><div class="text-lg font-bold">Search results</div><div class="text-sm text-slate-300 truncate">'+esc(rawQuery)+'</div></div><button type="button" onclick="closeGlobalSearchResultsPage()" class="text-slate-300 hover:text-white" aria-label="Close">✕</button></div></header><main class="global-search-page-body"><p class="mb-4 text-sm text-slate-500">'+esc(summary||'No matching records')+'</p>'+(groups||'<section class="global-search-section p-6 text-center text-slate-500">No records found for <strong>'+esc(rawQuery)+'</strong>.</section>')+
+    ((response&&(response.hasPrevious||response.hasMore))?'<div class="flex justify-center gap-3 py-4"><button type="button" class="rounded-lg border px-4 py-2 text-sm font-semibold disabled:opacity-40" '+(response.hasPrevious?'onclick="changeGlobalSearchPage(-1)"':'disabled')+'>Previous</button><span class="px-2 py-2 text-sm text-slate-500">Page '+Number(response.page||1)+'</span><button type="button" class="rounded-lg border px-4 py-2 text-sm font-semibold disabled:opacity-40" '+(response.hasMore?'onclick="changeGlobalSearchPage(1)"':'disabled')+'>Next</button></div>':'')+
+    (response&&response.capped?'<p class="text-center text-amber-700 text-sm">Some groups are large; refine your search to narrow the results.</p>':'')+'</main>';
+}
+function closeGlobalSearchResultsPage(){const page=document.getElementById('global-search-results-page');if(page)page.remove();}
 function runGlobalSearchResult(index){
   const r=quickGlobalSearchResults[Number(index)];
   if(!r||typeof r.run!=='function')return;
-  closeQuickCommandMenu();
+  closeGlobalSearchResultsPage();closeQuickCommandMenu();
   r.run();
 }
 function handleQuickCommandInput() {
@@ -4911,9 +4957,8 @@ function handleQuickCommandKeydown(e){
     e.preventDefault();
     const typed=String(e.target.value||'').trim();
     if(typed && !typed.startsWith('@')) {
-      if(quickGlobalSearchTimer){clearTimeout(quickGlobalSearchTimer);quickGlobalSearchTimer=null;renderGlobalSearchMenu(typed);return;}
-      const searchItems=menu?Array.from(menu.querySelectorAll('.quick-command-item')):[];
-      if(searchItems[quickCommandActiveIndex]) searchItems[quickCommandActiveIndex].click(); else renderGlobalSearchMenu(typed);
+      if(quickGlobalSearchTimer){clearTimeout(quickGlobalSearchTimer);quickGlobalSearchTimer=null;}
+      openGlobalSearchResults(typed);
       return;
     }
     const cmds=getQuickCommands(); const exact=cmds.find(c=>c.key===typed.toLowerCase());

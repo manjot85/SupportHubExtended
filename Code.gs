@@ -4309,7 +4309,7 @@ function searchSupportHub(requestingEmail, rawQuery, page, groupPageSize) {
   const currentPage = Math.max(1, Math.floor(Number(page) || 1));
   const pageSize = Math.max(1, Math.min(GLOBAL_SEARCH_MAX_GROUP_SIZE, Math.floor(Number(groupPageSize) || GLOBAL_SEARCH_DEFAULT_GROUP_SIZE)));
   if (query.length < 2 || query.charAt(0) === '@') {
-    return { query: query, page: currentPage, pageSize: pageSize, total: 0, counts: { ticket:0, task:0, peer:0, team:0 }, results: [], hasMore:false, hasPrevious:currentPage>1, capped:false, serverTiming:{ totalMs:Date.now()-startedAt, authMs:authenticatedAt-startedAt, searchMs:Date.now()-authenticatedAt } };
+    return { query: query, page: currentPage, pageSize: pageSize, total: 0, counts: { ticket:0, task:0, peer:0, team:0, update:0 }, results: [], hasMore:false, hasPrevious:currentPage>1, capped:false, serverTiming:{ totalMs:Date.now()-startedAt, authMs:authenticatedAt-startedAt, searchMs:Date.now()-authenticatedAt } };
   }
 
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -4357,12 +4357,21 @@ function searchSupportHub(requestingEmail, rawQuery, page, groupPageSize) {
   });
 
   groups.team = buildServerTeamSearchResults_(team, query);
+  const updateData = getAnnouncementsData(actor.email, true);
+  groups.update = (updateData.active || []).concat(updateData.archive || []).filter(function(item) {
+    return normalizeServerSearchText_([item.title, item.message, item.createdBy, item.updatedBy].join(' ')).indexOf(query) >= 0;
+  }).map(function(item) {
+    return { type:'update', id:item.id, title:item.title || 'Team update',
+      meta:(item.createdBy || 'Support') + ' · ' + (item.updatedAt ? 'Updated ' : 'Published ') + (item.updatedAt || item.publishedAt),
+      detail:String(item.message || '').replace(/<[^>]*>/g,' ').replace(/\\s+/g,' ').trim().slice(0,180),
+      announcement:item };
+  });
   Object.keys(groups).forEach(function(type) { sortServerSearchResults_(groups[type]); });
 
   const counts = {};
   const results = [];
   const offset = (currentPage - 1) * pageSize;
-  ['ticket','peer','task','team'].forEach(function(type) {
+  ['ticket','peer','task','team','update'].forEach(function(type) {
     counts[type] = groups[type].length;
     groups[type].slice(offset, offset + pageSize).forEach(function(item) { results.push(stripServerSearchPrivateFields_(item)); });
   });
