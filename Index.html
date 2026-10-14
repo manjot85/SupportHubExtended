@@ -13425,7 +13425,15 @@ function bindSupportHubRecordContextMenu(el,kind,id){
   el.dataset.supportHubRecordKind=kind;el.dataset.supportHubRecordId=String(id);
 }
 document.addEventListener('contextmenu',function(e){
-  const el=e.target&&e.target.closest?e.target.closest('[data-support-hub-record-id]'):null;
+  let el=e.target&&e.target.closest?e.target.closest('[data-support-hub-record-id]'):null;
+  if(!el&&e.target&&e.target.closest){
+    const clickable=e.target.closest('[onclick]'),source=clickable&&clickable.getAttribute('onclick')||'';
+    let match=source.match(/openTaskDetail\s*\(\s*['"]([^'"]+)/);
+    if(match)el={dataset:{supportHubRecordKind:'task',supportHubRecordId:match[1]}};
+    if(!el){match=source.match(/openPeerDetail\s*\(\s*['"]([^'"]+)/);if(match)el={dataset:{supportHubRecordKind:'peer',supportHubRecordId:match[1]}};}
+    if(!el){match=source.match(/openAnnouncementDetail\s*\(\s*['"]([^'"]+)/);if(match)el={dataset:{supportHubRecordKind:'update',supportHubRecordId:match[1]}};}
+    if(!el){match=source.match(/openTicketDetail\s*\(\s*['"][^'"]+['"]\s*,\s*['"]([^'"]+)/);if(match)el={dataset:{supportHubRecordKind:'ticket',supportHubRecordId:match[1]}};}
+  }
   if(!el)return;
   e.preventDefault();
   const menu=document.getElementById('support-hub-record-context-menu');
