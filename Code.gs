@@ -1501,7 +1501,7 @@ function extractMentionedMembers(value) {
     const name = String(member.name || '').trim();
     if (!name) return;
     const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const pattern = new RegExp('(^|\\s)@' + escaped + '(?=\\s|$|[.,!?;:])', 'i');
+    const pattern = new RegExp('(^|\s)@' + escaped + '(?=\s|$|[.,!?;:])', 'i');
     if (pattern.test(text)) {
       const email = normalizeEmail(member.email);
       if (email && !seen[email]) {
@@ -4363,7 +4363,7 @@ function searchSupportHub(requestingEmail, rawQuery, page, groupPageSize) {
   }).map(function(item) {
     return { type:'update', id:item.id, title:item.title || 'Team update',
       meta:(item.createdBy || 'Support') + ' · ' + (item.updatedAt ? 'Updated ' : 'Published ') + (item.updatedAt || item.publishedAt),
-      detail:String(item.message || '').replace(/<[^>]*>/g,' ').replace(/\\s+/g,' ').trim().slice(0,180),
+      detail:String(item.message || '').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim().slice(0,180),
       announcement:item };
   });
   Object.keys(groups).forEach(function(type) { sortServerSearchResults_(groups[type]); });

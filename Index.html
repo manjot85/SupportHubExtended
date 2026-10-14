@@ -4769,7 +4769,7 @@ function getGlobalUpdateSearchItems(query){
   return items.filter(item=>quickSearchIncludes(needle,[item.title,item.message,item.createdBy,item.updatedBy])).map(item=>({
     type:'update',id:item.id,title:item.title||'Team update',
     meta:(item.createdBy||'Support')+' · '+(item.updatedAt?'Updated ':'Published ')+(item.updatedAt||item.publishedAt),
-    detail:stripHtml(item.message||'').replace(/\\s+/g,' ').trim().slice(0,180),announcement:item
+    detail:stripHtml(item.message||'').replace(/\s+/g,' ').trim().slice(0,180),announcement:item
   }));
 }
 function mergeGlobalSearchPeer(record) {
