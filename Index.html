@@ -2,6 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="support-hub-item" content="<?= initialItemId ?>">
+<meta name="support-hub-kind" content="<?= initialItemKind ?>">
 <title>Support Hub</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
@@ -362,6 +364,7 @@ body.question-task-window-dragging, body.question-task-window-dragging * { curso
 </style>
 </head>
 <body class="bg-slate-50/80 font-sans text-slate-800 antialiased selection:bg-emerald-500 selection:text-white">
+<div id="support-hub-record-context-menu" class="hidden fixed z-[200] rounded-lg border border-slate-200 bg-white shadow-xl p-1"><button type="button" onclick="copySupportHubRecordContextUrl()" class="px-3 py-2 text-xs font-semibold text-slate-800 hover:bg-slate-50 rounded-md">Copy direct link</button></div>
 
 <!-- LOGIN SCREEN OVERLAY -->
 <div id="login-overlay" class="fixed inset-0 bg-slate-950 z-50 flex items-center justify-center p-4">
@@ -4045,28 +4048,103 @@ window.onload = function() {
 };
 
 
-// Email notifications can link directly to one Support Hub record. The hash is
-// kept client-side by the browser, so it does not change Apps Script routing.
+// Email notifications can link directly to one Support Hub record.
+// Legacy hash links remain supported. The item query is captured from the
+// Apps Script event/meta tag before login and kept in sessionStorage until opened.
+const SUPPORT_HUB_DEEP_LINK_STORAGE_KEY = 'supportHubPendingEmailDeepLink';
 let pendingEmailDeepLink = null;
+let pendingEmailDeepLinkHighlightKind = '';
+
 function readSupportHubDeepLink() {
+  let item = '';
+  const itemMeta = document.querySelector('meta[name="support-hub-item"]');
+  if (itemMeta) item = String(itemMeta.content || '').trim();
+  if (!item) {
+    try { item = String(new URLSearchParams(window.location.search).get('item') || '').trim(); } catch (e) {}
+  }
+  if (item) { const kindMeta = document.querySelector('meta[name="support-hub-kind"]'); const kind = kindMeta ? String(kindMeta.content || '').trim().toLowerCase() : ''; return { kind: ['peer','update'].includes(kind) ? kind : 'item', id: item }; }
+
   const raw = String(window.location.hash || '').replace(/^#/, '');
-  if (!raw) return null;
-  const eq = raw.indexOf('=');
-  if (eq < 1) return null;
-  const kind = raw.slice(0, eq).toLowerCase();
-  let id = raw.slice(eq + 1);
-  try { id = decodeURIComponent(id); } catch (e) {}
-  if (!id || (kind !== 'ticket' && kind !== 'task')) return null;
-  return { kind, id };
+  if (raw) {
+    const eq = raw.indexOf('=');
+    if (eq > 0) {
+      const kind = raw.slice(0, eq).toLowerCase();
+      let id = raw.slice(eq + 1);
+      try { id = decodeURIComponent(id); } catch (e) {}
+      if (id && (kind === 'ticket' || kind === 'task')) return { kind, id };
+    }
+  }
+
+  try {
+    const stored = JSON.parse(sessionStorage.getItem(SUPPORT_HUB_DEEP_LINK_STORAGE_KEY) || 'null');
+    if (stored && stored.id && (['item','ticket','task','peer','update'].includes(stored.kind))) return stored;
+  } catch (e) {}
+  return null;
 }
+
+function captureSupportHubDeepLink() {
+  const link = readSupportHubDeepLink();
+  if (!link) return null;
+  pendingEmailDeepLink = link;
+  try { sessionStorage.setItem(SUPPORT_HUB_DEEP_LINK_STORAGE_KEY, JSON.stringify(link)); } catch (e) {}
+  return link;
+}
+captureSupportHubDeepLink();
+
+function openEmailItemDeepLink(id) {
+  const user = currentUser;
+  if (!user || !id) return;
+  google.script.run.withSuccessHandler(task => {
+    if (currentUser !== user) return;
+    if (task && task.taskId) {
+      mergeNavigationTasks([task]);
+      openTaskDetail(task.taskId);
+      return;
+    }
+    openTicketDetail('Questions Tracker', id);
+  }).withFailureHandler(() => {
+    if (currentUser === user) openTicketDetail('Questions Tracker', id);
+  }).getTaskForNavigation(id, user.email);
+}
+
+function highlightPendingEmailDeepLink(kind) {
+  const expected = pendingEmailDeepLinkHighlightKind;
+  if (!expected || (expected !== 'item' && expected !== kind)) return;
+  let target = null;
+  if (kind === 'task') {
+    target = document.getElementById('task-detail-panel');
+  } else {
+    const ticketModal = document.getElementById('ticket-detail-modal');
+    target = ticketModal && !ticketModal.classList.contains('hidden')
+      ? document.getElementById('ticket-detail-panel')
+      : document.getElementById('view-modal');
+  }
+  if (!target) return;
+  pendingEmailDeepLinkHighlightKind = '';
+  target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  target.classList.add('ring-2', 'ring-amber-400');
+  setTimeout(() => target.classList.remove('ring-2', 'ring-amber-400'), 2200);
+}
+
 function openPendingEmailDeepLink() {
   if (!currentUser) return;
   pendingEmailDeepLink = pendingEmailDeepLink || readSupportHubDeepLink();
   if (!pendingEmailDeepLink) return;
   const link = pendingEmailDeepLink;
   pendingEmailDeepLink = null;
-  try { history.replaceState(null, '', window.location.pathname + window.location.search); } catch (e) {}
+  try { sessionStorage.removeItem(SUPPORT_HUB_DEEP_LINK_STORAGE_KEY); } catch (e) {}
+  try {
+    const url = new URL(window.location.href);
+    url.searchParams.delete('item');
+    url.searchParams.delete('kind');
+    url.hash = '';
+    history.replaceState(null, '', url.pathname + url.search);
+  } catch (e) {}
+  pendingEmailDeepLinkHighlightKind = link.kind;
   if (link.kind === 'task') openTaskDetail(link.id);
+  else if (link.kind === 'peer') openPeerDeepLink(link.id);
+  else if (link.kind === 'update') openUpdateDeepLink(link.id);
+  else if (link.kind === 'item') openEmailItemDeepLink(link.id);
   else openTicketDetail('Questions Tracker', link.id);
 }
 
@@ -4400,7 +4478,7 @@ function finishLogin(member) {
   configureAnnouncementControls();
   loadAnnouncements(false);
   // Preserve any direct record link from an email while login/data loading starts.
-  pendingEmailDeepLink = readSupportHubDeepLink();
+  pendingEmailDeepLink = pendingEmailDeepLink || readSupportHubDeepLink();
 
   if (support) {
     // Give operational users the small open-question feed first. A large
@@ -5352,8 +5430,29 @@ let announcementPreviewReady=false;
 let announcementExpiryTimer=null;
 let activeAnnouncementDetailId='';
 function findAnnouncementById_(id){return (announcementState.active||[]).concat(announcementState.archive||[]).find(item=>String(item.id)===String(id))||null;}
+
+function openPeerDeepLink(id){
+  const user=currentUser;if(!user)return;
+  google.script.run.withSuccessHandler(result=>{
+    if(currentUser!==user)return;
+    allPeerQuestions=(result&&result.data)||[];
+    const peer=allPeerQuestions.find(x=>String(x.id)===String(id));
+    if(peer)openPeerDetail(id);else showToast('This Peer Question is unavailable or you do not have access.');
+  }).withFailureHandler(()=>showToast('This Peer Question is unavailable or you do not have access.')).getPeerQuestionsData(user.email);
+}
+function openUpdateDeepLink(id){
+  const user=currentUser;if(!user)return;
+  google.script.run.withSuccessHandler(result=>{
+    if(currentUser!==user)return;
+    announcementState=Object.assign(announcementState,result||{});
+    const item=findAnnouncementById_(id);
+    if(item)openAnnouncementDetail(id);else showToast('This update is unavailable.');
+  }).withFailureHandler(()=>showToast('This update is unavailable.')).getAnnouncementsData(user.email,true);
+}
+
 function openAnnouncementDetail(id){
   const item=findAnnouncementById_(id);if(!item)return;
+  bindSupportHubRecordContextMenu(document.getElementById('announcement-detail-modal'),'update',item.id);
   activeAnnouncementDetailId=String(id);renderAnnouncementDetail_(item);
   const modal=document.getElementById('announcement-detail-modal');modal.classList.remove('hidden');modal.classList.add('flex');
 }
@@ -5436,9 +5535,9 @@ function renderAnnouncementViews(){
   const published=item.updatedAt?'':'<p class="text-[10px] text-slate-400 mt-1">From '+esc(item.createdBy||'Support')+' · '+esc(formatCSTDateTime(item.publishedAt))+'</p>';
   if(homeSurface){
     const timeLabel=item.updatedAt?'Updated '+formatCSTDateTime(item.updatedAt)+' · '+(item.updatedBy||'Manager'):'Published '+formatCSTDateTime(item.publishedAt)+' · '+(item.createdBy||'Support');
-    return '<article role="button" tabindex="0" aria-label="Open announcement: '+esc(item.title)+'" onclick="openAnnouncementDetail(&quot;'+item.id+'&quot;)" onkeydown="if(event.key===&quot;Enter&quot;||event.key===&quot; &quot;){event.preventDefault();openAnnouncementDetail(&quot;'+item.id+'&quot;)}" class="px-4 py-2.5 cursor-pointer hover:bg-amber-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-amber-300"><div class="flex items-center gap-4 min-w-0"><h3 class="text-xs font-bold text-slate-900 truncate w-1/4">'+esc(item.title)+'</h3><p class="text-xs text-slate-600 truncate flex-1">'+esc(preview)+'</p><span class="shrink-0 max-w-[14rem] truncate text-[10px] text-slate-400" title="'+esc(timeLabel)+'">'+esc(timeLabel)+'</span></div></article>';
+    return '<article data-support-hub-record-kind="update" data-support-hub-record-id="'+esc(item.id)+'" role="button" tabindex="0" aria-label="Open announcement: '+esc(item.title)+'" onclick="openAnnouncementDetail(&quot;'+item.id+'&quot;)" onkeydown="if(event.key===&quot;Enter&quot;||event.key===&quot; &quot;){event.preventDefault();openAnnouncementDetail(&quot;'+item.id+'&quot;)}" class="px-4 py-2.5 cursor-pointer hover:bg-amber-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-amber-300"><div class="flex items-center gap-4 min-w-0"><h3 class="text-xs font-bold text-slate-900 truncate w-1/4">'+esc(item.title)+'</h3><p class="text-xs text-slate-600 truncate flex-1">'+esc(preview)+'</p><span class="shrink-0 max-w-[14rem] truncate text-[10px] text-slate-400" title="'+esc(timeLabel)+'">'+esc(timeLabel)+'</span></div></article>';
   }
-  return '<article role="button" tabindex="0" onclick="openAnnouncementDetail(&quot;'+item.id+'&quot;)" onkeydown="if(event.key===&quot;Enter&quot;||event.key===&quot; &quot;){event.preventDefault();openAnnouncementDetail(&quot;'+item.id+'&quot;)}" class="p-4 cursor-pointer hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-emerald-300"><div class="flex flex-wrap items-start justify-between gap-3"><div class="min-w-0 flex-1"><div class="flex items-center gap-2"><h3 class="text-sm font-bold text-slate-900">'+esc(item.title)+'</h3></div>'+published+updated+'</div><div class="flex items-center gap-2">'+bulkSelect+review+edit+homeDelete+'</div></div><p class="text-xs leading-5 text-slate-600 mt-2">'+esc(preview)+'</p></article>';
+  return '<article data-support-hub-record-kind="update" data-support-hub-record-id="'+esc(item.id)+'" role="button" tabindex="0" onclick="openAnnouncementDetail(&quot;'+item.id+'&quot;)" onkeydown="if(event.key===&quot;Enter&quot;||event.key===&quot; &quot;){event.preventDefault();openAnnouncementDetail(&quot;'+item.id+'&quot;)}" class="p-4 cursor-pointer hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-emerald-300"><div class="flex flex-wrap items-start justify-between gap-3"><div class="min-w-0 flex-1"><div class="flex items-center gap-2"><h3 class="text-sm font-bold text-slate-900">'+esc(item.title)+'</h3></div>'+published+updated+'</div><div class="flex items-center gap-2">'+bulkSelect+review+edit+homeDelete+'</div></div><p class="text-xs leading-5 text-slate-600 mt-2">'+esc(preview)+'</p></article>';
 }
 function updateAnnouncementBulkControls_(){
   const toolbar=document.getElementById('announcement-bulk-toolbar');
@@ -7834,6 +7933,7 @@ async function openViewModal(q) {
 
   updateModalReadUI(q.isRead);
   document.getElementById('view-modal').classList.remove('hidden');
+  highlightPendingEmailDeepLink('ticket');
   updateDetailNavigationButtons();
 
   if (!q.isRead) {
@@ -8337,13 +8437,14 @@ async function openTicketDetail(sheet, ticketId) {
   if (q.sheet === 'Questions Tracker') recordAttentionFirstReview(q);
 
   activeTicketDetailQuestion = q.sheet === 'Answered' ? null : q;
+  bindSupportHubRecordContextMenu(document.getElementById('ticket-detail-panel'),'ticket',q.ticketId);
   resetWorkModal('ticket-detail-modal');
 
   // One answered-question experience everywhere in Support Hub. This ensures
   // Support/Admin see the same update/task/status actions whether the record
   // was opened from Answered Only, Global Search, reports, Tasks, or any
   // other view that calls openTicketDetail().
-  if (q.sheet === 'Answered') { openViewModal(q); return; }
+  if (q.sheet === 'Answered') { bindSupportHubRecordContextMenu(document.getElementById('view-modal'),'ticket',q.ticketId); openViewModal(q); return; }
 
   const isAnswered = false;
   document.getElementById('tdmodal-event').innerText = q.eventName || '—';
@@ -8404,6 +8505,7 @@ async function openTicketDetail(sheet, ticketId) {
   if (infoBtn) infoBtn.classList.toggle('hidden', !isOwnerOf(q) || isAdminUser(currentUser));
   if (adminEditBtn) adminEditBtn.classList.toggle('hidden', !isAdminUser(currentUser));
   document.getElementById('ticket-detail-modal').classList.remove('hidden');
+  highlightPendingEmailDeepLink('ticket');
   updateDetailNavigationButtons();
 }
 
@@ -10780,6 +10882,7 @@ function openTaskDetail(taskId) {
     return;
   }
   activeTask = Object.assign({}, t);
+  bindSupportHubRecordContextMenu(document.getElementById('task-detail-panel'),'task',t.taskId);
   clearRichEditor('task-modal-update-input');
   const taskMentionDropdown = document.getElementById('task-update-mention-dropdown');
   if (taskMentionDropdown) taskMentionDropdown.classList.add('hidden');
@@ -10878,6 +10981,7 @@ function openTaskDetail(taskId) {
   syncTaskJourneyDrawerNavigation(t.taskId);
   resetWorkModal('task-detail-modal');
   document.getElementById('task-detail-modal').classList.remove('hidden');
+  highlightPendingEmailDeepLink('task');
   updateDetailNavigationButtons();
   loadTaskActivity(t.taskId);
   loadTaskChain(t.taskId);
@@ -13305,6 +13409,48 @@ document.addEventListener('click', function(e) {
 });
 
 
+
+function supportHubDirectUrl(kind,id){
+  const u=new URL(window.location.href);u.search='';u.hash='';
+  u.searchParams.set('item',String(id||''));u.searchParams.set('kind',String(kind||'item'));
+  return u.toString();
+}
+function copySupportHubRecordUrl(kind,id){
+  const url=supportHubDirectUrl(kind,id);
+  const copy=navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(url):Promise.reject(new Error('Clipboard unavailable'));
+  copy.then(()=>showToast('Direct link copied.')).catch(()=>{window.prompt('Copy this Support Hub link:',url);});
+}
+function bindSupportHubRecordContextMenu(el,kind,id){
+  if(!el||!id)return;
+  el.dataset.supportHubRecordKind=kind;el.dataset.supportHubRecordId=String(id);
+}
+document.addEventListener('contextmenu',function(e){
+  let el=e.target&&e.target.closest?e.target.closest('[data-support-hub-record-id]'):null;
+  if(!el&&e.target&&e.target.closest){
+    const clickable=e.target.closest('[onclick]'),source=clickable&&clickable.getAttribute('onclick')||'';
+    let match=source.match(/openTaskDetail\s*\(\s*['"]([^'"]+)/);
+    if(match)el={dataset:{supportHubRecordKind:'task',supportHubRecordId:match[1]}};
+    if(!el){match=source.match(/openPeerDetail\s*\(\s*['"]([^'"]+)/);if(match)el={dataset:{supportHubRecordKind:'peer',supportHubRecordId:match[1]}};}
+    if(!el){match=source.match(/openAnnouncementDetail\s*\(\s*['"]([^'"]+)/);if(match)el={dataset:{supportHubRecordKind:'update',supportHubRecordId:match[1]}};}
+    if(!el){match=source.match(/openTicketDetail\s*\(\s*['"][^'"]+['"]\s*,\s*['"]([^'"]+)/);if(match)el={dataset:{supportHubRecordKind:'ticket',supportHubRecordId:match[1]}};}
+  }
+  if(!el)return;
+  e.preventDefault();
+  const menu=document.getElementById('support-hub-record-context-menu');
+  if(!menu)return;
+  menu.dataset.kind=el.dataset.supportHubRecordKind;menu.dataset.id=el.dataset.supportHubRecordId;
+  menu.style.left=Math.min(e.clientX,window.innerWidth-190)+'px';menu.style.top=Math.min(e.clientY,window.innerHeight-52)+'px';menu.classList.remove('hidden');
+});
+document.addEventListener('click',function(e){
+  const menu=document.getElementById('support-hub-record-context-menu');
+  if(menu&&!menu.contains(e.target))menu.classList.add('hidden');
+});
+function copySupportHubRecordContextUrl(){
+  const menu=document.getElementById('support-hub-record-context-menu');
+  if(!menu)return;
+  copySupportHubRecordUrl(menu.dataset.kind,menu.dataset.id);menu.classList.add('hidden');
+}
+
 // ============================================================================
 // SHARED TASK / TICKET WINDOW CONTROLS
 // ============================================================================
@@ -13431,7 +13577,7 @@ function refreshPeerQuestionsData(force){
 function processPeerNotifications(){ const me=String(currentUser&&currentUser.email||'').toLowerCase(); const next=new Map(); allPeerQuestions.forEach(p=>{ if(p.status!=='Open')return; const isParticipant=p.assignedToEmail===me||p.askedByEmail===me; if(!isParticipant)return; const thread=p.thread||[]; const last=thread.length?thread[thread.length-1]:null; const sig=String(p.updated||'')+'|'+String(thread.length); next.set(p.id,sig); if(peerNotificationBaselineReady && knownPeerUpdateSignatures.get(p.id)!==sig && last && String(last.email||'').toLowerCase()!==me){ const msg=(p.assignedToEmail===me?'Peer question from ':'Peer reply from ')+(last.by||'teammate')+': '+stripHtml(last.text||'').slice(0,110); if(notificationPrefs.toast)showToast(msg); if(notificationPrefs.sound)playNotificationSound(); if(notificationPrefs.browser)showBrowserNotification('Support Hub — Peer Question',msg); } }); knownPeerUpdateSignatures=next; peerNotificationBaselineReady=true; }
 function renderPeerTicker(){ const mine=allPeerQuestions.filter(p=>p.status==='Open'&&String(p.assignedToEmail).toLowerCase()===String(currentUser.email).toLowerCase()).length; const el=document.getElementById('peer-ticker'); if(el){el.innerText=mine;el.classList.toggle('hidden',!mine);} }
 function setPeerFilter(v){peerFilter=v;renderPeerQuestions();}
-function renderPeerQuestions(){ const el=document.getElementById('peer-list');if(!el||!currentUser)return; const me=String(currentUser.email||'').toLowerCase(),q=String((document.getElementById('peer-search')||{}).value||'').toLowerCase(); const mine=allPeerQuestions.filter(p=>p.status==='Open'&&p.assignedToEmail===me).length, asked=allPeerQuestions.filter(p=>p.askedByEmail===me).length, open=allPeerQuestions.filter(p=>p.status==='Open').length, closed=allPeerQuestions.filter(p=>p.status==='Closed').length; [['peer-stat-mine',mine],['peer-stat-asked',asked],['peer-stat-open',open],['peer-stat-closed',closed]].forEach(x=>{const e=document.getElementById(x[0]);if(e)e.innerText=x[1];}); let rows=allPeerQuestions.filter(p=>{if(peerFilter==='MINE')return p.status==='Open'&&p.assignedToEmail===me;if(peerFilter==='ASKED')return p.askedByEmail===me;if(peerFilter==='OPEN')return p.status==='Open';if(peerFilter==='CLOSED')return p.status==='Closed';return true;}).filter(p=>!q||[p.question,p.eventName,p.askedBy,p.assignedTo,p.status].join(' ').toLowerCase().includes(q)).sort((a,b)=>new Date(b.updated)-new Date(a.updated)); if(!rows.length){el.innerHTML='<div class="p-8 text-center text-xs text-slate-400">No peer questions match this view.</div>';return;} el.innerHTML=rows.map(p=>'<button onclick="openPeerDetail(\''+esc(p.id)+'\')" class="w-full text-left p-4 hover:bg-slate-50 flex items-start justify-between gap-4"><div class="min-w-0"><div class="flex items-center gap-2"><span class="text-[9px] font-bold px-2 py-0.5 rounded-full '+(p.status==='Open'?'bg-emerald-50 text-emerald-700':'bg-slate-100 text-slate-500')+'">'+esc(p.status)+'</span><span class="text-xs font-bold text-slate-900 truncate">'+esc(p.eventName)+'</span></div><p class="text-xs text-slate-600 mt-1 line-clamp-2">'+esc(stripHtml(p.question))+'</p><p class="text-[10px] text-slate-400 mt-1">Asked by '+esc(p.askedBy)+' → '+esc(p.assignedTo)+' · '+esc(formatCSTDateTime(p.updated))+'</p></div><span class="text-[11px] font-bold text-blue-600 whitespace-nowrap">Open →</span></button>').join(''); }
+function renderPeerQuestions(){ const el=document.getElementById('peer-list');if(!el||!currentUser)return; const me=String(currentUser.email||'').toLowerCase(),q=String((document.getElementById('peer-search')||{}).value||'').toLowerCase(); const mine=allPeerQuestions.filter(p=>p.status==='Open'&&p.assignedToEmail===me).length, asked=allPeerQuestions.filter(p=>p.askedByEmail===me).length, open=allPeerQuestions.filter(p=>p.status==='Open').length, closed=allPeerQuestions.filter(p=>p.status==='Closed').length; [['peer-stat-mine',mine],['peer-stat-asked',asked],['peer-stat-open',open],['peer-stat-closed',closed]].forEach(x=>{const e=document.getElementById(x[0]);if(e)e.innerText=x[1];}); let rows=allPeerQuestions.filter(p=>{if(peerFilter==='MINE')return p.status==='Open'&&p.assignedToEmail===me;if(peerFilter==='ASKED')return p.askedByEmail===me;if(peerFilter==='OPEN')return p.status==='Open';if(peerFilter==='CLOSED')return p.status==='Closed';return true;}).filter(p=>!q||[p.question,p.eventName,p.askedBy,p.assignedTo,p.status].join(' ').toLowerCase().includes(q)).sort((a,b)=>new Date(b.updated)-new Date(a.updated)); if(!rows.length){el.innerHTML='<div class="p-8 text-center text-xs text-slate-400">No peer questions match this view.</div>';return;} el.innerHTML=rows.map(p=>'<button data-support-hub-record-kind="peer" data-support-hub-record-id="'+esc(p.id)+'" onclick="openPeerDetail(\''+esc(p.id)+'\')" class="w-full text-left p-4 hover:bg-slate-50 flex items-start justify-between gap-4"><div class="min-w-0"><div class="flex items-center gap-2"><span class="text-[9px] font-bold px-2 py-0.5 rounded-full '+(p.status==='Open'?'bg-emerald-50 text-emerald-700':'bg-slate-100 text-slate-500')+'">'+esc(p.status)+'</span><span class="text-xs font-bold text-slate-900 truncate">'+esc(p.eventName)+'</span></div><p class="text-xs text-slate-600 mt-1 line-clamp-2">'+esc(stripHtml(p.question))+'</p><p class="text-[10px] text-slate-400 mt-1">Asked by '+esc(p.askedBy)+' → '+esc(p.assignedTo)+' · '+esc(formatCSTDateTime(p.updated))+'</p></div><span class="text-[11px] font-bold text-blue-600 whitespace-nowrap">Open →</span></button>').join(''); }
 function openPeerCreateModal(){ if(normalizeCategoryClient(currentUser&& (currentUser.category||currentUser.role))==='Admin'){showToast('Peer Questions are not available from the Admin profile.');return;} const sel=document.getElementById('peer-assignee');const ms=peerEligibleMembers();sel.innerHTML='<option value="">Choose teammate...</option>'+ms.map(m=>'<option value="'+esc(m.email)+'">'+esc(m.name)+' — '+esc(m.title||'Coordinator')+'</option>').join('');clearRichEditor('peer-question-text');document.getElementById('peer-event').value='';document.getElementById('peer-link').value='';document.getElementById('peer-create-modal').classList.remove('hidden');}
 function closePeerCreateModal(){document.getElementById('peer-create-modal').classList.add('hidden');}
 function submitPeerQuestion(ev){
@@ -13452,7 +13598,7 @@ function submitPeerQuestion(ev){
   const b=document.getElementById('peer-create-btn');b.disabled=true;b.innerText='Sending...';
   google.script.run.withFailureHandler(e=>{b.disabled=false;b.innerText='Send Question';showToast('Could not send peer question: '+(e&&e.message?e.message:e));}).withSuccessHandler(()=>{b.disabled=false;b.innerText='Send Question';closePeerCreateModal();showToast('Peer question sent.');refreshPeerQuestionsData(true);}).createPeerQuestion(payload);
 }
-function openPeerDetail(id){activePeerQuestion=allPeerQuestions.find(p=>String(p.id)===String(id));if(!activePeerQuestion)return;document.getElementById('peer-detail-modal').classList.remove('hidden');renderPeerDetail();}
+function openPeerDetail(id){activePeerQuestion=allPeerQuestions.find(p=>String(p.id)===String(id));if(!activePeerQuestion)return;bindSupportHubRecordContextMenu(document.getElementById('peer-detail-modal'),'peer',activePeerQuestion.id);document.getElementById('peer-detail-modal').classList.remove('hidden');renderPeerDetail();}
 function closePeerDetailModal(){document.getElementById('peer-detail-modal').classList.add('hidden');activePeerQuestion=null;}
 function renderPeerDetail(){
   const p=activePeerQuestion;if(!p)return;
