@@ -4066,14 +4066,42 @@ function getTicketForNavigation(ticketId, requestingEmail) {
 
 // Resolve a generic ?item= record URL after authentication. Task lookup is tried
 // first; question lookup retains its existing per-user visibility checks.
-function getSupportHubRecordForNavigation(itemId, requestingEmail) {
+function getSupportHubRecordForNavigation(itemId, requestingEmail, recordType) {
   const member = requireAuthenticatedMember(requestingEmail);
   const id = String(itemId || '').trim();
+  const type = String(recordType || '').trim().toLowerCase();
   if (!id) throw new Error('The linked Support Hub item ID is missing.');
+  if (type === 'task') {
+    const target = requireTaskRow(id);
+    return { kind:'task', record:taskRowToObject(target.sheet.getRange(target.rowIndex, 1, 1, T_WIDTH).getValues()[0]) };
+  }
+  if (type === 'ticket' || type === 'question') return { kind:'ticket', record:getTicketForNavigation(id, member.email) };
+  if (type === 'peer' || type === 'peer-question') {
+    const sheet = ensurePeerQuestionsSheet();
+    const lastRow = sheet.getLastRow();
+    const email = normalizeEmail(member.email);
+    const maySeeAll = isSupportMember(member) || isAdminMember(member);
+    if (lastRow > 1) {
+      const rows = sheet.getRange(2, 1, lastRow - 1, P_WIDTH).getValues();
+      for (let i = 0; i < rows.length; i++) {
+        const peer = peerRowToObject(rows[i]);
+        if (peer.id !== id) continue;
+        if (!maySeeAll && peer.askedByEmail !== email && peer.assignedToEmail !== email) break;
+        return { kind:'peer', record:peer };
+      }
+    }
+    throw new Error('This peer question could not be found or is not available to this account.');
+  }
+  if (type === 'update' || type === 'announcement') {
+    const updates = getAnnouncementsData(member.email, true);
+    const item = (updates.active || []).concat(updates.archive || []).find(update => String(update.id) === id);
+    if (!item) throw new Error('This update could not be found or is no longer available.');
+    return { kind:'update', record:item };
+  }
+  if (type) throw new Error('This Support Hub record type is not supported.');
   try {
     const target = requireTaskRow(id);
-    const task = taskRowToObject(target.sheet.getRange(target.rowIndex, 1, 1, T_WIDTH).getValues()[0]);
-    return { kind:'task', record:task };
+    return { kind:'task', record:taskRowToObject(target.sheet.getRange(target.rowIndex, 1, 1, T_WIDTH).getValues()[0]) };
   } catch (taskError) {}
   try {
     return { kind:'ticket', record:getTicketForNavigation(id, member.email) };

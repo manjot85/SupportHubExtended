@@ -4029,7 +4029,7 @@ function readSupportHubDeepLink() {
   const id = String(params.get('item') || '').trim();
   if (!id) return null;
   const requestedKind = String(params.get('type') || params.get('kind') || '').trim().toLowerCase();
-  const kind = requestedKind === 'task' ? 'task' : ((requestedKind === 'question' || requestedKind === 'ticket') ? 'ticket' : 'item');
+  const kind = requestedKind === 'task' ? 'task' : ((requestedKind === 'question' || requestedKind === 'ticket') ? 'ticket' : ((requestedKind === 'peer' || requestedKind === 'peer-question') ? 'peer' : ((requestedKind === 'update' || requestedKind === 'announcement') ? 'update' : 'item')));
   return { kind:kind, id:id };
 }
 function openPendingEmailDeepLink() {
@@ -4053,6 +4053,14 @@ function openPendingEmailDeepLink() {
     if (result.kind === 'task') {
       mergeNavigationTasks([result.record]);
       openTaskDetail(result.record.taskId || link.id);
+    } else if (result.kind === 'peer') {
+      mergeGlobalSearchPeer(result.record);
+      openPeerDetail(result.record.id || link.id);
+    } else if (result.kind === 'update') {
+      const item=result.record;
+      const list=Date.parse(item.expiresAt)>Date.now()?announcementState.active:announcementState.archive;
+      if(!list.some(existing=>String(existing.id)===String(item.id)))list.push(item);
+      openAnnouncementDetail(item.id || link.id);
     } else {
       mergeNavigationQuestions([result.record]);
       openTicketDetail(result.record.sheet || 'Questions Tracker', result.record.ticketId || link.id);
@@ -4060,7 +4068,7 @@ function openPendingEmailDeepLink() {
   }).withFailureHandler(err=>{
     if (currentUser !== user) return;
     showToast(err && err.message ? err.message : 'The linked Support Hub item could not be opened.');
-  }).getSupportHubRecordForNavigation(link.id, user.email);
+  }).getSupportHubRecordForNavigation(link.id, user.email, link.kind === 'item' ? '' : link.kind);
 }
 
 function attemptAdminAutoLogin() {
