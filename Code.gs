@@ -1392,6 +1392,11 @@ function feedbackRecipientMember(email) {
   return matches[0];
 }
 
+function feedbackDateToString_(value) {
+  if (value instanceof Date) return isNaN(value.getTime()) ? '' : value.toISOString();
+  return String(value || '');
+}
+
 function feedbackRowToObject_(row) {
   return {
     feedbackId:String(row[F_COL.FEEDBACK_ID-1] || ''),
@@ -1400,7 +1405,7 @@ function feedbackRowToObject_(row) {
     reason:String(row[F_COL.REASON-1] || ''),
     submittedBy:String(row[F_COL.SUBMITTED_BY-1] || ''),
     submittedByEmail:normalizeEmail(row[F_COL.SUBMITTED_BY_EMAIL-1]),
-    createdAt:row[F_COL.CREATED_AT-1] || '',
+    createdAt:feedbackDateToString_(row[F_COL.CREATED_AT-1]),
     feedbackFor:String(row[F_COL.FEEDBACK_FOR-1] || ''),
     feedbackForEmail:normalizeEmail(row[F_COL.FEEDBACK_FOR_EMAIL-1]),
     reviewer:String(row[F_COL.REVIEWER-1] || ''),
@@ -1415,8 +1420,8 @@ function feedbackRowToObject_(row) {
     status:String(row[F_COL.STATUS-1] || ''),
     acknowledgedBy:String(row[F_COL.ACKNOWLEDGED_BY-1] || ''),
     acknowledgedByEmail:normalizeEmail(row[F_COL.ACKNOWLEDGED_BY_EMAIL-1]),
-    acknowledgedAt:row[F_COL.ACKNOWLEDGED_AT-1] || '',
-    updatedAt:row[F_COL.UPDATED_AT-1] || '',
+    acknowledgedAt:feedbackDateToString_(row[F_COL.ACKNOWLEDGED_AT-1]),
+    updatedAt:feedbackDateToString_(row[F_COL.UPDATED_AT-1]),
     updatedBy:String(row[F_COL.UPDATED_BY-1] || '')
   };
 }
