@@ -4621,6 +4621,13 @@ function exitAdminTestMode() {
 }
 
 function resetUserSessionDataForIdentitySwitch() {
+  // Invalidate any response for the previous profile before a new profile starts loading.
+  feedbackRefreshRequestId++;
+  feedbackRefreshInFlight = false;
+  feedbackRefreshQueued = false;
+  allFeedback = [];
+  feedbackFilter = 'ALL';
+  activeFeedback = null;
   currentDataVersion = null;
   answeredInitialFeedLoading = false;
   answeredInitialFeedInFlight = false;
