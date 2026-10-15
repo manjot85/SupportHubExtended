@@ -49,6 +49,10 @@ const FEEDBACK_IT_CATEGORIES = [
   'Bug', 'UI Issue', 'Login / Access', 'Performance', 'Data Issue',
   'Feature Not Working', 'Improvement Request', 'Other'
 ];
+const FEEDBACK_RELATED_TYPES = [
+  'Event', 'Lead Photographer', 'Associate Photographer', 'Lead Videographer', 'Associate Videographer',
+  'Client 1', 'Client 2', 'CR', 'TR', 'Vendor', 'Case'
+];
 const SHEET_WORK_CATEGORIES = "Work Categories";
 const SHEET_CATEGORY_SUGGESTIONS = "Category Suggestions";
 const SHEET_PERFORMANCE = "Performance Log";
@@ -1453,7 +1457,8 @@ function getFeedbackCreateOptions(requestingEmail) {
     canSubmitItFeedback:isAdminMember(actor),
     recipients:recipients,
     teamCategories:FEEDBACK_TEAM_CATEGORIES,
-    itCategories:FEEDBACK_IT_CATEGORIES
+    itCategories:FEEDBACK_IT_CATEGORIES,
+    relatedTypes:FEEDBACK_RELATED_TYPES
   };
 }
 
@@ -1494,6 +1499,7 @@ function createFeedback(payload) {
     } else if (!FEEDBACK_IT_CATEGORIES.includes(category)) {
       throw new Error('Choose a valid IT / Bug Feedback category.');
     }
+    if (relatedType && !FEEDBACK_RELATED_TYPES.includes(relatedType)) throw new Error('Choose a valid Related To type.');
     if (relatedId && !relatedType) throw new Error('Choose a Related To type for the related record.');
     if (relatedType && !relatedId) throw new Error('Enter the Related Name / ID or clear Related To.');
 
