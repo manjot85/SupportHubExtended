@@ -1501,7 +1501,7 @@ function extractMentionedMembers(value) {
     const name = String(member.name || '').trim();
     if (!name) return;
     const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const pattern = new RegExp('(^|\s)@' + escaped + '(?=\s|$|[.,!?;:])', 'i');
+    const pattern = new RegExp('(^|\\s)@' + escaped + '(?=\\s|$|[.,!?;:])', 'i');
     if (pattern.test(text)) {
       const email = normalizeEmail(member.email);
       if (email && !seen[email]) {
