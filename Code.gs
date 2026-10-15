@@ -4118,6 +4118,11 @@ function getSupportHubRecordForNavigation(itemId, requestingEmail, recordType) {
 // ticket/task history on every keystroke.
 const GLOBAL_SEARCH_MAX_QUERY_CHARS = 160;
 const GLOBAL_SEARCH_MAX_CANDIDATE_ROWS = 1200;
+// Batch nearby candidate rows to reduce Google Sheets service calls. Rows
+// outside the exact TextFinder matches are read only as small gaps and are
+// never returned to the search result builder.
+const GLOBAL_SEARCH_READ_MAX_GAP = 12;
+const GLOBAL_SEARCH_READ_MAX_SPAN = 150;
 const GLOBAL_SEARCH_DEFAULT_GROUP_SIZE = 6;
 const GLOBAL_SEARCH_MAX_GROUP_SIZE = 12;
 
@@ -4164,22 +4169,34 @@ function findServerSearchRows_(sheet, query, maxRows) {
 function readServerSearchRows_(sheet, rowNumbers, width) {
   const sorted = (rowNumbers || []).slice().sort(function(a, b) { return a - b; });
   if (!sheet || !sorted.length) return [];
+
+  // TextFinder results can be scattered across a sheet. Reading each isolated
+  // row creates many slow Spreadsheet service calls. Merge nearby matches into
+  // bounded windows, then emit only the exact candidate rows so search results
+  // and permissions remain unchanged.
   const groups = [];
-  let start = sorted[0];
-  let previous = sorted[0];
+  let group = { start: sorted[0], end: sorted[0], rows: [sorted[0]] };
   for (let i = 1; i < sorted.length; i++) {
-    if (sorted[i] === previous + 1) {
-      previous = sorted[i];
+    const rowNumber = sorted[i];
+    const gap = rowNumber - group.end - 1;
+    const span = rowNumber - group.start + 1;
+    if (gap <= GLOBAL_SEARCH_READ_MAX_GAP && span <= GLOBAL_SEARCH_READ_MAX_SPAN) {
+      group.end = rowNumber;
+      group.rows.push(rowNumber);
       continue;
     }
-    groups.push({ start: start, count: previous - start + 1 });
-    start = previous = sorted[i];
+    groups.push(group);
+    group = { start: rowNumber, end: rowNumber, rows: [rowNumber] };
   }
-  groups.push({ start: start, count: previous - start + 1 });
+  groups.push(group);
+
   const out = [];
   groups.forEach(function(group) {
-    const values = sheet.getRange(group.start, 1, group.count, width).getValues();
-    values.forEach(function(row, index) { out.push({ rowNumber: group.start + index, row: row }); });
+    const values = sheet.getRange(group.start, 1, group.end - group.start + 1, width).getValues();
+    group.rows.forEach(function(rowNumber) {
+      const row = values[rowNumber - group.start];
+      if (row) out.push({ rowNumber: rowNumber, row: row });
+    });
   });
   return out;
 }
