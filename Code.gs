@@ -41,7 +41,7 @@ const FEEDBACK_STATUS_NEW = 'New';
 const FEEDBACK_STATUS_PENDING_ACKNOWLEDGEMENT = 'Pending Acknowledgement';
 const FEEDBACK_STATUS_ACKNOWLEDGED = 'Acknowledged';
 const FEEDBACK_TEAM_CATEGORIES = [
-  'Client Communication', 'Talent Communication', 'SOP / Process',
+  'Client Communication', 'Client Miscommunication', 'Internal Communication', 'Talent Communication', 'SOP / Process',
   'Understanding the Issue', 'Escalation / Resolution', 'Cancellation / COD',
   'PN / Booking Process', 'Other'
 ];
@@ -1458,6 +1458,7 @@ function createFeedback(payload) {
     const actor = requireAuthenticatedMember(payload.submittedByEmail);
     const type = String(payload.feedbackType || 'Team Feedback').trim();
     const category = String(payload.category || '').trim();
+    const reason = String(payload.reason || '').trim();
     const details = String(payload.details || '').trim();
     const expected = String(payload.expectedProcess || '').trim();
     const impact = String(payload.impact || '').trim();
@@ -1470,6 +1471,7 @@ function createFeedback(payload) {
     if (type === 'IT / Bug Feedback' && !isAdminMember(actor)) throw new Error('IT / Bug Feedback can only be submitted by an active Admin profile.');
     if (!category) throw new Error('Please choose a Feedback category.');
     if (!details || !stripHtmlToText(details)) throw new Error('Feedback details are required.');
+    requireSheetCellLength(reason,'Feedback reason');
     requireSheetCellLength(details,'Feedback details');
     requireSheetCellLength(expected,'Expected process / behavior');
     requireSheetCellLength(impact,'Feedback impact');
@@ -1495,7 +1497,7 @@ function createFeedback(payload) {
     const status = type === 'Team Feedback' ? FEEDBACK_STATUS_PENDING_ACKNOWLEDGEMENT : FEEDBACK_STATUS_NEW;
     const sheet = ensureFeedbackSheet(SpreadsheetApp.getActiveSpreadsheet());
     sheet.appendRow([
-      id,type,category,'',actor.name,actor.email,now,
+      id,type,category,reason,actor.name,actor.email,now,
       recipient ? recipient.name : '',recipient ? recipient.email : '', '', '',
       relatedType,relatedId,relatedLink,details,expected,impact,suggestedAction,status,
       '', '', '', false, '', '', '', '', '', '', '', '', now, actor.name
