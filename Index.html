@@ -6043,7 +6043,8 @@ function refreshSupervisorData(force, manual) {
     }
     applyQuestionFeedResponse(response, true);
     refreshSupervisorAuxiliaryFeeds();
-    setTimeout(prefetchHistoricalData, 0);
+    // Keep the large Questions + Answered archive off the Support Queue refresh.
+    // History is fetched when a history or reporting view actually needs it.
     if (supervisorRefreshQueued) {
       const queuedForce = supervisorRefreshQueued;
       supervisorRefreshQueued = false;
