@@ -13803,7 +13803,7 @@ function feedbackListItem(f){
 }
 function renderHomeFeedbackPanel(){
   const panel=document.getElementById('home-feedback-panel'); if(!panel||!currentUser)return;
-  const me=normalizeEmail(currentUser.email), pending=allFeedback.filter(f=>normalizeEmail(f.feedbackForEmail)===me&&f.status==='Pending Acknowledgement'), ack=allFeedback.filter(f=>normalizeEmail(f.feedbackForEmail)===me&&f.status==='Acknowledged');
+  const me=normalizeEmail(currentUser.email), management=isFeedbackManagementUser(), canSeeFeedback=f=>management||normalizeEmail(f.feedbackForEmail)===me, pending=allFeedback.filter(f=>canSeeFeedback(f)&&f.status==='Pending Acknowledgement'), ack=allFeedback.filter(f=>canSeeFeedback(f)&&f.status==='Acknowledged');
   panel.classList.toggle('hidden',allFeedback.length===0 && !isFeedbackManagementUser());
   const set=(id,v)=>{const e=document.getElementById(id);if(e)e.innerText=v;}; set('home-feedback-pending-count',pending.length);set('home-feedback-ack-count',ack.length);set('home-feedback-total-count',allFeedback.length);
   const help=document.getElementById('home-feedback-help'); if(help)help.innerText=isFeedbackManagementUser()?'Supervisor+ management view for Coordinator / Project Manager feedback.':(pending.length?'You have feedback waiting for acknowledgement.':'No feedback is waiting for acknowledgement.');
@@ -13815,10 +13815,10 @@ function renderFeedbackTab(){
   const list=document.getElementById('feedback-list'); if(!list||!currentUser)return;
   const filter=String((document.getElementById('feedback-filter')||{}).value||feedbackFilter||'ALL'); feedbackFilter=filter;
   const search=String((document.getElementById('feedback-search')||{}).value||'').trim().toLowerCase(), me=normalizeEmail(currentUser.email);
-  const pending=allFeedback.filter(f=>normalizeEmail(f.feedbackForEmail)===me&&f.status==='Pending Acknowledgement'), ack=allFeedback.filter(f=>normalizeEmail(f.feedbackForEmail)===me&&f.status==='Acknowledged');
+  const management=isFeedbackManagementUser(), canSeeFeedback=f=>management||normalizeEmail(f.feedbackForEmail)===me, pending=allFeedback.filter(f=>canSeeFeedback(f)&&f.status==='Pending Acknowledgement'), ack=allFeedback.filter(f=>canSeeFeedback(f)&&f.status==='Acknowledged');
   const visible=allFeedback.filter(f=>{
-    if(filter==='PENDING' && !(normalizeEmail(f.feedbackForEmail)===me&&f.status==='Pending Acknowledgement')) return false;
-    if(filter==='ACK' && !(normalizeEmail(f.feedbackForEmail)===me&&f.status==='Acknowledged')) return false;
+    if(filter==='PENDING' && !(canSeeFeedback(f)&&f.status==='Pending Acknowledgement')) return false;
+    if(filter==='ACK' && !(canSeeFeedback(f)&&f.status==='Acknowledged')) return false;
     if(search && ![f.feedbackId,f.feedbackType,f.category,f.feedbackFor,f.submittedBy,f.status,stripHtml(f.details||'')].join(' ').toLowerCase().includes(search)) return false;
     return true;
   });
