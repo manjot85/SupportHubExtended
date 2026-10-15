@@ -1860,7 +1860,7 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
       <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Category *</label><select id="feedback-create-category" required class="w-full border border-slate-300 p-2.5 rounded-xl text-xs outline-none focus:ring-2 focus:ring-amber-500"></select></div>
       <div><label for="feedback-create-reason" class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Reason (optional)</label><input id="feedback-create-reason" maxlength="500" class="w-full border border-slate-300 p-2.5 rounded-xl text-xs outline-none focus:ring-2 focus:ring-amber-500" placeholder="Add a short reason"></div>
       <div><label for="feedback-create-related-type" class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Related To (optional)</label><select id="feedback-create-related-type" onchange="syncFeedbackRelatedFields()" class="w-full border border-slate-300 p-2.5 rounded-xl text-xs outline-none focus:ring-2 focus:ring-amber-500"><option value="">No related record</option></select><p class="text-[10px] text-slate-400 mt-1">Choose the matching Support Hub relationship type.</p></div>
-      <div id="feedback-create-related-details" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div id="feedback-create-related-details" class="hidden grid-cols-1 sm:grid-cols-2 gap-3">
         <div><label for="feedback-create-related-id" class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Related Name / ID *</label><input id="feedback-create-related-id" maxlength="500" class="w-full border border-slate-300 p-2.5 rounded-xl text-xs outline-none focus:ring-2 focus:ring-amber-500" placeholder="Case, event, client, talent, or vendor"></div>
         <div><label for="feedback-create-related-link" class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Related Link *</label><input id="feedback-create-related-link" type="url" class="w-full border border-slate-300 p-2.5 rounded-xl text-xs outline-none focus:ring-2 focus:ring-amber-500" placeholder="https://..."><p class="text-[10px] text-slate-400 mt-1">Add the link for the related record.</p></div>
       </div>
@@ -13888,7 +13888,7 @@ function syncFeedbackCreateType(){
 }
 function syncFeedbackRelatedFields(){
   const type=document.getElementById('feedback-create-related-type'),wrap=document.getElementById('feedback-create-related-details'),id=document.getElementById('feedback-create-related-id'),link=document.getElementById('feedback-create-related-link');
-  const selected=!!(type&&type.value);if(wrap)wrap.classList.toggle('hidden',!selected);if(id)id.required=selected;if(link)link.required=selected;
+  const selected=!!(type&&type.value);if(wrap){wrap.classList.toggle('hidden',!selected);wrap.classList.toggle('grid',selected);}if(id)id.required=selected;if(link)link.required=selected;
 }
 function feedbackEditorLink(){const url=prompt('Enter a URL (https://...)');if(!url)return;const clean=String(url).trim();if(!/^https?:\/\//i.test(clean)){customAlert('Links must start with http:// or https://.');return;}execEditorCmd('createLink',clean,'feedback-create-details');}
 function handleFeedbackEditorDragOver(event){if(event.dataTransfer&&Array.from(event.dataTransfer.types||[]).includes('Files')){event.preventDefault();event.dataTransfer.dropEffect='copy';}}
