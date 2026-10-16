@@ -1619,8 +1619,13 @@ function disputeFeedback(feedbackId, disputeDetails, requestingEmail) {
     if(!item) throw new Error('Feedback not found.');
     if(!emailsRepresentSameWorkspaceIdentity(item.feedbackForEmail,member.email)) throw new Error('Only the person the feedback is for can dispute it.');
     if(item.feedbackType!=='Team Feedback') throw new Error('Only Team Feedback can be disputed.');
-    if(item.status!==FEEDBACK_STATUS_ACKNOWLEDGED) throw new Error('Acknowledge the feedback before submitting a dispute.');
+    if(![FEEDBACK_STATUS_PENDING_ACKNOWLEDGEMENT,FEEDBACK_STATUS_ACKNOWLEDGED].includes(item.status)) throw new Error('Only pending or acknowledged feedback can be disputed.');
     const now=new Date();
+    if(item.status===FEEDBACK_STATUS_PENDING_ACKNOWLEDGEMENT){
+      sheet.getRange(rowIndex,F_COL.ACKNOWLEDGED_BY).setValue(member.name||'');
+      sheet.getRange(rowIndex,F_COL.ACKNOWLEDGED_BY_EMAIL).setValue(normalizeEmail(member.email));
+      sheet.getRange(rowIndex,F_COL.ACKNOWLEDGED_AT).setValue(now);
+    }
     sheet.getRange(rowIndex,F_COL.STATUS).setValue(FEEDBACK_STATUS_DISPUTED);
     sheet.getRange(rowIndex,F_COL.UPDATED_AT).setValue(now); sheet.getRange(rowIndex,F_COL.UPDATED_BY).setValue(member.name||'');
     appendFeedbackDisputeUpdate_(ss,id,'Dispute',note,'',member,now);
