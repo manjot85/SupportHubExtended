@@ -527,7 +527,7 @@ body.question-task-window-dragging, body.question-task-window-dragging * { curso
     <button onclick="switchTab('coordinator')" id="subtab-coordinator" class="px-3 py-1.5 rounded-lg bg-slate-900 text-white whitespace-nowrap">My Questions</button>
     <button onclick="switchTab('peer')" id="tab-peer" class="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 hidden items-center gap-1.5 whitespace-nowrap"><span>Peer Questions</span><span id="peer-ticker" class="hidden bg-emerald-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full">0</span></button>
 
-    <button onclick="switchTab('feedback')" id="tab-feedback" class="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 hidden items-center gap-1.5 whitespace-nowrap"><span>Feedback</span><span id="feedback-ticker" class="hidden bg-amber-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full">0</span></button>    <button onclick="switchTab('answered')" id="tab-answered" class="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 flex items-center gap-1.5 whitespace-nowrap">
+    <button onclick="switchTab('feedback')" id="tab-feedback" class="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 hidden inline-flex items-center gap-2 whitespace-nowrap min-w-max shrink-0"><span>Feedback</span><span id="feedback-ticker" class="hidden bg-amber-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full">0</span></button>    <button onclick="switchTab('answered')" id="tab-answered" class="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 flex items-center gap-1.5 whitespace-nowrap">
       <span>Answered Only</span><span id="unread-ticker" class="hidden bg-slate-200 text-slate-600 border border-slate-300 text-[9px] font-bold px-1.5 py-0.5 rounded-full">0</span>
     </button>
     <button onclick="switchTab('all-tickets')" id="tab-all-tickets" class="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 whitespace-nowrap">All Questions</button>
@@ -562,6 +562,7 @@ body.question-task-window-dragging, body.question-task-window-dragging * { curso
             <button type="button" onclick="closeHomeCreateMenu(); openHomeQuestionComposer()" class="w-full text-left px-4 py-3 hover:bg-slate-50 font-semibold text-slate-800">Ask a Question</button>
             <button id="home-create-announcement" type="button" onclick="closeHomeCreateMenu(); openAnnouncementComposer()" class="hidden w-full text-left px-4 py-3 hover:bg-slate-50 font-semibold text-slate-800 border-t border-slate-100">Publish an Announcement</button>
             <button type="button" onclick="closeHomeCreateMenu(); openCreateTaskModal()" class="w-full text-left px-4 py-3 hover:bg-slate-50 font-semibold text-slate-800 border-t border-slate-100">Create a Task</button>
+            <button type="button" onclick="closeHomeCreateMenu(); openCreateFeedbackModal()" class="w-full text-left px-4 py-3 hover:bg-slate-50 font-semibold text-slate-800 border-t border-slate-100">Give Feedback</button>
             <button id="home-create-peer" type="button" onclick="closeHomeCreateMenu(); openPeerCreateModal()" class="hidden w-full text-left px-4 py-3 hover:bg-slate-50 font-semibold text-slate-800 border-t border-slate-100">Ask a Peer Question</button>
           </div>
         </details>
@@ -600,6 +601,13 @@ body.question-task-window-dragging, body.question-task-window-dragging * { curso
       </div>
       <div id="home-task-metrics" class="grid grid-cols-2 xl:grid-cols-1 gap-2 p-3"></div>
     </section>
+  <section id="home-feedback-panel" class="hidden xl:col-span-3 bg-white border border-amber-200 border-t-4 border-t-amber-500 rounded-2xl overflow-hidden shadow-sm">
+  <div class="px-4 py-3 bg-gradient-to-r from-amber-50 via-yellow-50 to-white border-b border-amber-100 flex items-center justify-between gap-3">
+    <div class="min-w-0"><p class="text-[9px] font-black uppercase tracking-[0.16em] text-amber-700 mb-0.5">Feedback</p><div class="flex flex-wrap items-center gap-2"><h3 class="text-sm font-bold text-slate-900">Feedback for you</h3><span id="home-feedback-count" class="hidden rounded-full bg-amber-100 text-amber-800 px-2 py-0.5 text-[10px] font-bold"></span></div><p id="home-feedback-help" class="text-[10px] text-slate-500 mt-0.5"></p></div>
+    <button type="button" onclick="switchTab('feedback')" class="text-[11px] font-bold text-amber-700 hover:text-amber-900 whitespace-nowrap">View feedback →</button>
+  </div>
+  <div id="home-feedback-list" class="divide-y divide-slate-100"></div>
+</section>
   <section id="home-announcements" class="hidden xl:col-span-3 bg-white border border-amber-200 rounded-2xl shadow-sm overflow-hidden">
   <div class="px-4 py-3 flex items-center justify-between border-b border-amber-100 bg-amber-50/70 gap-3"><div><p class="text-[10px] font-bold uppercase tracking-wider text-amber-700">Team Updates</p><div class="flex items-center gap-2"><h2 class="text-sm font-bold text-slate-900">Announcements</h2><span id="home-announcement-pending-count" class="hidden rounded-full bg-amber-100 text-amber-800 px-2 py-0.5 text-[10px] font-bold"></span></div></div><button type="button" onclick="switchTab('updates')" class="text-xs font-semibold text-blue-700 hover:underline whitespace-nowrap">View all updates →</button></div>
   <div id="home-announcement-list" class="divide-y divide-amber-100"></div>
@@ -718,25 +726,12 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 </section>
 
 
-<!-- FEEDBACK: private recipient feedback -->
-<section id="home-feedback-panel" class="hidden bg-white border border-amber-200 rounded-2xl overflow-hidden shadow-sm mb-5">
-  <div class="px-5 py-4 flex items-center justify-between gap-3 border-b border-amber-100">
-    <div><p class="text-[9px] font-black uppercase tracking-[0.16em] text-amber-700">Feedback</p><h3 class="text-sm font-bold text-slate-800">Feedback</h3><p id="home-feedback-help" class="text-[10px] text-slate-500 mt-0.5"></p></div>
-    <button type="button" onclick="switchTab('feedback')" class="text-[11px] font-bold text-amber-700 hover:text-amber-900 whitespace-nowrap">Open Feedback</button>
-  </div>
-  <div class="grid grid-cols-3 gap-3 p-4">
-    <button type="button" onclick="openFeedbackHomeFilter('PENDING')" class="rounded-xl border border-amber-200 bg-amber-50/60 p-3 text-left"><p class="text-[9px] font-bold uppercase text-amber-700">Pending</p><p id="home-feedback-pending-count" class="text-xl font-bold text-slate-900 mt-1">0</p></button>
-    <button type="button" onclick="openFeedbackHomeFilter('ACK')" class="rounded-xl border border-emerald-200 bg-emerald-50/50 p-3 text-left"><p class="text-[9px] font-bold uppercase text-emerald-700">Acknowledged</p><p id="home-feedback-ack-count" class="text-xl font-bold text-slate-900 mt-1">0</p></button>
-    <button type="button" onclick="openFeedbackHomeFilter('ALL')" class="rounded-xl border border-slate-200 p-3 text-left"><p class="text-[9px] font-bold uppercase text-slate-500">Visible</p><p id="home-feedback-total-count" class="text-xl font-bold text-slate-900 mt-1">0</p></button>
-  </div>
-  <div id="home-feedback-list" class="divide-y divide-slate-100"></div>
-</section>
+
 
 <!-- FEEDBACK: Phase 1 private recipient feedback -->
 <section id="view-feedback" class="hidden space-y-5">
   <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col md:flex-row md:items-center justify-between gap-3">
     <div><h2 class="text-base font-bold text-slate-800">Feedback</h2><p id="feedback-view-help" class="text-xs text-slate-500 mt-1">Feedback about you is private. Review it and acknowledge it once understood.</p></div>
-    <button type="button" onclick="openCreateFeedbackModal()" class="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold">+ Give Feedback</button>
   </div>
   <div class="grid grid-cols-3 gap-3">
     <button type="button" onclick="setFeedbackFilter('PENDING')" class="bg-amber-50/70 border border-amber-200 rounded-xl p-4 text-left"><p class="text-[9px] font-bold uppercase text-amber-700">Pending</p><p id="feedback-stat-pending" class="text-xl font-bold text-slate-900 mt-1">0</p></button>
@@ -1873,10 +1868,10 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 
 <!-- FEEDBACK DETAIL MODAL -->
 <div id="feedback-detail-modal" class="fixed inset-0 bg-slate-950/70 z-[58] hidden flex items-center justify-center p-4 backdrop-blur-sm" onclick="if(event.target===this)closeFeedbackDetail()">
-  <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-2xl max-h-[88vh] flex flex-col">
+  <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-xl max-h-[82vh] flex flex-col">
     <div class="px-5 py-4 border-b border-slate-200 flex items-start justify-between gap-3"><div><span class="text-[10px] font-bold uppercase tracking-wider text-amber-700">Feedback</span><h3 id="feedback-detail-title" class="text-lg font-bold text-slate-900 mt-1">Feedback</h3><p id="feedback-detail-meta" class="text-[10px] text-slate-500 mt-1"></p></div><button type="button" onclick="closeFeedbackDetail()" class="text-slate-400 hover:text-slate-700 font-bold text-xl">&times;</button></div>
-    <div id="feedback-detail-body" class="p-5 overflow-y-auto space-y-4"></div>
-    <div class="px-5 py-4 border-t border-slate-200 flex items-center justify-between gap-2"><div id="feedback-detail-status" class="text-xs font-semibold text-slate-600"></div><div class="flex gap-2"><button id="feedback-ack-btn" type="button" onclick="acknowledgeCurrentFeedback()" class="hidden px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold">Acknowledge Feedback</button><button type="button" onclick="closeFeedbackDetail()" class="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold">Close</button></div></div>
+    <div id="feedback-detail-body" class="p-4 overflow-y-auto space-y-3"></div>
+    <div class="px-4 py-3 border-t border-slate-200 flex items-center justify-between gap-2"><div id="feedback-detail-status" class="text-[11px] font-medium text-slate-600"></div><div class="flex shrink-0 gap-2"><button id="feedback-ack-btn" type="button" onclick="acknowledgeCurrentFeedback()" class="hidden px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-semibold">Acknowledge</button><button type="button" onclick="closeFeedbackDetail()" class="px-3 py-1.5 rounded-lg bg-slate-900 text-white text-[11px] font-semibold">Close</button></div></div>
   </div>
 </div>
 
@@ -13819,11 +13814,12 @@ function feedbackListItem(f){
 }
 function renderHomeFeedbackPanel(){
   const panel=document.getElementById('home-feedback-panel'); if(!panel||!currentUser)return;
-  const me=normalizeFeedbackEmail(currentUser.email), management=isFeedbackManagementUser(), canSeeFeedback=f=>management||normalizeFeedbackEmail(f.feedbackForEmail)===me, pending=allFeedback.filter(f=>canSeeFeedback(f)&&f.status==='Pending Acknowledgement'), ack=allFeedback.filter(f=>canSeeFeedback(f)&&f.status==='Acknowledged');
-  const showHomeFeedback=currentTab==='coordinator' && (allFeedback.length>0 || isFeedbackManagementUser()); panel.classList.toggle('hidden',!showHomeFeedback);
-  const set=(id,v)=>{const e=document.getElementById(id);if(e)e.innerText=v;}; set('home-feedback-pending-count',pending.length);set('home-feedback-ack-count',ack.length);set('home-feedback-total-count',allFeedback.length);
-  const help=document.getElementById('home-feedback-help'); if(help)help.innerText=isFeedbackManagementUser()?'Supervisor+ management view for Coordinator / Project Manager feedback.':(pending.length?'You have feedback waiting for acknowledgement.':'No feedback is waiting for acknowledgement.');
-  const list=document.getElementById('home-feedback-list'); if(!list)return; list.innerHTML=''; const items=isFeedbackManagementUser()?allFeedback.slice(0,4):allFeedback.filter(f=>normalizeFeedbackEmail(f.feedbackForEmail)===me).slice(0,4); if(!items.length){list.innerHTML='<div class="p-5 text-center text-xs text-slate-400">No feedback items to show yet.</div>';return;} items.forEach(f=>list.appendChild(feedbackListItem(f)));
+  const me=normalizeFeedbackEmail(currentUser.email);
+  const items=allFeedback.filter(f=>normalizeFeedbackEmail(f.feedbackForEmail)===me&&['Pending Acknowledgement','Disputed — Awaiting Review'].includes(f.status)).slice(0,4);
+  panel.classList.toggle('hidden',currentTab!=='coordinator'||!items.length);
+  const count=document.getElementById('home-feedback-count'); if(count){count.innerText=String(items.length);count.classList.toggle('hidden',!items.length);}
+  const help=document.getElementById('home-feedback-help'); if(help)help.innerText=items.some(f=>f.status==='Disputed — Awaiting Review')?'Review a dispute update or feedback waiting for acknowledgement.':'Review and acknowledge or dispute feedback shared with you.';
+  const list=document.getElementById('home-feedback-list'); if(!list)return; list.innerHTML=''; items.forEach(f=>list.appendChild(feedbackListItem(f)));
 }
 function openFeedbackHomeFilter(filter){ feedbackFilter=filter||'ALL'; switchTab('feedback'); const e=document.getElementById('feedback-filter'); if(e)e.value=feedbackFilter; renderFeedbackTab(); }
 function setFeedbackFilter(filter){ feedbackFilter=filter||'ALL'; const e=document.getElementById('feedback-filter'); if(e)e.value=feedbackFilter; renderFeedbackTab(); }
@@ -13857,7 +13853,7 @@ function openFeedbackDetail(feedbackId){
     const isRecipient=normalizeFeedbackEmail(activeFeedback.feedbackForEmail)===normalizeFeedbackEmail(currentUser.email);
     const isManager=isFeedbackManagementUser();
     const history=(res.updates||[]).map(update=>'<div class="rounded-lg border border-slate-200 bg-white p-3"><div class="flex flex-wrap items-center justify-between gap-2"><span class="text-[10px] font-bold uppercase tracking-wide text-slate-600">'+esc(update.type||'Update')+(update.outcome?' · '+esc(update.outcome):'')+'</span><span class="text-[10px] text-slate-400">'+esc(formatCSTDateTime(update.createdAt))+' · '+esc(update.createdBy||'Team member')+'</span></div><p class="text-xs text-slate-700 mt-2 whitespace-pre-wrap">'+esc(update.message||'')+'</p></div>').join('');
-    const disputeForm=(isRecipient&&activeFeedback.status==='Acknowledged')?'<div class="border-t border-slate-100 pt-4"><p class="text-[10px] font-bold uppercase tracking-wider text-rose-700 mb-1">Dispute this feedback</p><p class="text-[11px] text-slate-500 mb-2">If you believe something is inaccurate, explain what should be reviewed. Support will see your note.</p><textarea id="feedback-dispute-note" rows="3" maxlength="4000" class="w-full border border-slate-300 rounded-xl p-3 text-xs" placeholder="Explain what you believe is incorrect…"></textarea><button type="button" onclick="submitFeedbackDispute()" class="mt-2 px-3 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold">Submit dispute</button></div>':'';
+    const disputeForm= (isRecipient&&['Pending Acknowledgement','Acknowledged'].includes(activeFeedback.status))?'<div class="border-t border-slate-100 pt-3"><p class="text-[10px] font-bold uppercase tracking-wider text-rose-700 mb-1">Dispute this feedback</p><p class="text-[11px] text-slate-500 mb-2">Submitting a dispute confirms you reviewed the feedback. Explain what you believe is inaccurate; Support will review your note.</p><textarea id="feedback-dispute-note" rows="3" maxlength="4000" class="w-full border border-slate-300 rounded-xl p-3 text-xs" placeholder="Explain what you believe is incorrect…"></textarea><button type="button" onclick="submitFeedbackDispute()" class="mt-2 px-3 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold">Submit dispute</button></div>':'';
     const reviewForm=(isManager&&activeFeedback.status==='Disputed — Awaiting Review')?'<div class="border-t border-slate-100 pt-4"><p class="text-[10px] font-bold uppercase tracking-wider text-indigo-700 mb-1">Supervisor review</p><p class="text-[11px] text-slate-500 mb-2">Record the decision and a short explanation. The recipient can see the outcome.</p><textarea id="feedback-review-note" rows="3" maxlength="4000" class="w-full border border-slate-300 rounded-xl p-3 text-xs" placeholder="Review note…"></textarea><div class="flex flex-wrap gap-2 mt-2"><button type="button" onclick="resolveFeedbackDispute(\'Upheld\')" class="px-3 py-2 rounded-lg border border-slate-300 text-slate-700 text-xs font-bold">Feedback upheld</button><button type="button" onclick="resolveFeedbackDispute(\'Action Needed\')" class="px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold">Action needed</button></div></div>':'';
     const html='<div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[11px]">'+
       '<div><span class="font-semibold text-slate-500">For</span><div class="text-slate-800 mt-0.5">'+esc(recipient||'—')+'</div></div>'+
