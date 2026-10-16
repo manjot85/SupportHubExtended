@@ -744,7 +744,7 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
     <button type="button" onclick="setFeedbackFilter('ALL')" class="bg-white border border-slate-200 rounded-xl p-4 text-left"><p class="text-[9px] font-bold uppercase text-slate-500">Visible</p><p id="feedback-stat-total" class="text-xl font-bold text-slate-900 mt-1">0</p></button>
   </div>
   <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-4">
-    <div class="flex flex-col sm:flex-row gap-2"><select id="feedback-filter" onchange="renderFeedbackTab()" class="border border-slate-300 rounded-xl px-3 py-2 text-xs"><option value="ALL">All Visible Feedback</option><option value="PENDING">Pending Acknowledgement</option><option value="ACK">Acknowledged</option></select><input id="feedback-search" oninput="renderFeedbackTab()" class="flex-1 border border-slate-300 rounded-xl px-3 py-2 text-xs" placeholder="Search feedback..."></div>
+    <div class="flex flex-col sm:flex-row gap-2"><select id="feedback-filter" onchange="renderFeedbackTab()" class="border border-slate-300 rounded-xl px-3 py-2 text-xs"><option value="ALL">All Visible Feedback</option><option value="PENDING">Pending Acknowledgement</option><option value="ACK">Acknowledged</option><option value="DISPUTED">Disputed — Awaiting Review</option></select><input id="feedback-search" oninput="renderFeedbackTab()" class="flex-1 border border-slate-300 rounded-xl px-3 py-2 text-xs" placeholder="Search feedback..."></div>
     <div id="feedback-list" class="divide-y divide-slate-100 mt-3"></div>
   </div>
 </section>
@@ -13782,6 +13782,8 @@ function isFeedbackManagementUser(){ return !!currentUser && isSupportUser(curre
 function feedbackStatusClass(status){
   if(status==='Pending Acknowledgement') return 'bg-amber-50 text-amber-700 border-amber-200';
   if(status==='Acknowledged') return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+  if(status==='Disputed — Awaiting Review') return 'bg-rose-50 text-rose-700 border-rose-200';
+  if(status==='Dispute Resolved') return 'bg-indigo-50 text-indigo-700 border-indigo-200';
   return 'bg-slate-50 text-slate-600 border-slate-200';
 }
 function refreshFeedbackData(force){
@@ -13833,6 +13835,7 @@ function renderFeedbackTab(){
   const visible=allFeedback.filter(f=>{
     if(filter==='PENDING' && !(canSeeFeedback(f)&&f.status==='Pending Acknowledgement')) return false;
     if(filter==='ACK' && !(canSeeFeedback(f)&&f.status==='Acknowledged')) return false;
+    if(filter==='DISPUTED' && !(canSeeFeedback(f)&&f.status==='Disputed — Awaiting Review')) return false;
     if(search && ![f.feedbackId,f.feedbackType,f.category,f.feedbackFor,f.submittedBy,f.status,stripHtml(f.details||'')].join(' ').toLowerCase().includes(search)) return false;
     return true;
   });
@@ -13851,18 +13854,34 @@ function openFeedbackDetail(feedbackId){
     document.getElementById('feedback-detail-title').innerText=activeFeedback.category||'Feedback';
     document.getElementById('feedback-detail-meta').innerText=(activeFeedback.feedbackId||'')+' · '+formatCSTDateTime(activeFeedback.createdAt);
     const recipient=String(activeFeedback.feedbackFor||'').trim(), submitted=String(activeFeedback.submittedBy||'').trim();
+    const isRecipient=normalizeFeedbackEmail(activeFeedback.feedbackForEmail)===normalizeFeedbackEmail(currentUser.email);
+    const isManager=isFeedbackManagementUser();
+    const history=(res.updates||[]).map(update=>'<div class="rounded-lg border border-slate-200 bg-white p-3"><div class="flex flex-wrap items-center justify-between gap-2"><span class="text-[10px] font-bold uppercase tracking-wide text-slate-600">'+esc(update.type||'Update')+(update.outcome?' · '+esc(update.outcome):'')+'</span><span class="text-[10px] text-slate-400">'+esc(formatCSTDateTime(update.createdAt))+' · '+esc(update.createdBy||'Team member')+'</span></div><p class="text-xs text-slate-700 mt-2 whitespace-pre-wrap">'+esc(update.message||'')+'</p></div>').join('');
+    const disputeForm=(isRecipient&&activeFeedback.status==='Acknowledged')?'<div class="border-t border-slate-100 pt-4"><p class="text-[10px] font-bold uppercase tracking-wider text-rose-700 mb-1">Dispute this feedback</p><p class="text-[11px] text-slate-500 mb-2">If you believe something is inaccurate, explain what should be reviewed. Support will see your note.</p><textarea id="feedback-dispute-note" rows="3" maxlength="4000" class="w-full border border-slate-300 rounded-xl p-3 text-xs" placeholder="Explain what you believe is incorrect…"></textarea><button type="button" onclick="submitFeedbackDispute()" class="mt-2 px-3 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold">Submit dispute</button></div>':'';
+    const reviewForm=(isManager&&activeFeedback.status==='Disputed — Awaiting Review')?'<div class="border-t border-slate-100 pt-4"><p class="text-[10px] font-bold uppercase tracking-wider text-indigo-700 mb-1">Supervisor review</p><p class="text-[11px] text-slate-500 mb-2">Record the decision and a short explanation. The recipient can see the outcome.</p><textarea id="feedback-review-note" rows="3" maxlength="4000" class="w-full border border-slate-300 rounded-xl p-3 text-xs" placeholder="Review note…"></textarea><div class="flex flex-wrap gap-2 mt-2"><button type="button" onclick="resolveFeedbackDispute(\'Upheld\')" class="px-3 py-2 rounded-lg border border-slate-300 text-slate-700 text-xs font-bold">Feedback upheld</button><button type="button" onclick="resolveFeedbackDispute(\'Action Needed\')" class="px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold">Action needed</button></div></div>':'';
     const html='<div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[11px]">'+
       '<div><span class="font-semibold text-slate-500">For</span><div class="text-slate-800 mt-0.5">'+esc(recipient||'—')+'</div></div>'+
       '<div><span class="font-semibold text-slate-500">Submitted by</span><div class="text-slate-800 mt-0.5">'+esc(submitted||'—')+'</div></div>'+
       '<div><span class="font-semibold text-slate-500">Category</span><div class="text-slate-800 mt-0.5">'+esc(activeFeedback.category||'—')+'</div></div>'+
       '<div><span class="font-semibold text-slate-500">Reason</span><div class="text-slate-800 mt-0.5">'+esc(activeFeedback.reason||'—')+'</div></div><div><span class="font-semibold text-slate-500">Status</span><div class="mt-0.5"><span class="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border '+feedbackStatusClass(activeFeedback.status)+'">'+esc(activeFeedback.status||'New')+'</span></div></div></div>'+
       '<div class="border-t border-slate-100 pt-4"><p class="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">Feedback</p><div class="rich-editor-content text-sm text-slate-700 leading-6">'+renderStoredRichHtml(activeFeedback.details||'')+'</div></div>'+
-      (activeFeedback.relatedId?'<div class="border-t border-slate-100 pt-4 text-[11px]"><span class="font-semibold text-slate-500">Related</span><div class="text-slate-800 mt-0.5">'+esc(activeFeedback.relatedType||'')+': '+esc(activeFeedback.relatedId)+'</div>'+(activeFeedback.relatedLink?'<a href="'+esc(activeFeedback.relatedLink)+'" target="_blank" rel="noopener noreferrer" class="text-blue-600 underline mt-1 inline-block">Open related link</a>':'')+'</div>':'');
+      (activeFeedback.relatedId?'<div class="border-t border-slate-100 pt-4 text-[11px]"><span class="font-semibold text-slate-500">Related</span><div class="text-slate-800 mt-0.5">'+esc(activeFeedback.relatedType||'')+': '+esc(activeFeedback.relatedId)+'</div>'+(activeFeedback.relatedLink?'<a href="'+esc(activeFeedback.relatedLink)+'" target="_blank" rel="noopener noreferrer" class="text-blue-600 underline mt-1 inline-block">Open related link</a>':'')+'</div>':'')+
+      (history?'<div class="border-t border-slate-100 pt-4"><p class="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">Dispute history</p><div class="space-y-2">'+history+'</div></div>':'')+disputeForm+reviewForm;
     document.getElementById('feedback-detail-body').innerHTML=html;
-    const isRecipient=normalizeFeedbackEmail(activeFeedback.feedbackForEmail)===normalizeFeedbackEmail(currentUser.email);
     const ackBtn=document.getElementById('feedback-ack-btn'); ackBtn.classList.toggle('hidden',!(isRecipient&&activeFeedback.status==='Pending Acknowledgement'));
-    document.getElementById('feedback-detail-status').innerText=activeFeedback.status==='Pending Acknowledgement'?'Please review and acknowledge this feedback once understood.':(activeFeedback.status==='Acknowledged'?'Acknowledged.':'');
+    const statusMessage=activeFeedback.status==='Pending Acknowledgement'?'Please review and acknowledge this feedback once understood.':(activeFeedback.status==='Acknowledged'?'Acknowledged.':(activeFeedback.status==='Disputed — Awaiting Review'?'This dispute is waiting for Support review.':(activeFeedback.status==='Dispute Resolved'?'The dispute has been reviewed.':'Feedback status: '+(activeFeedback.status||'New'))));
+    document.getElementById('feedback-detail-status').innerText=statusMessage;
   }).getFeedbackDetail(feedbackId,currentUser.email);
+}
+function submitFeedbackDispute(){
+  if(!activeFeedback||!currentUser)return;
+  const id=activeFeedback.feedbackId, note=(document.getElementById('feedback-dispute-note')||{}).value||'';
+  google.script.run.withFailureHandler(err=>showToast('Could not submit dispute: '+(err&&err.message?err.message:err))).withSuccessHandler(()=>{showToast('Dispute submitted for Support review.');refreshFeedbackData(true);openFeedbackDetail(id);}).disputeFeedback(id,note,currentUser.email);
+}
+function resolveFeedbackDispute(outcome){
+  if(!activeFeedback||!currentUser)return;
+  const id=activeFeedback.feedbackId, note=(document.getElementById('feedback-review-note')||{}).value||'';
+  google.script.run.withFailureHandler(err=>showToast('Could not save review: '+(err&&err.message?err.message:err))).withSuccessHandler(()=>{showToast('Dispute review saved.');refreshFeedbackData(true);openFeedbackDetail(id);}).reviewFeedbackDispute(id,outcome,note,currentUser.email);
 }
 function closeFeedbackDetail(){const e=document.getElementById('feedback-detail-modal');if(e)e.classList.add('hidden');activeFeedback=null;}
 function acknowledgeCurrentFeedback(){
