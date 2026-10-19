@@ -1475,7 +1475,7 @@ function getFeedbackCreateOptions(requestingEmail) {
     .filter(m => !isAdminMember(m))
     .filter(m => ['coordinator','support'].includes(String(m.category || '').trim().toLowerCase()))
     .map(m => ({name:String(m.name || ''),email:normalizeEmail(m.email),title:String(m.title || ''),category:String(m.category || '')}))
-    .filter(m => !!m.email)
+    .filter(m => !!m.email && !emailsRepresentSameWorkspaceIdentity(m.email,actor.email))
     .sort((a,b) => a.name.localeCompare(b.name));
   return {
     success:true,
