@@ -1494,7 +1494,7 @@ function feedbackObjectForViewer_(feedback, member) {
 
 function feedbackUpdatesForViewer_(updates, feedback, member) {
   if(member&&isSupportMember(member)&&!emailsRepresentSameWorkspaceIdentity((feedback||{}).feedbackForEmail,member.email))return updates||[];
-  return (updates||[]).filter(update=>['Dispute','Review'].includes(String(update.type||'')));
+  return (updates||[]).filter(update=>['Dispute','Review','Reviewer note'].includes(String(update.type||'')));
 }
 
 function feedbackUserCanView_(feedback, member) {
@@ -1760,9 +1760,10 @@ function getFeedbackDetail(feedbackId, requestingEmail) {
   throw new Error('Feedback not found.');
 }
 
-function acknowledgeFeedback(feedbackId, requestingEmail) {
+function acknowledgeFeedback(feedbackId, requestingEmail, reviewerNote) {
   const member = requireAuthenticatedMember(requestingEmail);
-  const id = String(feedbackId || '').trim();
+  const id = String(feedbackId || '').trim(), note=String(reviewerNote||'').trim();
+  requireSheetCellLength(note,'Reviewer notes');
   if (!id) throw new Error('Feedback ID is required.');
   const sheet = ensureFeedbackSheet(SpreadsheetApp.getActiveSpreadsheet());
   const lastRow = sheet.getLastRow();
@@ -1774,7 +1775,7 @@ function acknowledgeFeedback(feedbackId, requestingEmail) {
   }
   if (!item) throw new Error('Feedback not found.');
   if (!emailsRepresentSameWorkspaceIdentity(item.feedbackForEmail,member.email)) throw new Error('Only the person the feedback is for can acknowledge it.');
-  if (item.status !== FEEDBACK_STATUS_PENDING_ACKNOWLEDGEMENT) return {success:true,alreadyAcknowledged:true,feedback:item};
+  if (item.status !== FEEDBACK_STATUS_PENDING_ACKNOWLEDGEMENT) return {success:true,alreadyAcknowledged:true,feedback:feedbackObjectForViewer_(item,member)};
   const now=new Date(), email=normalizeEmail(member.email);
   sheet.getRange(rowIndex,F_COL.STATUS).setValue(FEEDBACK_STATUS_ACKNOWLEDGED);
   sheet.getRange(rowIndex,F_COL.ACKNOWLEDGED_BY).setValue(member.name || '');
@@ -1782,8 +1783,10 @@ function acknowledgeFeedback(feedbackId, requestingEmail) {
   sheet.getRange(rowIndex,F_COL.ACKNOWLEDGED_AT).setValue(now);
   sheet.getRange(rowIndex,F_COL.UPDATED_AT).setValue(now);
   sheet.getRange(rowIndex,F_COL.UPDATED_BY).setValue(member.name || '');
-  logAudit('FEEDBACK_ACKNOWLEDGED',email,member.name || '',id,{feedbackId:id});
-  return {success:true,alreadyAcknowledged:false,feedback:feedbackRowToObject_(sheet.getRange(rowIndex,1,1,F_WIDTH).getValues()[0])};
+  if(note)appendFeedbackDisputeUpdate_(SpreadsheetApp.getActiveSpreadsheet(),id,'Reviewer note',note,'',member,now);
+  logAudit('FEEDBACK_ACKNOWLEDGED',email,member.name || '',id,{feedbackId:id,hasReviewerNote:!!note});
+  const updated=feedbackRowToObject_(sheet.getRange(rowIndex,1,1,F_WIDTH).getValues()[0]);
+  return {success:true,alreadyAcknowledged:false,feedback:feedbackObjectForViewer_(updated,member)};
 }
 
 function disputeFeedback(feedbackId, disputeDetails, requestingEmail) {
