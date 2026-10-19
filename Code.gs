@@ -1417,8 +1417,8 @@ function feedbackRecipientMember(email) {
     .filter(m => String(m.status || '').trim().toLowerCase() === 'active')
     .filter(m => normalizeEmail(m.email) === wanted)
     .filter(m => !isAdminMember(m))
-    .filter(m => String(m.category || '').trim().toLowerCase() === 'coordinator');
-  if (!matches.length) throw new Error('Feedback can only be given to an active Coordinator / Project Manager.');
+    .filter(m => ['coordinator','support'].includes(String(m.category || '').trim().toLowerCase()));
+  if (!matches.length) throw new Error('Feedback can only be given to an active Support or Coordinator team member.');
   return matches[0];
 }
 
@@ -1465,7 +1465,7 @@ function feedbackUserCanView_(feedback, member) {
   if (String(feedback.feedbackType || '') !== 'Team Feedback') return false;
   const recipient = findTeamMemberByEmail(feedback.feedbackForEmail);
   return !!recipient && String(recipient.status || '').trim().toLowerCase() === 'active' &&
-    String(recipient.category || '').trim().toLowerCase() === 'coordinator';
+    ['coordinator','support'].includes(String(recipient.category || '').trim().toLowerCase());
 }
 
 function getFeedbackCreateOptions(requestingEmail) {
@@ -1473,8 +1473,8 @@ function getFeedbackCreateOptions(requestingEmail) {
   const recipients = _getTeamMembersInternal()
     .filter(m => String(m.status || '').trim().toLowerCase() === 'active')
     .filter(m => !isAdminMember(m))
-    .filter(m => String(m.category || '').trim().toLowerCase() === 'coordinator')
-    .map(m => ({name:String(m.name || ''),email:normalizeEmail(m.email),title:String(m.title || '')}))
+    .filter(m => ['coordinator','support'].includes(String(m.category || '').trim().toLowerCase()))
+    .map(m => ({name:String(m.name || ''),email:normalizeEmail(m.email),title:String(m.title || ''),category:String(m.category || '')}))
     .filter(m => !!m.email)
     .sort((a,b) => a.name.localeCompare(b.name));
   return {
@@ -1648,6 +1648,7 @@ function reviewFeedbackDispute(feedbackId, outcome, reviewNote, requestingEmail)
     for(let i=0;i<rows.length;i++) if(String(rows[i][F_COL.FEEDBACK_ID-1]||'')===id){rowIndex=i+2;item=feedbackRowToObject_(rows[i]);break;}
     if(!item) throw new Error('Feedback not found.');
     if(!feedbackUserCanView_(item,member)||item.feedbackType!=='Team Feedback') throw new Error('You do not have access to review this feedback.');
+    if(emailsRepresentSameWorkspaceIdentity(item.feedbackForEmail,member.email)) throw new Error('A recipient cannot review their own dispute.');
     if(item.status!==FEEDBACK_STATUS_DISPUTED) throw new Error('This feedback is not awaiting dispute review.');
     const now=new Date();
     sheet.getRange(rowIndex,F_COL.STATUS).setValue(FEEDBACK_STATUS_DISPUTE_RESOLVED);
