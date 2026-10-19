@@ -35,14 +35,19 @@ const F_COL = {
   STATUS:19, ACKNOWLEDGED_BY:20, ACKNOWLEDGED_BY_EMAIL:21, ACKNOWLEDGED_AT:22,
   COACHED:23, COACHED_BY:24, COACHED_BY_EMAIL:25, COACHED_AT:26, COACHING_NOTE:27,
   ACTIONED_BY:28, ACTIONED_AT:29, CLOSED_BY:30, CLOSED_AT:31,
-  UPDATED_AT:32, UPDATED_BY:33
+  UPDATED_AT:32, UPDATED_BY:33, ACTION_OWNER:34, ACTION_OWNER_EMAIL:35,
+  ACTION_DUE_DATE:36, ACTION_PLAN:37, ACTION_COMPLETION_NOTE:38, CLOSURE_NOTE:39
 };
-const F_WIDTH = 33;
+const F_WIDTH = 39;
 const FEEDBACK_STATUS_NEW = 'New';
 const FEEDBACK_STATUS_PENDING_ACKNOWLEDGEMENT = 'Pending Acknowledgement';
 const FEEDBACK_STATUS_ACKNOWLEDGED = 'Acknowledged';
 const FEEDBACK_STATUS_DISPUTED = 'Disputed — Awaiting Review';
 const FEEDBACK_STATUS_DISPUTE_RESOLVED = 'Dispute Resolved';
+const FEEDBACK_STATUS_ACTION_REQUIRED = 'Action Required';
+const FEEDBACK_STATUS_ACTION_IN_PROGRESS = 'Action In Progress';
+const FEEDBACK_STATUS_ACTION_COMPLETED = 'Action Completed';
+const FEEDBACK_STATUS_CLOSED = 'Closed';
 const FEEDBACK_TEAM_CATEGORIES = [
   'Client Communication', 'Client Miscommunication', 'Internal Communication', 'Talent Communication', 'SOP / Process',
   'Understanding the Issue', 'Escalation / Resolution', 'Cancellation / COD',
@@ -1381,14 +1386,17 @@ function ensureFeedbackSheet(ss) {
     'Feedback For','Feedback For Email','Reviewer','Reviewer Email','Related Type','Related ID','Related Link',
     'Details','Expected Process / Behavior','Impact','Suggested Action / Guidance','Status',
     'Acknowledged By','Acknowledged By Email','Acknowledged At','Coached','Coached By','Coached By Email',
-    'Coached At','Coaching Note','Actioned By','Actioned At','Closed By','Closed At','Updated At','Updated By'
+    'Coached At','Coaching Note','Actioned By','Actioned At','Closed By','Closed At','Updated At','Updated By',
+    'Action Owner','Action Owner Email','Action Due Date','Action Plan','Action Completion Note','Closure Note'
   ];
   if (!sheet) {
     sheet = ss.insertSheet(SHEET_FEEDBACK);
+    if(sheet.getMaxColumns()<expected.length)sheet.insertColumnsAfter(sheet.getMaxColumns(),expected.length-sheet.getMaxColumns());
     sheet.appendRow(expected);
     sheet.setFrozenRows(1);
     return sheet;
   }
+  if(sheet.getMaxColumns()<expected.length)sheet.insertColumnsAfter(sheet.getMaxColumns(),expected.length-sheet.getMaxColumns());
   const width = Math.max(sheet.getLastColumn(), expected.length);
   const headers = sheet.getRange(1,1,1,width).getValues()[0];
   for (let i=0;i<expected.length;i++) {
@@ -1428,6 +1436,11 @@ function feedbackDateToString_(value) {
   return String(value || '');
 }
 
+function feedbackDateOnlyToString_(value) {
+  if(value instanceof Date)return isNaN(value.getTime())?'':Utilities.formatDate(value,Session.getScriptTimeZone(),'yyyy-MM-dd');
+  return String(value||'').slice(0,10);
+}
+
 function feedbackRowToObject_(row) {
   return {
     feedbackId:String(row[F_COL.FEEDBACK_ID-1] || ''),
@@ -1452,9 +1465,36 @@ function feedbackRowToObject_(row) {
     acknowledgedBy:String(row[F_COL.ACKNOWLEDGED_BY-1] || ''),
     acknowledgedByEmail:normalizeEmail(row[F_COL.ACKNOWLEDGED_BY_EMAIL-1]),
     acknowledgedAt:feedbackDateToString_(row[F_COL.ACKNOWLEDGED_AT-1]),
+    coached:String(row[F_COL.COACHED-1] || '').toLowerCase()==='true',
+    coachedBy:String(row[F_COL.COACHED_BY-1] || ''),
+    coachedAt:feedbackDateToString_(row[F_COL.COACHED_AT-1]),
+    coachingNote:String(row[F_COL.COACHING_NOTE-1] || ''),
+    actionedBy:String(row[F_COL.ACTIONED_BY-1] || ''),
+    actionedAt:feedbackDateToString_(row[F_COL.ACTIONED_AT-1]),
+    closedBy:String(row[F_COL.CLOSED_BY-1] || ''),
+    closedAt:feedbackDateToString_(row[F_COL.CLOSED_AT-1]),
     updatedAt:feedbackDateToString_(row[F_COL.UPDATED_AT-1]),
-    updatedBy:String(row[F_COL.UPDATED_BY-1] || '')
+    updatedBy:String(row[F_COL.UPDATED_BY-1] || ''),
+    actionOwner:String(row[F_COL.ACTION_OWNER-1] || ''),
+    actionOwnerEmail:normalizeEmail(row[F_COL.ACTION_OWNER_EMAIL-1]),
+    actionDueDate:feedbackDateOnlyToString_(row[F_COL.ACTION_DUE_DATE-1]),
+    actionPlan:String(row[F_COL.ACTION_PLAN-1] || ''),
+    actionCompletionNote:String(row[F_COL.ACTION_COMPLETION_NOTE-1] || ''),
+    closureNote:String(row[F_COL.CLOSURE_NOTE-1] || '')
   };
+}
+
+function feedbackObjectForViewer_(feedback, member) {
+  const result=Object.assign({},feedback||{});
+  if(!member||emailsRepresentSameWorkspaceIdentity((feedback||{}).feedbackForEmail,member.email)||!isSupportMember(member)){
+    ['reviewer','reviewerEmail','coached','coachedBy','coachedAt','coachingNote','actionedBy','actionedAt','closedBy','closedAt','actionOwner','actionOwnerEmail','actionDueDate','actionPlan','actionCompletionNote','closureNote'].forEach(key=>{result[key]='';});
+  }
+  return result;
+}
+
+function feedbackUpdatesForViewer_(updates, feedback, member) {
+  if(member&&isSupportMember(member)&&!emailsRepresentSameWorkspaceIdentity((feedback||{}).feedbackForEmail,member.email))return updates||[];
+  return (updates||[]).filter(update=>['Dispute','Review'].includes(String(update.type||'')));
 }
 
 function feedbackUserCanView_(feedback, member) {
@@ -1538,7 +1578,7 @@ function createFeedback(payload) {
       id,type,category,reason,actor.name,actor.email,now,
       recipient ? recipient.name : '',recipient ? recipient.email : '', '', '',
       relatedType,relatedId,relatedLink,details,expected,impact,suggestedAction,status,
-      '', '', '', false, '', '', '', '', '', '', '', '', now, actor.name
+      '', '', '', false, '', '', '', '', '', '', '', '', now, actor.name, '', '', '', '', '', ''
     ]);
     SpreadsheetApp.flush();
     logAudit('FEEDBACK_CREATE',actor.email,actor.name,id,{feedbackType:type,category:category,feedbackFor:recipient ? recipient.email : '',status:status});
@@ -1585,7 +1625,13 @@ function createFeedbackNotification_(feedback, recipient, eventType, actor) {
       ? {title:'New feedback to review', preview:String(feedback.category||'Feedback')}
       : eventType === 'dispute'
         ? {title:'Feedback dispute needs review', preview:String(feedback.category||'Feedback')}
-        : {title:'Feedback dispute review completed', preview:String(feedback.category||'Feedback')+' · '+String(feedback.status||'')};
+        : eventType === 'action'
+          ? {title:'Support is following up on feedback', preview:String(feedback.category||'Feedback')+' · '+String(feedback.status||'')}
+          : eventType === 'action-complete'
+            ? {title:'Support completed a feedback follow-up', preview:String(feedback.category||'Feedback')+' · '+String(feedback.status||'')}
+          : eventType === 'close'
+            ? {title:'Feedback follow-up completed', preview:String(feedback.category||'Feedback')+' · '+String(feedback.status||'')}
+            : {title:'Feedback dispute review completed', preview:String(feedback.category||'Feedback')+' · '+String(feedback.status||'')};
     const id = Utilities.getUuid();
     sheet.appendRow([id,recipientEmail,recipient.name||recipientMember.name||'',String(feedback.feedbackId||''),copy.title,copy.preview,String(eventType||''),actor&&actor.name||'',actorEmail,new Date(),'','',key]);
     return id;
@@ -1652,7 +1698,7 @@ function getFeedbackData(requestingEmail) {
   if (lastRow < 2) return {data:[],pendingAcknowledgement:[],version:'0',diagnostics:{sheetName:SHEET_FEEDBACK,lastRow:0,requestingEmail:normalizeEmail(member.email),visibleCount:0}};
   const rows = sheet.getRange(2,1,lastRow-1,F_WIDTH).getValues();
   const parsed = rows.map(feedbackRowToObject_).filter(f => !!f.feedbackId);
-  const data = parsed.filter(f => feedbackUserCanView_(f,member)).sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
+  const data = parsed.filter(f => feedbackUserCanView_(f,member)).sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0)).map(f=>feedbackObjectForViewer_(f,member));
   const me = normalizeEmail(member.email);
   return {
     data:data,
@@ -1708,7 +1754,8 @@ function getFeedbackDetail(feedbackId, requestingEmail) {
     const item=feedbackRowToObject_(rows[i]);
     if (item.feedbackId !== id) continue;
     if (!feedbackUserCanView_(item,member)) throw new Error('You do not have access to this feedback.');
-    return {success:true,feedback:item,updates:feedbackDisputeUpdates_(id,SpreadsheetApp.getActiveSpreadsheet())};
+    const updates=feedbackDisputeUpdates_(id,SpreadsheetApp.getActiveSpreadsheet());
+    return {success:true,feedback:feedbackObjectForViewer_(item,member),updates:feedbackUpdatesForViewer_(updates,item,member)};
   }
   throw new Error('Feedback not found.');
 }
@@ -1769,14 +1816,22 @@ function disputeFeedback(feedbackId, disputeDetails, requestingEmail) {
   },{bumpDataVersion:false,operation:'disputeFeedback'});
 }
 
-function reviewFeedbackDispute(feedbackId, outcome, reviewNote, requestingEmail) {
+function reviewFeedbackDispute(feedbackId, outcome, reviewNote, actionPlan, actionDueDate, requestingEmail) {
   return withLock(() => {
     const member=requireAuthenticatedMember(requestingEmail), id=String(feedbackId||'').trim(), decision=String(outcome||'').trim(), note=String(reviewNote||'').trim();
+    const plan=String(actionPlan||'').trim(), dueDate=String(actionDueDate||'').trim();
     if(!id) throw new Error('Feedback ID is required.');
     if(!isSupportMember(member)) throw new Error('Only Support / Admin users can review a feedback dispute.');
     if(!['Upheld','Action Needed'].includes(decision)) throw new Error('Choose a valid dispute outcome.');
     if(!note||!stripHtmlToText(note)) throw new Error('Please add a brief review note.');
     requireSheetCellLength(note,'Feedback review note');
+    if(decision==='Action Needed'&&(!plan||!stripHtmlToText(plan))) throw new Error('Add the Support action plan before assigning this follow-up.');
+    requireSheetCellLength(plan,'Support action plan');
+    if(dueDate){
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) throw new Error('Choose a valid action due date.');
+      const parsedDue=new Date(dueDate+'T12:00:00Z');
+      if(isNaN(parsedDue.getTime())||parsedDue.toISOString().slice(0,10)!==dueDate)throw new Error('Choose a valid action due date.');
+    }
     const ss=SpreadsheetApp.getActiveSpreadsheet(), sheet=ensureFeedbackSheet(ss), lastRow=sheet.getLastRow();
     if(lastRow<2) throw new Error('Feedback not found.');
     const rows=sheet.getRange(2,1,lastRow-1,F_WIDTH).getValues(); let rowIndex=-1,item=null;
@@ -1785,19 +1840,75 @@ function reviewFeedbackDispute(feedbackId, outcome, reviewNote, requestingEmail)
     if(!feedbackUserCanView_(item,member)||item.feedbackType!=='Team Feedback') throw new Error('You do not have access to review this feedback.');
     if(emailsRepresentSameWorkspaceIdentity(item.feedbackForEmail,member.email)) throw new Error('A recipient cannot review their own dispute.');
     if(item.status!==FEEDBACK_STATUS_DISPUTED) throw new Error('This feedback is not awaiting dispute review.');
-    const now=new Date();
-    sheet.getRange(rowIndex,F_COL.STATUS).setValue(FEEDBACK_STATUS_DISPUTE_RESOLVED);
+    const now=new Date(), nextStatus=decision==='Action Needed'?FEEDBACK_STATUS_ACTION_REQUIRED:FEEDBACK_STATUS_DISPUTE_RESOLVED;
+    sheet.getRange(rowIndex,F_COL.STATUS).setValue(nextStatus);
     sheet.getRange(rowIndex,F_COL.REVIEWER).setValue(member.name||''); sheet.getRange(rowIndex,F_COL.REVIEWER_EMAIL).setValue(normalizeEmail(member.email));
-    sheet.getRange(rowIndex,F_COL.ACTIONED_BY).setValue(member.name||''); sheet.getRange(rowIndex,F_COL.ACTIONED_AT).setValue(now);
+    if(decision==='Action Needed'){
+      sheet.getRange(rowIndex,F_COL.ACTION_OWNER).setValue(member.name||'');
+      sheet.getRange(rowIndex,F_COL.ACTION_OWNER_EMAIL).setValue(normalizeEmail(member.email));
+      sheet.getRange(rowIndex,F_COL.ACTION_DUE_DATE).setValue(dueDate);
+      sheet.getRange(rowIndex,F_COL.ACTION_PLAN).setValue(plan);
+      sheet.getRange(rowIndex,F_COL.ACTIONED_BY).clearContent(); sheet.getRange(rowIndex,F_COL.ACTIONED_AT).clearContent();
+      sheet.getRange(rowIndex,F_COL.CLOSED_BY).clearContent(); sheet.getRange(rowIndex,F_COL.CLOSED_AT).clearContent();
+      sheet.getRange(rowIndex,F_COL.ACTION_COMPLETION_NOTE).clearContent(); sheet.getRange(rowIndex,F_COL.CLOSURE_NOTE).clearContent();
+    }
     sheet.getRange(rowIndex,F_COL.UPDATED_AT).setValue(now); sheet.getRange(rowIndex,F_COL.UPDATED_BY).setValue(member.name||'');
     appendFeedbackDisputeUpdate_(ss,id,'Review',note,decision,member,now);
-    logAudit('FEEDBACK_DISPUTE_REVIEWED',member.email,member.name||'',id,{outcome:decision,status:FEEDBACK_STATUS_DISPUTE_RESOLVED});
+    if(decision==='Action Needed') appendFeedbackDisputeUpdate_(ss,id,'Support action',plan,dueDate?('Due '+dueDate):'',member,now);
+    logAudit('FEEDBACK_DISPUTE_REVIEWED',member.email,member.name||'',id,{outcome:decision,status:nextStatus,actionOwner:decision==='Action Needed'?normalizeEmail(member.email):''});
     const feedback = feedbackRowToObject_(sheet.getRange(rowIndex,1,1,F_WIDTH).getValues()[0]);
     const recipient = findTeamMemberByEmail(feedback.feedbackForEmail);
-    if (recipient) safeCreateFeedbackNotification_(feedback,recipient,'review',member);
+    if (recipient) safeCreateFeedbackNotification_(feedback,recipient,decision==='Action Needed'?'action':'review',member);
     return {success:true,feedback:feedback,updates:feedbackDisputeUpdates_(id,ss)};
   },{bumpDataVersion:false,operation:'reviewFeedbackDispute'});
 }
+
+function updateFeedbackAction(feedbackId, action, payload, requestingEmail) {
+  return withLock(() => {
+    const member=requireAuthenticatedMember(requestingEmail), id=String(feedbackId||'').trim(), command=String(action||'').trim().toUpperCase();
+    payload=payload||{};
+    if(!id) throw new Error('Feedback ID is required.');
+    if(!isSupportMember(member)) throw new Error('Only Support / Admin users can update a feedback action.');
+    const ss=SpreadsheetApp.getActiveSpreadsheet(), sheet=ensureFeedbackSheet(ss), lastRow=sheet.getLastRow();
+    if(lastRow<2) throw new Error('Feedback not found.');
+    const rows=sheet.getRange(2,1,lastRow-1,F_WIDTH).getValues(); let rowIndex=-1,item=null;
+    for(let i=0;i<rows.length;i++) if(String(rows[i][F_COL.FEEDBACK_ID-1]||'')===id){rowIndex=i+2;item=feedbackRowToObject_(rows[i]);break;}
+    if(!item) throw new Error('Feedback not found.');
+    if(!feedbackUserCanView_(item,member)||item.feedbackType!=='Team Feedback') throw new Error('You do not have access to update this feedback action.');
+    const isOwner=emailsRepresentSameWorkspaceIdentity(item.actionOwnerEmail,member.email),isAdmin=isAdminMember(member);
+    if(!isOwner&&!isAdmin) throw new Error('Only the assigned Support owner or an Admin can update this action.');
+    const now=new Date(),email=normalizeEmail(member.email),name=member.name||'';
+    let nextStatus='',logType='',logMessage='',notificationType='';
+    if(command==='START'){
+      if(item.status!==FEEDBACK_STATUS_ACTION_REQUIRED)throw new Error('This feedback action is not waiting to start.');
+      nextStatus=FEEDBACK_STATUS_ACTION_IN_PROGRESS;logType='Action started';logMessage=String(payload.note||'').trim()||'Support follow-up started.';
+    }else if(command==='COMPLETE'){
+      if(![FEEDBACK_STATUS_ACTION_REQUIRED,FEEDBACK_STATUS_ACTION_IN_PROGRESS].includes(item.status))throw new Error('This feedback action is not ready to complete.');
+      const completion=String(payload.completionNote||'').trim(),coaching=String(payload.coachingNote||'').trim();
+      if(!completion||!stripHtmlToText(completion))throw new Error('Describe the follow-up completed before marking the action complete.');
+      requireSheetCellLength(completion,'Action completion note');requireSheetCellLength(coaching,'Coaching note');
+      sheet.getRange(rowIndex,F_COL.ACTION_COMPLETION_NOTE).setValue(completion);
+      sheet.getRange(rowIndex,F_COL.ACTIONED_BY).setValue(name);sheet.getRange(rowIndex,F_COL.ACTIONED_AT).setValue(now);
+      if(coaching){sheet.getRange(rowIndex,F_COL.COACHED).setValue(true);sheet.getRange(rowIndex,F_COL.COACHED_BY).setValue(name);sheet.getRange(rowIndex,F_COL.COACHED_BY_EMAIL).setValue(email);sheet.getRange(rowIndex,F_COL.COACHED_AT).setValue(now);sheet.getRange(rowIndex,F_COL.COACHING_NOTE).setValue(coaching);}
+      nextStatus=FEEDBACK_STATUS_ACTION_COMPLETED;logType=coaching?'Action completed and coached':'Action completed';logMessage=completion+(coaching?'\nCoaching: '+coaching:'');notificationType='action-complete';
+    }else if(command==='CLOSE'){
+      if(item.status!==FEEDBACK_STATUS_ACTION_COMPLETED)throw new Error('Complete the Support action before closing this feedback.');
+      const closure=String(payload.closureNote||'').trim();
+      if(!closure||!stripHtmlToText(closure))throw new Error('Add a closure note before closing this feedback.');
+      requireSheetCellLength(closure,'Feedback closure note');
+      sheet.getRange(rowIndex,F_COL.CLOSURE_NOTE).setValue(closure);sheet.getRange(rowIndex,F_COL.CLOSED_BY).setValue(name);sheet.getRange(rowIndex,F_COL.CLOSED_AT).setValue(now);
+      nextStatus=FEEDBACK_STATUS_CLOSED;logType='Closed';logMessage=closure;notificationType='close';
+    }else throw new Error('Choose a valid Support action.');
+    sheet.getRange(rowIndex,F_COL.STATUS).setValue(nextStatus);sheet.getRange(rowIndex,F_COL.UPDATED_AT).setValue(now);sheet.getRange(rowIndex,F_COL.UPDATED_BY).setValue(name);
+    appendFeedbackDisputeUpdate_(ss,id,logType,logMessage,'',member,now);
+    logAudit('FEEDBACK_ACTION_'+command,email,name,id,{status:nextStatus});
+    const feedback=feedbackRowToObject_(sheet.getRange(rowIndex,1,1,F_WIDTH).getValues()[0]);
+    const recipient=findTeamMemberByEmail(feedback.feedbackForEmail);
+    if(notificationType&&recipient)safeCreateFeedbackNotification_(feedback,recipient,notificationType,member);
+    return {success:true,feedback:feedback,updates:feedbackDisputeUpdates_(id,ss)};
+  },{bumpDataVersion:false,operation:'updateFeedbackAction'});
+}
+
 
 function ensureTasksSheet(ss) {
   ss = ss || SpreadsheetApp.getActiveSpreadsheet();
