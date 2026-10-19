@@ -273,9 +273,9 @@ html { font-size: 16px; }
 
 
 #global-create-card { position:relative; z-index:auto; }
-#global-create-card.is-crossing-sticky-header { visibility:hidden; pointer-events:none; }
+#global-create-card.is-crossing-sticky-header { visibility:visible !important; pointer-events:auto !important; }
 #home-create-menu { z-index:91; }
-#home-create-menu.radial-submenu-active > summary { visibility:hidden; pointer-events:none; }
+#home-create-menu.radial-submenu-active > summary { visibility:visible !important; pointer-events:auto !important; }
 #global-create-card:not(.global-create-card-home) #global-create-home-copy { visibility:hidden; }
 body.question-task-window-dragging, body.question-task-window-dragging * { cursor:grabbing !important; user-select:none !important; }
 /* Question -> Create Task workspace: keep both windows visible and independently scrollable. */
@@ -5497,6 +5497,13 @@ function activateTabShell(name) {
     tab.classList.toggle('hover:bg-slate-100', !active);
     tab.setAttribute('aria-current', active ? 'page' : 'false');
   });
+
+  // Restore the shared Create dock when navigating. The visibility observer may
+  // have hidden it while a modal was open or while the card crossed the sticky header.
+  if (globalCreateCard) globalCreateCard.classList.remove('is-crossing-sticky-header');
+  const createMenu=document.getElementById('home-create-menu');
+  if(createMenu)createMenu.classList.remove('radial-submenu-active');
+  refreshGlobalCreateVisibility();
 }
 
 function moveGlobalCreateControl(tabName) {
