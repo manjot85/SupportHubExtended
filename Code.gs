@@ -25,6 +25,7 @@ const SHEET_PEER_QUESTIONS = "Peer Questions";
 // Private recipient feedback with required acknowledgement.
 // ============================================================================
 const SHEET_FEEDBACK = 'Feedback';
+const SHEET_FEEDBACK_NOTIFICATIONS = 'Feedback Notifications';
 const F_COL = {
   FEEDBACK_ID:1, FEEDBACK_TYPE:2, CATEGORY:3, REASON:4,
   SUBMITTED_BY:5, SUBMITTED_BY_EMAIL:6, CREATED_AT:7,
@@ -1542,8 +1543,106 @@ function createFeedback(payload) {
     SpreadsheetApp.flush();
     logAudit('FEEDBACK_CREATE',actor.email,actor.name,id,{feedbackType:type,category:category,feedbackFor:recipient ? recipient.email : '',status:status});
     const row = sheet.getRange(sheet.getLastRow(),1,1,F_WIDTH).getValues()[0];
-    return {success:true,feedbackId:id,status:status,feedback:feedbackRowToObject_(row)};
+    const feedback = feedbackRowToObject_(row);
+    if (recipient) safeCreateFeedbackNotification_(feedback,recipient,'new',actor);
+    return {success:true,feedbackId:id,status:status,feedback:feedback};
   }, {bumpDataVersion:false,operation:'createFeedback'});
+}
+
+function ensureFeedbackNotificationsSheet_(ss) {
+  ss = ss || SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(SHEET_FEEDBACK_NOTIFICATIONS);
+  const headers = ['Notification ID','Recipient Email','Recipient Name','Feedback ID','Title','Preview','Event Type','Actor Name','Actor Email','Created At','Read At','Cleared At','Dedupe Key'];
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEET_FEEDBACK_NOTIFICATIONS);
+    sheet.appendRow(headers);
+    sheet.setFrozenRows(1);
+  } else {
+    const current = sheet.getRange(1,1,1,Math.max(sheet.getLastColumn(),headers.length)).getValues()[0];
+    headers.forEach((header,index)=>{ if(String(current[index]||'').trim()!==header) sheet.getRange(1,index+1).setValue(header); });
+  }
+  return sheet;
+}
+
+function createFeedbackNotification_(feedback, recipient, eventType, actor) {
+  try {
+    if (!feedback || !recipient || !recipient.email || (actor && actor._adminTestMode)) return null;
+    const recipientEmail = normalizeEmail(recipient.email);
+    const actorEmail = normalizeEmail(actor && actor.email);
+    if (!recipientEmail || emailsRepresentSameWorkspaceIdentity(recipientEmail, actorEmail)) return null;
+    const recipientMember = findTeamMemberByEmail(recipientEmail);
+    if (!recipientMember || !isOperationalNotificationProfile(recipientMember)) return null;
+    const prefs = readNotificationPreferencesForEmail(recipientEmail);
+    if (!prefs.bell && !prefs.toast && !prefs.browser && !prefs.sound) return null;
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ensureFeedbackNotificationsSheet_(ss);
+    const key = [String(eventType||''),String(feedback.feedbackId||''),recipientEmail].join(':');
+    if (sheet.getLastRow() >= 2) {
+      const keys = sheet.getRange(2,13,sheet.getLastRow()-1,1).getValues();
+      if (keys.some(row=>String(row[0]||'')===key)) return null;
+    }
+    const copy = eventType === 'new'
+      ? {title:'New feedback to review', preview:String(feedback.category||'Feedback')}
+      : eventType === 'dispute'
+        ? {title:'Feedback dispute needs review', preview:String(feedback.category||'Feedback')}
+        : {title:'Feedback dispute review completed', preview:String(feedback.category||'Feedback')+' · '+String(feedback.status||'')};
+    const id = Utilities.getUuid();
+    sheet.appendRow([id,recipientEmail,recipient.name||recipientMember.name||'',String(feedback.feedbackId||''),copy.title,copy.preview,String(eventType||''),actor&&actor.name||'',actorEmail,new Date(),'','',key]);
+    return id;
+  } catch (err) {
+    try { Logger.log('Feedback notification could not be saved: '+err); } catch (ignore) {}
+    return null;
+  }
+}
+
+function safeCreateFeedbackNotification_(feedback, recipient, eventType, actor) {
+  return createFeedbackNotification_(feedback,recipient,eventType,actor);
+}
+
+function getFeedbackNotifications_(requestingEmail) {
+  const member = requireAuthenticatedMember(requestingEmail);
+  if (!isOperationalNotificationProfile(member)) return [];
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ensureFeedbackNotificationsSheet_(ss);
+  if (sheet.getLastRow() < 2) return [];
+  const email = normalizeEmail(member.email);
+  const feedbackSheet = ensureFeedbackSheet(ss);
+  const feedbackById = {};
+  if (feedbackSheet.getLastRow() >= 2) {
+    feedbackSheet.getRange(2,1,feedbackSheet.getLastRow()-1,F_WIDTH).getValues().forEach(row=>{
+      const item=feedbackRowToObject_(row);
+      if(item.feedbackId) feedbackById[item.feedbackId]=item;
+    });
+  }
+  return sheet.getRange(2,1,sheet.getLastRow()-1,13).getValues()
+    .filter(row=>normalizeEmail(row[1])===email&&!row[11]&&feedbackById[String(row[3]||'')]&&feedbackUserCanView_(feedbackById[String(row[3]||'')],member))
+    .map(row=>({
+      notificationId:String(row[0]||''),recipientEmail:normalizeEmail(row[1]),recipientName:String(row[2]||''),
+      feedbackId:String(row[3]||''),title:String(row[4]||'Feedback update'),preview:String(row[5]||''),
+      eventType:String(row[6]||''),actorName:String(row[7]||''),
+      createdAt:row[9] instanceof Date?row[9].toISOString():String(row[9]||''),
+      readAt:row[10] instanceof Date?row[10].toISOString():String(row[10]||'')
+    }))
+    .sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt))).slice(0,100);
+}
+
+function markFeedbackNotificationRead(notificationId, requestingEmail) {
+  return withLock(()=>{
+    const member=requireOperationalNotificationProfile(requestingEmail), email=normalizeEmail(member.email);
+    const sheet=ensureFeedbackNotificationsSheet_(SpreadsheetApp.getActiveSpreadsheet());
+    if(sheet.getLastRow()<2)return {success:false,message:'Notification not found.',_skipDataVersion:true};
+    const rows=sheet.getRange(2,1,sheet.getLastRow()-1,13).getValues();
+    for(let i=0;i<rows.length;i++){
+      if(String(rows[i][0]||'')!==String(notificationId||''))continue;
+      if(normalizeEmail(rows[i][1])!==email)throw new Error('Access denied: this notification belongs to another user.');
+      const feedback=getFeedbackDetail(String(rows[i][3]||''),member.email).feedback;
+      if(!feedback)throw new Error('You no longer have access to this feedback.');
+      const readAt=rows[i][10] instanceof Date?rows[i][10]:new Date();
+      if(!rows[i][10])sheet.getRange(i+2,11).setValue(readAt);
+      return {success:true,readAt:readAt.toISOString(),_skipDataVersion:true};
+    }
+    return {success:false,message:'Notification not found.',_skipDataVersion:true};
+  },{bumpDataVersion:false,operation:'markFeedbackNotificationRead'});
 }
 
 function getFeedbackData(requestingEmail) {
@@ -1561,6 +1660,40 @@ function getFeedbackData(requestingEmail) {
     version:String(lastRow)+':'+String(sheet.getLastColumn()),
     diagnostics:{sheetName:SHEET_FEEDBACK,lastRow:lastRow,dataRowCount:parsed.length,visibleCount:data.length,requestingEmail:me,latestFeedbackId:parsed.length ? parsed[parsed.length-1].feedbackId : ''}
   };
+}
+
+function adminBulkDeleteFeedback(feedbackIds, requestingEmail) {
+  return withLock(() => {
+    const admin = requireAuthenticatedAdmin(requestingEmail);
+    const ids = Array.from(new Set((Array.isArray(feedbackIds) ? feedbackIds : []).map(id => String(id || '').trim()).filter(Boolean)));
+    if (!ids.length) throw new Error('Select at least one feedback record to remove.');
+    if (ids.length > 500) throw new Error('Please remove 500 feedback records or fewer at one time.');
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ensureFeedbackSheet(ss);
+    const lastRow = sheet.getLastRow();
+    if (lastRow < 2) throw new Error('The selected feedback records no longer exist. Refresh and try again.');
+    const rows = sheet.getRange(2, 1, lastRow - 1, F_WIDTH).getValues();
+    const rowById = new Map();
+    rows.forEach((row, index) => {
+      const id = String(row[F_COL.FEEDBACK_ID - 1] || '').trim();
+      if (id) rowById.set(id, {rowIndex:index + 2, values:row});
+    });
+    const missing = ids.filter(id => !rowById.has(id));
+    if (missing.length) throw new Error('One or more selected records have changed. Refresh the report and try again.');
+    const targets = ids.map(id => ({id:id, rowIndex:rowById.get(id).rowIndex, values:rowById.get(id).values}));
+    targets.forEach(item => archiveDeletedRow(SHEET_FEEDBACK, item.values, item.id, admin.email));
+    const notifications = ss.getSheetByName(SHEET_FEEDBACK_NOTIFICATIONS);
+    if (notifications && notifications.getLastRow() > 1) {
+      const notificationRows = notifications.getRange(2, 1, notifications.getLastRow() - 1, 13).getValues();
+      const now = new Date();
+      notificationRows.forEach((row, index) => {
+        if (ids.indexOf(String(row[3] || '').trim()) >= 0 && !row[11]) notifications.getRange(index + 2, 12).setValue(now);
+      });
+    }
+    targets.slice().sort((a, b) => b.rowIndex - a.rowIndex).forEach(item => sheet.deleteRow(item.rowIndex));
+    targets.forEach(item => logAudit('FEEDBACK_DELETE', admin.email, admin.name, item.id, {archived:true, bulk:true}));
+    return {success:true, deletedCount:targets.length};
+  }, {bumpDataVersion:false, operation:'adminBulkDeleteFeedback'});
 }
 
 function getFeedbackDetail(feedbackId, requestingEmail) {
@@ -1630,7 +1763,9 @@ function disputeFeedback(feedbackId, disputeDetails, requestingEmail) {
     sheet.getRange(rowIndex,F_COL.UPDATED_AT).setValue(now); sheet.getRange(rowIndex,F_COL.UPDATED_BY).setValue(member.name||'');
     appendFeedbackDisputeUpdate_(ss,id,'Dispute',note,'',member,now);
     logAudit('FEEDBACK_DISPUTED',member.email,member.name||'',id,{status:FEEDBACK_STATUS_DISPUTED});
-    return {success:true,feedback:feedbackRowToObject_(sheet.getRange(rowIndex,1,1,F_WIDTH).getValues()[0]),updates:feedbackDisputeUpdates_(id,ss)};
+    const feedback = feedbackRowToObject_(sheet.getRange(rowIndex,1,1,F_WIDTH).getValues()[0]);
+    _getTeamMembersInternal().filter(m=>isSupportMember(m)&&!isAdminMember(m)&&isOperationalNotificationProfile(m)).forEach(m=>safeCreateFeedbackNotification_(feedback,m,'dispute',member));
+    return {success:true,feedback:feedback,updates:feedbackDisputeUpdates_(id,ss)};
   },{bumpDataVersion:false,operation:'disputeFeedback'});
 }
 
@@ -1657,7 +1792,10 @@ function reviewFeedbackDispute(feedbackId, outcome, reviewNote, requestingEmail)
     sheet.getRange(rowIndex,F_COL.UPDATED_AT).setValue(now); sheet.getRange(rowIndex,F_COL.UPDATED_BY).setValue(member.name||'');
     appendFeedbackDisputeUpdate_(ss,id,'Review',note,decision,member,now);
     logAudit('FEEDBACK_DISPUTE_REVIEWED',member.email,member.name||'',id,{outcome:decision,status:FEEDBACK_STATUS_DISPUTE_RESOLVED});
-    return {success:true,feedback:feedbackRowToObject_(sheet.getRange(rowIndex,1,1,F_WIDTH).getValues()[0]),updates:feedbackDisputeUpdates_(id,ss)};
+    const feedback = feedbackRowToObject_(sheet.getRange(rowIndex,1,1,F_WIDTH).getValues()[0]);
+    const recipient = findTeamMemberByEmail(feedback.feedbackForEmail);
+    if (recipient) safeCreateFeedbackNotification_(feedback,recipient,'review',member);
+    return {success:true,feedback:feedback,updates:feedbackDisputeUpdates_(id,ss)};
   },{bumpDataVersion:false,operation:'reviewFeedbackDispute'});
 }
 
@@ -2111,9 +2249,11 @@ function getTaskNotifications(requestingEmail) {
 }
 
 function getPersistentNotifications(requestingEmail) {
+  const member = requireAuthenticatedMember(requestingEmail);
   return {
-    mentions: getMentionNotifications(requestingEmail),
-    tasks: getTaskNotifications(requestingEmail)
+    mentions: getMentionNotifications(member.email),
+    tasks: getTaskNotifications(member.email),
+    feedback: getFeedbackNotifications_(member.email)
   };
 }
 
@@ -2368,6 +2508,20 @@ function clearReadNotifications(requestingEmail) {
       }
     }
 
+    // Feedback notifications remain in history; clear only read items owned by this profile.
+    let clearedFeedbackCount = 0;
+    const feedbackNotificationSheet = ensureFeedbackNotificationsSheet_(ss);
+    if (feedbackNotificationSheet && feedbackNotificationSheet.getLastRow() >= 2) {
+      const feedbackRows = feedbackNotificationSheet.getRange(2,1,feedbackNotificationSheet.getLastRow()-1,13).getValues();
+      let feedbackChanged = false;
+      const clearedAt = new Date();
+      for (let i=0;i<feedbackRows.length;i++) {
+        if (normalizeEmail(feedbackRows[i][1]) !== email || !feedbackRows[i][10] || feedbackRows[i][11]) continue;
+        feedbackRows[i][11] = clearedAt; clearedFeedbackCount++; feedbackChanged = true;
+      }
+      if (feedbackChanged) feedbackNotificationSheet.getRange(2,12,feedbackRows.length,1).setValues(feedbackRows.map(r=>[r[11]||'']));
+    }
+
     const existing = new Set(readClearedReadTicketIdsForEmail(email));
     eligible.forEach(id => existing.add(id));
     // Keep a generous bounded history so the preference cell cannot grow
@@ -2391,8 +2545,8 @@ function clearReadNotifications(requestingEmail) {
       prefsSheet.getRange(targetRow, 7).setValue(new Date());
     }
 
-    const totalCleared = eligible.length + clearedMentionCount + clearedTaskCount;
-    logAudit('NOTIFICATIONS_CLEAR_READ', member.email, member.name, '', { clearedAnsweredCount: eligible.length, clearedMentionCount: clearedMentionCount, clearedTaskCount: clearedTaskCount, clearedCount: totalCleared });
+    const totalCleared = eligible.length + clearedMentionCount + clearedTaskCount + clearedFeedbackCount;
+    logAudit('NOTIFICATIONS_CLEAR_READ', member.email, member.name, '', { clearedAnsweredCount: eligible.length, clearedMentionCount: clearedMentionCount, clearedTaskCount: clearedTaskCount, clearedFeedbackCount: clearedFeedbackCount, clearedCount: totalCleared });
     return { success: true, clearedCount: totalCleared, clearedAnsweredCount: eligible.length, clearedMentionCount: clearedMentionCount, clearedTaskCount: clearedTaskCount, clearedReadTicketIds: kept };
   }, { bumpDataVersion: false });
 }

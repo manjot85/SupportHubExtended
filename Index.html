@@ -415,7 +415,7 @@ body.question-task-window-dragging, body.question-task-window-dragging * { curso
 <div class="px-5 py-4 border-b border-slate-100 flex justify-between items-start">
 <div>
 <h3 class="text-base font-bold text-slate-900">Notification Preferences</h3>
-<p class="text-xs text-slate-500 mt-1">Choose how Support Hub alerts you about answered questions and task activity.</p>
+<p class="text-xs text-slate-500 mt-1">Choose how Support Hub alerts you about feedback, questions, and task activity.</p>
 </div>
 <button onclick="closeNotificationSettings()" class="text-slate-400 hover:text-slate-700 font-bold text-lg">✕</button>
 </div>
@@ -427,7 +427,7 @@ body.question-task-window-dragging, body.question-task-window-dragging * { curso
 </label>
 <label class="flex items-start gap-3 p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer">
 <input id="notif-pref-bell" type="checkbox" class="mt-0.5 w-4 h-4">
-<span><span class="block text-xs font-bold text-slate-800">Notification bell</span><span class="block text-[10px] text-slate-500">Shows your personal unread answered-question count in the header bell.</span></span>
+<span><span class="block text-xs font-bold text-slate-800">Notification bell</span><span class="block text-[10px] text-slate-500">Shows your unread feedback, question, and task notifications in the header bell.</span></span>
 </label>
 <label class="flex items-start gap-3 p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer">
 <input id="notif-pref-browser" type="checkbox" class="mt-0.5 w-4 h-4">
@@ -605,11 +605,11 @@ body.question-task-window-dragging, body.question-task-window-dragging * { curso
     </section>
     <section id="home-feedback-summary" class="bg-white border border-amber-200 rounded-2xl overflow-hidden shadow-sm">
       <div class="px-4 py-3 bg-amber-50/70 border-b border-amber-100"><p class="text-[9px] font-bold uppercase tracking-wider text-amber-700">Feedback</p><h3 class="text-sm font-bold text-slate-900">Action items</h3></div>
-      <button type="button" onclick="scrollHomeDashboardTo('home-feedback-panel','feedback')" class="w-full h-[calc(100%-57px)] min-h-24 p-4 text-left hover:bg-amber-50/40 transition"><p id="home-feedback-summary-count" class="text-2xl font-bold text-amber-700">0</p><p class="text-[10px] text-slate-500 mt-1">Acknowledgements and disputes</p><p class="text-[9px] text-amber-700 mt-2">Open items ↓</p></button>
+      <button type="button" onclick="switchTab('feedback')" class="w-full h-[calc(100%-57px)] min-h-24 p-4 text-left hover:bg-amber-50/40 transition"><p id="home-feedback-summary-count" class="text-2xl font-bold text-amber-700">0</p><p class="text-[10px] text-slate-500 mt-1">Feedback needing action</p><p class="text-[9px] text-amber-700 mt-2">View feedback →</p></button>
     </section>
     <section id="home-updates-summary" class="bg-white border border-amber-200 rounded-2xl overflow-hidden shadow-sm">
       <div class="px-4 py-3 bg-amber-50/70 border-b border-amber-100"><p class="text-[9px] font-bold uppercase tracking-wider text-amber-700">Team Updates</p><h3 class="text-sm font-bold text-slate-900">Announcements</h3></div>
-      <button type="button" onclick="scrollHomeDashboardTo('home-announcements','updates')" class="w-full h-[calc(100%-57px)] min-h-24 p-4 text-left hover:bg-amber-50/40 transition"><p id="home-updates-summary-count" class="text-2xl font-bold text-amber-700">0</p><p class="text-[10px] text-slate-500 mt-1">Updates awaiting review</p><p class="text-[9px] text-amber-700 mt-2">Open updates ↓</p></button>
+      <button type="button" onclick="switchTab('updates')" class="w-full h-[calc(100%-57px)] min-h-24 p-4 text-left hover:bg-amber-50/40 transition"><p id="home-updates-summary-count" class="text-2xl font-bold text-amber-700">0</p><p class="text-[10px] text-slate-500 mt-1">Updates needing review</p><p class="text-[9px] text-amber-700 mt-2">View updates →</p></button>
     </section>
   
 </div>
@@ -750,6 +750,32 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 <section id="view-feedback" class="hidden space-y-5">
   <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col md:flex-row md:items-center justify-between gap-3">
     <div><h2 class="text-base font-bold text-slate-800">Feedback</h2><p id="feedback-view-help" class="text-xs text-slate-500 mt-1">Feedback about you is private. Review it and acknowledge it once understood.</p></div>
+  </div>
+  <div id="feedback-management-report" class="hidden bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
+    <div class="px-4 py-3 flex flex-wrap items-center justify-between gap-3 border-b border-slate-100">
+      <div><h3 class="text-sm font-bold text-slate-800">Feedback report</h3><p class="text-[10px] text-slate-500 mt-1">Management view of records your Support profile is authorized to review.</p></div>
+      <div class="flex items-center gap-2"><button id="feedback-report-delete-selected" type="button" onclick="deleteSelectedAdminFeedback()" class="hidden px-3 py-2 rounded-lg bg-rose-600 text-white text-xs font-semibold hover:bg-rose-700">Remove selected</button><button type="button" onclick="exportFeedbackReportCsv()" class="px-3 py-2 rounded-lg border border-slate-300 text-xs font-semibold text-slate-700 hover:bg-slate-50">Export CSV</button></div>
+    </div>
+    <div class="p-4 space-y-3">
+      <div class="grid grid-cols-2 lg:grid-cols-5 gap-2">
+        <label class="text-[10px] font-semibold text-slate-500">From<input id="feedback-report-from" type="date" onchange="renderFeedbackReport()" class="mt-1 w-full border border-slate-300 rounded-lg px-2 py-2 text-xs"></label>
+        <label class="text-[10px] font-semibold text-slate-500">Through<input id="feedback-report-to" type="date" onchange="renderFeedbackReport()" class="mt-1 w-full border border-slate-300 rounded-lg px-2 py-2 text-xs"></label>
+        <label class="text-[10px] font-semibold text-slate-500">Status<select id="feedback-report-status" onchange="renderFeedbackReport()" class="mt-1 w-full border border-slate-300 rounded-lg px-2 py-2 text-xs"><option value="ALL">All statuses</option><option>Pending Acknowledgement</option><option>Acknowledged</option><option>Disputed — Awaiting Review</option><option>Dispute Resolved</option></select></label>
+        <label class="text-[10px] font-semibold text-slate-500">Category or type<input id="feedback-report-category" oninput="renderFeedbackReport()" class="mt-1 w-full border border-slate-300 rounded-lg px-2 py-2 text-xs" placeholder="All categories"></label>
+        <label class="text-[10px] font-semibold text-slate-500">Recipient or submitter<input id="feedback-report-person" oninput="renderFeedbackReport()" class="mt-1 w-full border border-slate-300 rounded-lg px-2 py-2 text-xs" placeholder="All people"></label>
+      </div>
+      <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
+        <div class="rounded-lg border border-slate-200 p-3"><p class="text-[9px] font-bold uppercase text-slate-500">Records</p><p id="feedback-report-total" class="text-lg font-bold text-slate-900">0</p></div>
+        <div class="rounded-lg border border-amber-200 bg-amber-50/60 p-3"><p class="text-[9px] font-bold uppercase text-amber-700">Pending</p><p id="feedback-report-pending" class="text-lg font-bold text-slate-900">0</p></div>
+        <div class="rounded-lg border border-emerald-200 bg-emerald-50/60 p-3"><p class="text-[9px] font-bold uppercase text-emerald-700">Acknowledged</p><p id="feedback-report-ack" class="text-lg font-bold text-slate-900">0</p></div>
+        <div class="rounded-lg border border-rose-200 bg-rose-50/60 p-3"><p class="text-[9px] font-bold uppercase text-rose-700">Disputes</p><p id="feedback-report-disputed" class="text-lg font-bold text-slate-900">0</p></div>
+        <div class="rounded-lg border border-indigo-200 bg-indigo-50/60 p-3"><p class="text-[9px] font-bold uppercase text-indigo-700">Resolved</p><p id="feedback-report-resolved" class="text-lg font-bold text-slate-900">0</p></div>
+      </div>
+      <div class="overflow-x-auto border border-slate-200 rounded-xl">
+        <table class="min-w-full text-left text-[11px]"><thead class="bg-slate-50 text-slate-500 uppercase tracking-wide"><tr><th id="feedback-report-select-th" class="hidden px-3 py-2"><input id="feedback-report-select-all" type="checkbox" aria-label="Select all feedback" onchange="selectAllAdminFeedback(this.checked)"></th><th class="px-3 py-2">Created</th><th class="px-3 py-2">Recipient</th><th class="px-3 py-2">Submitted by</th><th class="px-3 py-2">Category</th><th class="px-3 py-2">Status</th><th class="px-3 py-2">Related</th></tr></thead><tbody id="feedback-report-rows" class="divide-y divide-slate-100"></tbody></table>
+      </div>
+      <p id="feedback-report-empty" class="hidden text-center text-xs text-slate-400 py-3">No records match these report filters.</p>
+    </div>
   </div>
   <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
     <button type="button" onclick="setFeedbackFilter('PENDING')" class="bg-amber-50/70 border border-amber-200 rounded-xl p-4 text-left"><p class="text-[9px] font-bold uppercase text-amber-700">Pending</p><p id="feedback-stat-pending" class="text-xl font-bold text-slate-900 mt-1">0</p></button>
@@ -2607,6 +2633,7 @@ This question has not been answered yet.
 // ============================================================================
 let currentUser = null;
 let allFeedback = [];
+let selectedFeedbackForDeletion = new Set();
 let feedbackFilter = 'ALL';
 let activeFeedback = null;
 let feedbackRefreshInFlight = false;
@@ -2649,6 +2676,9 @@ let seenTaskAttentionKeys = new Set();
 let notificationPrefs = { toast: true, bell: true, browser: false, sound: false, email: false, taskAssigned: true, ticketNew: true, ticketOnHold: true, ticketResumed: true, ticketAnswered: true };
 let mentionNotifications = [];
 let taskNotifications = [];
+let feedbackNotifications = [];
+let feedbackNotificationBaselineReady = false;
+let knownFeedbackNotificationIds = new Set();
 let persistentNotificationRefreshInFlight = false;
 let mentionNotificationBaselineReady = false;
 let knownMentionNotificationIds = new Set();
@@ -5697,10 +5727,8 @@ function renderAnnouncementViews(){
   const homeSummaryCount=document.getElementById('home-updates-summary-count'); if(homeSummaryCount)homeSummaryCount.innerText=String(visibleHome.length);
   const pendingCount=document.getElementById('home-announcement-pending-count');
   if(pendingCount){pendingCount.innerText=pending+' pending review';pendingCount.classList.toggle('hidden',pending===0);}
-  if(home&&section){
-    section.classList.remove('hidden');
-    home.innerHTML=visibleHome.length?visibleHome.map(item=>renderAnnouncementCard_(item)).join(''):'<div class="p-5 text-center text-xs text-slate-400">No new updates to review.</div>';
-  }
+  if(home)home.innerHTML='';
+  if(section)section.classList.add('hidden');
   renderUnifiedUpdates_();
 }
 function renderAnnouncementCard_(item){
@@ -7427,7 +7455,7 @@ function homeTicketListItem(q, supportMode) {
   const weekend = !!q.eventThisWeekend;
   return {
     title: q.eventName || stripHtml(q.question).slice(0, 70) || q.ticketId,
-    meta: stripHtml(q.question).slice(0, 115),
+    meta: (weekend && q.eventDate ? 'Event date: ' + q.eventDate + ' · ' : '') + stripHtml(q.question).slice(0, weekend && q.eventDate ? 85 : 115),
     tag: newUpdate ? 'New Update' : (attention ? 'Attention Today' : (teamFlag ? 'Flagged by Team' : (weekend ? 'Weekend' : (q.status === 'Hold' ? 'On Hold' : (q.sheet === 'Answered' ? 'Answer' : 'Open'))))),
     tone: attention ? 'attention' : (teamFlag ? 'teamflag' : (weekend ? 'weekend' : '')),
     action: () => supportMode ? openAnswerModal(q.ticketId) : openTicketDetail(q.sheet, q.ticketId)
@@ -7464,10 +7492,8 @@ function renderCoordinatorHomeDashboard() {
   setHomeMetric(6, { hidden: true });
   setHomeMetric(7, { hidden: true });
 
-  setHomeListHeader(1, 'Needs My Review', 'Unread Support answers waiting for you.', () => openPersonalAnswered('UNREAD'));
-  setHomeListHeader(2, 'My Active Tasks', 'Tasks currently assigned to you.', () => openMyTaskView('ACTIVE'));
-  renderHomeList('home-list-1', unread.slice(0, 4).map(q => homeTicketListItem(q, false)), 'No unread answers.');
-  renderHomeList('home-list-2', activeTasks.sort((a, b) => String(a.dueDate || '').localeCompare(String(b.dueDate || ''))).map(homeTaskListItem), 'No active tasks assigned to you.');
+  const p1=document.getElementById('home-list-panel-1'),p2=document.getElementById('home-list-panel-2');
+  if(p1)p1.classList.add('hidden'); if(p2)p2.classList.add('hidden');
 }
 
 function renderSupportHomeDashboard() {
@@ -7497,18 +7523,21 @@ function renderSupportHomeDashboard() {
   const priority = [];
   const seen = new Set();
   const flagScope = isAssistantManagerUser(currentUser) ? allTeamFlags : myTeamFlags;
-  attention.concat(flagScope, weekend, followUps, onHold, mine).forEach(q => {
+  attention.concat(flagScope, weekend).forEach(q => {
     const id = String(q.ticketId || '');
     if (id && !seen.has(id)) { seen.add(id); priority.push(q); }
   });
-  const listTitle = isAssistantManagerUser(currentUser) ? 'Priority Queue' : 'My Priority Queue';
-  const listHelp = isAssistantManagerUser(currentUser)
-    ? 'Attention, team flags, weekend, and your assigned follow-up work.'
-    : 'Attention, team flags, weekend, follow-up, on-hold, and other questions assigned to you.';
+  const listTitle = isAssistantManagerUser(currentUser) ? 'Priority & Escalation Items' : 'Priority Items';
+  const listHelp = 'Only urgent, escalated, attention-today, and upcoming weekend-event records.';
   setHomeListHeader(1, listTitle, listHelp, () => openMySupportQueueFilter('all'));
-  setHomeListHeader(2, 'My Active Tasks', 'Tasks currently assigned to you.', () => openMyTaskView('ACTIVE'));
-  renderHomeList('home-list-1', priority.slice(0, 4).map(q => homeTicketListItem(q, true)), 'No priority questions right now.');
-  renderHomeList('home-list-2', activeTasks.sort((a, b) => String(a.dueDate || '').localeCompare(String(b.dueDate || ''))).map(homeTaskListItem), 'No active tasks assigned to you.');
+  renderHomeList('home-list-1', priority.slice(0, 6).map(q => homeTicketListItem(q, true)), 'No urgent or upcoming weekend items.');
+  const urgentTasks=activeTasks.filter(t => (t.attentionToday && isTaskActive(t)) || isTaskOverdue(t) || /urgent|critical|high/i.test(String(t.priority||'')));
+  const taskPanel=document.getElementById('home-list-panel-2');
+  if(taskPanel)taskPanel.classList.toggle('hidden',!urgentTasks.length);
+  if(urgentTasks.length){
+    setHomeListHeader(2, 'Tasks Needing Attention', 'Only overdue, urgent, or attention-today tasks.', () => openMyTaskView('ACTIVE'));
+    renderHomeList('home-list-2', urgentTasks.slice(0,4).map(homeTaskListItem), '');
+  }
 }
 
 function renderAdminHomeDashboard() {
@@ -7526,10 +7555,8 @@ function renderAdminHomeDashboard() {
   setHomeMetric(6, { hidden: true });
   setHomeMetric(7, { hidden: true });
 
-  setHomeListHeader(1, 'Routing Setup', 'Coordinators who do not have Primary Support configured.', () => switchTab('team'));
-  setHomeListHeader(2, 'Active Tasks', 'Recently updated active team tasks.', () => switchTab('tasks'));
-  renderHomeList('home-list-1', missingRouting.map(m => ({ title: m.name, meta: (m.title || 'Coordinator') + ' · Primary Support not set', tag: 'Not Set', action: () => switchTab('team') })), 'All active Coordinators have Primary Support configured.');
-  renderHomeList('home-list-2', activeTasks.sort((a, b) => new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0)).map(homeTaskListItem), 'No active tasks.');
+  const p1=document.getElementById('home-list-panel-1'),p2=document.getElementById('home-list-panel-2');
+  if(p1)p1.classList.add('hidden'); if(p2)p2.classList.add('hidden');
 }
 
 function renderMyWorkDashboard() {
@@ -13279,6 +13306,26 @@ function processPersistentTaskNotifications() {
   knownPersistentTaskNotificationIds=currentIds;
 }
 
+function processFeedbackNotifications() {
+  const currentIds = new Set((feedbackNotifications||[]).map(n=>String(n.notificationId||'')).filter(Boolean));
+  if (!feedbackNotificationBaselineReady) {
+    feedbackNotificationBaselineReady = true;
+    knownFeedbackNotificationIds = currentIds;
+    return;
+  }
+  (feedbackNotifications||[]).forEach(n=>{
+    const id=String(n.notificationId||'');
+    if(!id||knownFeedbackNotificationIds.has(id))return;
+    const label=String(n.title||'Feedback update');
+    if(notificationPrefs.toast)showToast(label+(n.preview?' · '+n.preview:'')+'.');
+    if(notificationPrefs.sound)playNotificationSound();
+    if(notificationPrefs.browser&&'Notification' in window&&Notification.permission==='granted'){
+      try{new Notification('Support Hub: '+label,{body:n.preview||'Open Feedback to review this item.'});}catch(e){console.warn('Feedback browser notification unavailable',e);}
+    }
+  });
+  knownFeedbackNotificationIds=currentIds;
+}
+
 function refreshMentionNotifications() {
   refreshPersistentNotifications();
 }
@@ -13287,6 +13334,7 @@ function refreshPersistentNotifications() {
   if (!activeProfileReceivesNotifications()) {
     mentionNotifications = [];
     taskNotifications = [];
+    feedbackNotifications = [];
     updateNotificationCenter();
     return;
   }
@@ -13299,10 +13347,24 @@ function refreshPersistentNotifications() {
     persistentNotificationRefreshInFlight = false;
     mentionNotifications = (res && res.mentions) || [];
     taskNotifications = (res && res.tasks) || [];
+    feedbackNotifications = (res && res.feedback) || [];
     processMentionNotifications();
     processPersistentTaskNotifications();
+    processFeedbackNotifications();
     updateNotificationCenter();
   }).getPersistentNotifications(currentUser.email);
+}
+
+function openFeedbackNotification(notificationId) {
+  const item=(feedbackNotifications||[]).find(n=>String(n.notificationId)===String(notificationId));
+  if(!item){showToast('That feedback notification is no longer available.');return;}
+  const panel=document.getElementById('notification-panel');if(panel)panel.classList.add('hidden');
+  if(!item.readAt){
+    item.readAt=new Date().toISOString();updateNotificationCenter();
+    google.script.run.withFailureHandler(err=>console.warn('Could not mark feedback notification read',err))
+      .markFeedbackNotificationRead(item.notificationId,currentUser.email);
+  }
+  openFeedbackDetail(item.feedbackId);
 }
 
 function openMentionNotification(notificationId) {
@@ -13367,6 +13429,7 @@ function updateNotificationCenter() {
   if (!activeProfileReceivesNotifications()) {
     mentionNotifications = [];
     taskNotifications = [];
+    feedbackNotifications = [];
     const suppressedCount = document.getElementById('notification-bell-count');
     const suppressedBell = document.getElementById('notification-bell-btn');
     const suppressedList = document.getElementById('notification-panel-list');
@@ -13384,7 +13447,8 @@ function updateNotificationCenter() {
   const unreadAnswers = personal.filter(q => !q.isRead);
   const unreadMentions = (mentionNotifications || []).filter(n => !n.readAt);
   const unreadTasks = (taskNotifications || []).filter(n => !n.readAt);
-  const totalUnread = unreadAnswers.length + unreadMentions.length + unreadTasks.length;
+  const unreadFeedback = (feedbackNotifications || []).filter(n => !n.readAt);
+  const totalUnread = unreadAnswers.length + unreadMentions.length + unreadTasks.length + unreadFeedback.length;
 
   const countEl = document.getElementById('notification-bell-count');
   const bellBtn = document.getElementById('notification-bell-btn');
@@ -13408,7 +13472,8 @@ function updateNotificationCenter() {
   const clearBtn = document.getElementById('clear-read-notifications-btn');
   const hasClearableRead = personal.some(q => q.isRead && !clearedReadNotificationIds.has(String(q.ticketId || q.id || ''))) ||
     (mentionNotifications || []).some(n => !!n.readAt) ||
-    (taskNotifications || []).some(n => !!n.readAt);
+    (taskNotifications || []).some(n => !!n.readAt) ||
+    (feedbackNotifications || []).some(n => !!n.readAt);
   if (clearBtn) clearBtn.classList.toggle('hidden', !hasClearableRead);
 
   const items = [];
@@ -13424,6 +13489,11 @@ function updateNotificationCenter() {
   }));
   (taskNotifications || []).forEach(n => items.push({
     type: 'task',
+    ts: n.createdAt || '',
+    n
+  }));
+  (feedbackNotifications || []).forEach(n => items.push({
+    type: 'feedback',
     ts: n.createdAt || '',
     n
   }));
@@ -13449,6 +13519,18 @@ function updateNotificationCenter() {
         '<div class="flex items-center justify-between gap-2"><span class="text-[9px] font-black ' + badgeClass + '">' + badgeLabel + '</span><span class="text-[9px] text-slate-400">' + esc(formatCSTDateTime(n.createdAt, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })) + '</span></div>' +
         '<p class="text-xs font-semibold text-slate-800 truncate mt-1">' + esc(n.taskTitle || 'Task') + '</p>' +
         '<p class="text-[10px] text-slate-500 truncate">' + esc(title + (n.actorName ? ' · ' + n.actorName : '')) + '</p>' +
+        '</button>';
+    }
+    if (item.type === 'feedback') {
+      const n = item.n;
+      const isRead = !!n.readAt;
+      const dispute = n.eventType === 'dispute';
+      const bg = isRead ? '' : (dispute ? 'bg-rose-50/60' : 'bg-amber-50/60');
+      const badge = isRead ? 'FEEDBACK' : (dispute ? 'DISPUTE REVIEW' : 'FEEDBACK ACTION');
+      return `<button onclick="openFeedbackNotification('${esc(n.notificationId)}')" class="w-full text-left px-4 py-3 border-b border-slate-100 hover:bg-slate-50 ${bg}">` +
+        '<div class="flex items-center justify-between gap-2"><span class="text-[9px] font-black ' + (dispute?'text-rose-700':'text-amber-700') + '">' + badge + '</span><span class="text-[9px] text-slate-400">' + esc(formatCSTDateTime(n.createdAt, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })) + '</span></div>' +
+        '<p class="text-xs font-semibold text-slate-800 truncate mt-1">' + esc(n.title || 'Feedback update') + '</p>' +
+        '<p class="text-[10px] text-slate-500 truncate">' + esc((n.preview || 'Open feedback') + (n.actorName ? ' · ' + n.actorName : '')) + '</p>' +
         '</button>';
     }
     if (item.type === 'mention') {
@@ -13487,7 +13569,8 @@ function clearAllReadNotifications(event) {
   const clearable = personalAnsweredTickets().filter(q => q.isRead && !clearedReadNotificationIds.has(String(q.ticketId || q.id || '')));
   const clearableMentions = (mentionNotifications || []).filter(n => !!n.readAt);
   const clearableTasks = (taskNotifications || []).filter(n => !!n.readAt);
-  if (clearable.length === 0 && clearableMentions.length === 0 && clearableTasks.length === 0) {
+  const clearableFeedback = (feedbackNotifications || []).filter(n => !!n.readAt);
+  if (clearable.length === 0 && clearableMentions.length === 0 && clearableTasks.length === 0 && clearableFeedback.length === 0) {
     showToast('There are no read notifications to clear.');
     updateNotificationCenter();
     return;
@@ -13502,9 +13585,10 @@ function clearAllReadNotifications(event) {
     clearedReadNotificationIds = new Set(((res && res.clearedReadTicketIds) || []).map(id => String(id)));
     mentionNotifications = (mentionNotifications || []).filter(n => !n.readAt);
     taskNotifications = (taskNotifications || []).filter(n => !n.readAt);
+    feedbackNotifications = (feedbackNotifications || []).filter(n => !n.readAt);
     if (btn) { btn.disabled = false; btn.innerText = 'Clear Read'; }
     updateNotificationCenter();
-    showToast('Cleared ' + ((res && res.clearedCount) || (clearable.length + clearableMentions.length + clearableTasks.length)) + ' read notification(s).');
+    showToast('Cleared ' + ((res && res.clearedCount) || (clearable.length + clearableMentions.length + clearableTasks.length + clearableFeedback.length)) + ' read notification(s).');
   }).clearReadNotifications(currentUser.email);
 }
 
@@ -13847,6 +13931,7 @@ function refreshFeedbackData(force){
     if(requestId!==feedbackRefreshRequestId || currentUser!==requestingUser) return;
     feedbackRefreshInFlight=false; result=result||{};
     allFeedback=result.data||[];
+    refreshPersistentNotifications();
     window.feedbackLastDiagnostics=result.diagnostics||null;
     const me=normalizeFeedbackEmail(currentUser.email), ownPending=(result.pendingAcknowledgement||[]).length;
     const supportReviews=isFeedbackManagementUser()?allFeedback.filter(f=>f.feedbackType==='Team Feedback'&&f.status==='Disputed — Awaiting Review'&&normalizeFeedbackEmail(f.feedbackForEmail)!==me).length:0;
@@ -13871,7 +13956,7 @@ function renderHomeFeedbackPanel(){
   const received=allFeedback.filter(f=>normalizeFeedbackEmail(f.feedbackForEmail)===me&&f.status==='Pending Acknowledgement');
   const disputes=management?allFeedback.filter(f=>f.feedbackType==='Team Feedback'&&f.status==='Disputed — Awaiting Review'&&normalizeFeedbackEmail(f.feedbackForEmail)!==me):[];
   const items=[...new Map([...received,...disputes].map(f=>[f.feedbackId,f])).values()].sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0)).slice(0,6);
-  panel.classList.toggle('hidden',currentTab!=='coordinator'||!items.length);
+  panel.classList.add('hidden');
   const count=document.getElementById('home-feedback-count'); if(count){count.innerText=String(items.length);count.classList.toggle('hidden',!items.length);}
   const summaryCount=document.getElementById('home-feedback-summary-count'); if(summaryCount)summaryCount.innerText=String(received.length+disputes.length);
   const pendingCount=document.getElementById('home-feedback-pending-count'); if(pendingCount)pendingCount.innerText=String(received.length);
@@ -13879,11 +13964,12 @@ function renderHomeFeedbackPanel(){
   const disputeCount=document.getElementById('home-feedback-dispute-count'); if(disputeCount)disputeCount.innerText=String(disputes.length);
   const disputeWrap=document.getElementById('home-feedback-dispute-wrap'); if(disputeWrap)disputeWrap.classList.toggle('hidden',!management||!disputes.length);
   const help=document.getElementById('home-feedback-help'); if(help)help.innerText=management?'Feedback you received and disputes that need Support review.':'Feedback shared with you that needs acknowledgement.';
-  const list=document.getElementById('home-feedback-list'); if(!list)return; list.innerHTML=''; items.forEach(f=>list.appendChild(feedbackListItem(f)));
+  const list=document.getElementById('home-feedback-list'); if(list)list.innerHTML='';
 }
 function openFeedbackHomeFilter(filter){ feedbackFilter=filter||'ALL'; switchTab('feedback'); const e=document.getElementById('feedback-filter'); if(e)e.value=feedbackFilter; renderFeedbackTab(); }
 function setFeedbackFilter(filter){ feedbackFilter=filter||'ALL'; const e=document.getElementById('feedback-filter'); if(e)e.value=feedbackFilter; renderFeedbackTab(); }
 function renderFeedbackTab(){
+  renderFeedbackReport();
   const list=document.getElementById('feedback-list'); if(!list||!currentUser)return;
   const filter=String((document.getElementById('feedback-filter')||{}).value||feedbackFilter||'ALL'); feedbackFilter=filter;
   const search=String((document.getElementById('feedback-search')||{}).value||'').trim().toLowerCase(), me=normalizeFeedbackEmail(currentUser.email);
@@ -13898,6 +13984,83 @@ function renderFeedbackTab(){
   const set=(id,v)=>{const e=document.getElementById(id);if(e)e.innerText=v;}; set('feedback-stat-pending',pending.length);set('feedback-stat-disputed',disputed.length);set('feedback-stat-ack',ack.length);set('feedback-stat-total',allFeedback.length);
   const help=document.getElementById('feedback-view-help'); if(help)help.innerText=isFeedbackManagementUser()?'Management view: feedback for active Support and Coordinator recipients.':'Feedback about you is private. Review it and acknowledge it once understood.';
   list.innerHTML=''; if(!visible.length){list.innerHTML='<div class="p-8 text-center text-xs text-slate-400">No feedback matches this view.</div>';return;} visible.forEach(f=>list.appendChild(feedbackListItem(f)));
+}
+function feedbackReportRows_(){
+  if(!isFeedbackManagementUser())return [];
+  const fromField=document.getElementById('feedback-report-from'),toField=document.getElementById('feedback-report-to');
+  const today=new Date(), todayString=today.toISOString().slice(0,10);
+  if(toField&&!toField.value)toField.value=todayString;
+  if(fromField&&!fromField.value){const start=new Date(today);start.setDate(start.getDate()-89);fromField.value=start.toISOString().slice(0,10);}
+  const from=fromField&&fromField.value?fromField.value:'',to=toField&&toField.value?toField.value:'';
+  const status=(document.getElementById('feedback-report-status')||{}).value||'ALL';
+  const category=String((document.getElementById('feedback-report-category')||{}).value||'').trim().toLowerCase();
+  const person=String((document.getElementById('feedback-report-person')||{}).value||'').trim().toLowerCase();
+  return allFeedback.filter(f=>{
+    const day=String(f.createdAt||'').slice(0,10);
+    if(from&&day<from)return false;if(to&&day>to)return false;
+    if(status!=='ALL'&&String(f.status||'')!==status)return false;
+    if(category&&![f.category,f.feedbackType].join(' ').toLowerCase().includes(category))return false;
+    if(person&&![f.feedbackFor,f.feedbackForEmail,f.submittedBy,f.submittedByEmail].join(' ').toLowerCase().includes(person))return false;
+    return true;
+  }).sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
+}
+function renderFeedbackReport(){
+  const panel=document.getElementById('feedback-management-report');
+  if(!panel)return;
+  const allowed=isFeedbackManagementUser();
+  panel.classList.toggle('hidden',!allowed);
+  if(!allowed)return;
+  const rows=feedbackReportRows_();
+  const set=(id,value)=>{const e=document.getElementById(id);if(e)e.innerText=String(value);};
+  set('feedback-report-total',rows.length);
+  set('feedback-report-pending',rows.filter(f=>f.status==='Pending Acknowledgement').length);
+  set('feedback-report-ack',rows.filter(f=>f.status==='Acknowledged').length);
+  set('feedback-report-disputed',rows.filter(f=>f.status==='Disputed — Awaiting Review').length);
+  set('feedback-report-resolved',rows.filter(f=>f.status==='Dispute Resolved').length);
+  const body=document.getElementById('feedback-report-rows'),empty=document.getElementById('feedback-report-empty');
+  if(!body)return;
+  const canBulkDelete=!!(currentUser&&isAdminUser(currentUser));
+  const selectTh=document.getElementById('feedback-report-select-th');
+  if(selectTh)selectTh.classList.toggle('hidden',!canBulkDelete);
+  const deleteButton=document.getElementById('feedback-report-delete-selected');
+  if(deleteButton){deleteButton.classList.toggle('hidden',!canBulkDelete);deleteButton.innerText=selectedFeedbackForDeletion.size?'Remove selected ('+selectedFeedbackForDeletion.size+')':'Remove selected';deleteButton.disabled=!selectedFeedbackForDeletion.size;deleteButton.classList.toggle('opacity-50',!selectedFeedbackForDeletion.size);}
+  const selectAll=document.getElementById('feedback-report-select-all');
+  if(selectAll){const selectedVisible=rows.filter(f=>selectedFeedbackForDeletion.has(String(f.feedbackId))).length;selectAll.checked=!!rows.length&&selectedVisible===rows.length;selectAll.indeterminate=selectedVisible>0&&selectedVisible<rows.length;}
+  body.innerHTML=rows.map(f=>'<tr class="cursor-pointer hover:bg-slate-50" onclick="openFeedbackDetail(\''+esc(f.feedbackId)+'\')">'+(canBulkDelete?'<td class="px-3 py-2" onclick="event.stopPropagation()"><input type="checkbox" aria-label="Select feedback" '+(selectedFeedbackForDeletion.has(String(f.feedbackId))?'checked':'')+' onchange="toggleAdminFeedbackSelection(\''+esc(f.feedbackId)+'\',this.checked)"></td>':'')+'<td class="px-3 py-2 whitespace-nowrap">'+esc(formatCSTDateTime(f.createdAt))+'</td><td class="px-3 py-2">'+esc(f.feedbackFor||'')+'</td><td class="px-3 py-2">'+esc(f.submittedBy||'')+'</td><td class="px-3 py-2">'+esc(f.category||f.feedbackType||'')+'</td><td class="px-3 py-2">'+esc(f.status||'')+'</td><td class="px-3 py-2">'+esc([f.relatedType,f.relatedId].filter(Boolean).join(' · '))+'</td></tr>').join('');
+  if(empty)empty.classList.toggle('hidden',rows.length>0);
+}
+function toggleAdminFeedbackSelection(feedbackId,checked){
+  if(!currentUser||!isAdminUser(currentUser))return;
+  const id=String(feedbackId||'');
+  if(checked)selectedFeedbackForDeletion.add(id);else selectedFeedbackForDeletion.delete(id);
+  renderFeedbackReport();
+}
+function selectAllAdminFeedback(checked){
+  if(!currentUser||!isAdminUser(currentUser))return;
+  feedbackReportRows_().forEach(f=>{if(checked)selectedFeedbackForDeletion.add(String(f.feedbackId));else selectedFeedbackForDeletion.delete(String(f.feedbackId));});
+  renderFeedbackReport();
+}
+async function deleteSelectedAdminFeedback(){
+  if(!currentUser||!isAdminUser(currentUser)){await customAlert('Only Admin accounts can remove feedback.');return;}
+  const ids=Array.from(selectedFeedbackForDeletion);
+  if(!ids.length){await customAlert('Select at least one feedback record to remove.');return;}
+  const confirmed=await customConfirm('Remove '+ids.length+' selected feedback record'+(ids.length===1?'':'s')+'? Each record will be moved to "Deleted Records" first.',{okLabel:'Remove Selected',danger:true});
+  if(!confirmed)return;
+  google.script.run.withFailureHandler(err=>showToast('Could not remove feedback: '+(err&&err.message?err.message:err))).withSuccessHandler(res=>{
+    selectedFeedbackForDeletion.clear();
+    showToast(((res&&res.deletedCount)||ids.length)+' feedback record'+(((res&&res.deletedCount)||ids.length)===1?'':'s')+' removed and archived.');
+    refreshFeedbackData(true);
+  }).adminBulkDeleteFeedback(ids,currentUser.email);
+}
+
+function exportFeedbackReportCsv(){
+  if(!isFeedbackManagementUser())return;
+  const rows=feedbackReportRows_(),columns=['Feedback ID','Created At','Feedback Type','Category','Reason','Submitted By','Submitted By Email','Feedback For','Feedback For Email','Status','Acknowledged At','Related Type','Related ID','Details','Expected Process / Behavior','Impact','Suggested Action / Guidance','Reviewer','Updated At'];
+  const values=[columns,...rows.map(f=>[f.feedbackId,f.createdAt,f.feedbackType,f.category,f.reason,f.submittedBy,f.submittedByEmail,f.feedbackFor,f.feedbackForEmail,f.status,f.acknowledgedAt,f.relatedType,f.relatedId,stripHtml(f.details||''),stripHtml(f.expectedProcess||''),stripHtml(f.impact||''),stripHtml(f.suggestedAction||''),f.reviewer,f.updatedAt])];
+  const csv=values.map(row=>row.map(value=>'"'+String(value==null?'':value).replace(/"/g,'""')+'"').join(',')).join('\r\n');
+  const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob),link=document.createElement('a');
+  link.href=url;link.download='support-hub-feedback-report-'+new Date().toISOString().slice(0,10)+'.csv';document.body.appendChild(link);link.click();link.remove();URL.revokeObjectURL(url);
 }
 function openFeedbackDetail(feedbackId){
   if(!feedbackId||!currentUser)return;
