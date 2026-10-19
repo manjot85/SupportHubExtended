@@ -4106,6 +4106,29 @@ function getSupportHubRecordForNavigation(itemId, requestingEmail, recordType) {
   try {
     return { kind:'ticket', record:getTicketForNavigation(id, member.email) };
   } catch (ticketError) {}
+  // Older audit links may provide only ?item=<ID>. Resolve the remaining
+  // supported record types by ID as well, while retaining each type's access
+  // checks. Explicit ?type= values above remain the preferred form.
+  try {
+    const sheet = ensurePeerQuestionsSheet();
+    const lastRow = sheet.getLastRow();
+    const email = normalizeEmail(member.email);
+    const maySeeAll = isSupportMember(member) || isAdminMember(member);
+    if (lastRow > 1) {
+      const rows = sheet.getRange(2, 1, lastRow - 1, P_WIDTH).getValues();
+      for (let i = 0; i < rows.length; i++) {
+        const peer = peerRowToObject(rows[i]);
+        if (peer.id !== id) continue;
+        if (!maySeeAll && peer.askedByEmail !== email && peer.assignedToEmail !== email) break;
+        return { kind:'peer', record:peer };
+      }
+    }
+  } catch (peerError) {}
+  try {
+    const updates = getAnnouncementsData(member.email, true);
+    const item = (updates.active || []).concat(updates.archive || []).find(update => String(update.id) === id);
+    if (item) return { kind:'update', record:item };
+  } catch (updateError) {}
   throw new Error('The linked Support Hub item could not be found or is not available to this account.');
 }
 
