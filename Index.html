@@ -5102,7 +5102,7 @@ function scrollToGlobalSearchGroup(type){
   if(content)content.classList.remove('hidden');
   const icon=document.getElementById('global-search-group-icon-'+type);
   if(icon)icon.textContent='−';
-  section.scrollIntoView({behavior:'smooth',block:'start'});
+  scrollPageTarget(section);
 }
 function renderGlobalSearchResultsPage(rawQuery,response){
   let page=document.getElementById('global-search-results-page');
@@ -7229,6 +7229,26 @@ function configureHomeQuestionComposer(category) {
   if (composer && category !== 'Coordinator' && !composer.classList.contains('hidden')) closeHomeQuestionComposer();
 }
 
+function scrollPageTarget(target,behavior){
+  if(!target||target.classList.contains('hidden'))return false;
+  const targetRect=target.getBoundingClientRect();
+  let topOffset=12;
+  const stickyCandidates=document.querySelectorAll('header.sticky, #admin-test-banner.sticky, [data-scroll-sticky]');
+  stickyCandidates.forEach(el=>{
+    if(el.classList.contains('hidden')||el.getClientRects().length===0)return;
+    const style=window.getComputedStyle(el);
+    if(style.position!=='sticky'&&style.position!=='fixed')return;
+    const rect=el.getBoundingClientRect();
+    if(rect.bottom>0&&rect.top<window.innerHeight)topOffset=Math.max(topOffset,rect.bottom+12);
+  });
+  const createCard=document.getElementById('global-create-card');
+  if(createCard&&!createCard.classList.contains('hidden')&&createCard.getClientRects().length){
+    const style=window.getComputedStyle(createCard),rect=createCard.getBoundingClientRect();
+    if((style.position==='sticky'||style.position==='fixed')&&rect.bottom>0&&rect.top<window.innerHeight)topOffset=Math.max(topOffset,rect.bottom+12);
+  }
+  window.scrollTo({top:Math.max(0,window.scrollY+targetRect.top-topOffset),behavior:behavior||'smooth'});
+  return true;
+}
 function scrollHomeDashboardTo(sectionId,fallbackTab){
   const target=document.getElementById(sectionId);
   if(!target||target.classList.contains('hidden')){
@@ -7236,7 +7256,7 @@ function scrollHomeDashboardTo(sectionId,fallbackTab){
     else if(fallbackTab) switchTab(fallbackTab);
     return;
   }
-  target.scrollIntoView({behavior:'smooth',block:'start'});
+  scrollPageTarget(target);
 }
 function openHomeMetric(index) {
   const action = homeMetricActions[index];
@@ -7491,7 +7511,7 @@ function renderCoordinatorHomeDashboard() {
   const completed = allTasks.filter(t => (isTaskAssignedToMe(t) || isTaskCreatedByMe(t)) && completedRecently(t, 30));
 
   setHomeMetric(1, { label: 'Needs My Review', value: unread.length, help: 'Unread answers', action: () => openPersonalAnswered('UNREAD') });
-  setHomeMetric(2, { label: 'My Open Questions', value: openMine.length, help: 'Waiting for Support', action: () => document.getElementById('coord-table-body')?.scrollIntoView({ behavior: 'smooth', block: 'start' }) });
+  setHomeMetric(2, { label: 'My Open Questions', value: openMine.length, help: 'Waiting for Support', action: () => scrollPageTarget(document.getElementById('coord-table-body')) });
   setHomeMetric(3, { label: 'My Active Tasks', value: activeTasks.length, help: 'Assigned to me', tone: 'task', action: () => openMyTaskView('ACTIVE') });
   setHomeMetric(4, { label: 'Peer Questions', value: peerMine.length, help: 'Assigned to me', action: () => { switchTab('peer'); setPeerFilter('MINE'); } });
   setHomeMetric(5, { label: 'Recently Completed', value: completed.length, help: 'Last 30 days', tone: 'task', action: () => openMyTaskView('COMPLETED') });
@@ -12609,7 +12629,7 @@ function openReportWorkspace(key) {
   collapseReportDetails();
   setReportWorkspaceHeader(config.title, config.subtitle, '← All reports');
   const content = document.getElementById('report-content');
-  if (content) content.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  if (content) scrollPageTarget(content);
 }
 
 function activateReportDetailWorkspace(title, subtitle) {
@@ -12907,7 +12927,7 @@ function openAdminWorkspace(key) {
     loadAdminNotificationControls();
   }
   const view = document.getElementById('view-team');
-  if (view) view.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  if (view) scrollPageTarget(view);
 }
 
 function closeAdminWorkspace() {
@@ -14155,9 +14175,17 @@ function openCreateFeedbackModal(){
 }
 function closeCreateFeedbackModal(){const e=document.getElementById('create-feedback-modal');if(e)e.classList.add('hidden');clearRichEditor('feedback-create-details');['feedback-create-related-type','feedback-create-related-id','feedback-create-related-link'].forEach(id=>{const field=document.getElementById(id);if(field)field.value='';});syncFeedbackRelatedFields();}
 function syncFeedbackCreateType(){
-  const opts=window.feedbackCreateOptions||{}, type=(document.getElementById('feedback-create-type')||{}).value||'Team Feedback';
+  const opts=window.feedbackCreateOptions||{}, select=document.getElementById('feedback-create-type');
+  if(select){
+    const existing=select.querySelector('option[value="IT / Bug Feedback"]');
+    if(opts.canSubmitItFeedback&&!existing){const option=document.createElement('option');option.value='IT / Bug Feedback';option.textContent='Feedback for IT - Bug fix';select.appendChild(option);}
+    else if(!opts.canSubmitItFeedback&&existing)existing.remove();
+  }
+  const type=(select||{}).value||'Team Feedback';
   const recWrap=document.getElementById('feedback-recipient-wrap'), rec=document.getElementById('feedback-create-recipient'), cat=document.getElementById('feedback-create-category');
-  const isTeam=type==='Team Feedback'; if(recWrap)recWrap.classList.toggle('hidden',!isTeam); if(rec)rec.required=isTeam;
+  const help=document.getElementById('feedback-type-help'), isTeam=type==='Team Feedback';
+  if(recWrap)recWrap.classList.toggle('hidden',!isTeam); if(rec)rec.required=isTeam;
+  if(help)help.textContent=isTeam?'Team Feedback is visible to the recipient and Supervisor+ when needed.':'Feedback for IT - Bug fix is submitted to the Support Hub administrators.';
   if(rec && isTeam){rec.innerHTML='<option value="">Select team member…</option>'+(opts.recipients||[]).map(r=>'<option value="'+esc(r.email)+'">'+esc(r.name)+(r.title?' · '+esc(r.title):'')+(r.category?' — '+esc(r.category):'')+'</option>').join('');}
   const cats=isTeam?(opts.teamCategories||[]):(opts.itCategories||[]); if(cat)cat.innerHTML='<option value="">Select category…</option>'+cats.map(c=>'<option>'+esc(c)+'</option>').join('');
   const related=document.getElementById('feedback-create-related-type'); if(related){const selected=related.value;related.innerHTML='<option value="">No related record</option>'+(opts.relatedTypes||[]).map(value=>'<option>'+esc(value)+'</option>').join('');if((opts.relatedTypes||[]).includes(selected))related.value=selected;}
