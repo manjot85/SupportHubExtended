@@ -19,6 +19,43 @@ const SHEET_MENTION_NOTIFICATIONS = "Mention Notifications";
 const SHEET_TASK_NOTIFICATIONS = "Task Notifications";
 const SHEET_TASKS = "Tasks";
 const SHEET_PEER_QUESTIONS = "Peer Questions";
+
+// ============================================================================
+// FEEDBACK - PHASE 1
+// Private recipient feedback with required acknowledgement.
+// ============================================================================
+const SHEET_FEEDBACK = 'Feedback';
+const SHEET_FEEDBACK_NOTIFICATIONS = 'Feedback Notifications';
+const F_COL = {
+  FEEDBACK_ID:1, FEEDBACK_TYPE:2, CATEGORY:3, REASON:4,
+  SUBMITTED_BY:5, SUBMITTED_BY_EMAIL:6, CREATED_AT:7,
+  FEEDBACK_FOR:8, FEEDBACK_FOR_EMAIL:9, REVIEWER:10, REVIEWER_EMAIL:11,
+  RELATED_TYPE:12, RELATED_ID:13, RELATED_LINK:14,
+  DETAILS:15, EXPECTED_PROCESS:16, IMPACT:17, SUGGESTED_ACTION:18,
+  STATUS:19, ACKNOWLEDGED_BY:20, ACKNOWLEDGED_BY_EMAIL:21, ACKNOWLEDGED_AT:22,
+  COACHED:23, COACHED_BY:24, COACHED_BY_EMAIL:25, COACHED_AT:26, COACHING_NOTE:27,
+  ACTIONED_BY:28, ACTIONED_AT:29, CLOSED_BY:30, CLOSED_AT:31,
+  UPDATED_AT:32, UPDATED_BY:33
+};
+const F_WIDTH = 33;
+const FEEDBACK_STATUS_NEW = 'New';
+const FEEDBACK_STATUS_PENDING_ACKNOWLEDGEMENT = 'Pending Acknowledgement';
+const FEEDBACK_STATUS_ACKNOWLEDGED = 'Acknowledged';
+const FEEDBACK_STATUS_DISPUTED = 'Disputed — Awaiting Review';
+const FEEDBACK_STATUS_DISPUTE_RESOLVED = 'Dispute Resolved';
+const FEEDBACK_TEAM_CATEGORIES = [
+  'Client Communication', 'Client Miscommunication', 'Internal Communication', 'Talent Communication', 'SOP / Process',
+  'Understanding the Issue', 'Escalation / Resolution', 'Cancellation / COD',
+  'PN / Booking Process', 'Other'
+];
+const FEEDBACK_IT_CATEGORIES = [
+  'Bug', 'UI Issue', 'Login / Access', 'Performance', 'Data Issue',
+  'Feature Not Working', 'Improvement Request', 'Other'
+];
+const FEEDBACK_RELATED_TYPES = [
+  'Event', 'Lead Photographer', 'Associate Photographer', 'Lead Videographer', 'Associate Videographer',
+  'Client 1', 'Client 2', 'CR', 'TR', 'Vendor', 'Case'
+];
 const SHEET_WORK_CATEGORIES = "Work Categories";
 const SHEET_CATEGORY_SUGGESTIONS = "Category Suggestions";
 const SHEET_PERFORMANCE = "Performance Log";
@@ -1311,6 +1348,457 @@ function ensureDeletedSheet(ss) {
   return s;
 }
 
+
+function ensureFeedbackDisputesSheet_(ss) {
+  ss = ss || SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName('Feedback Disputes');
+  const headers = ['Feedback ID','Update Type','Message','Outcome','Created At','Created By','Created By Email'];
+  if (!sheet) { sheet = ss.insertSheet('Feedback Disputes'); sheet.appendRow(headers); sheet.setFrozenRows(1); return sheet; }
+  const width = Math.max(sheet.getLastColumn(), headers.length);
+  const existing = sheet.getRange(1,1,1,width).getValues()[0];
+  headers.forEach((header,index)=>{ if(String(existing[index]||'').trim()!==header) sheet.getRange(1,index+1).setValue(header); });
+  sheet.setFrozenRows(1);
+  return sheet;
+}
+
+function feedbackDisputeUpdates_(feedbackId, ss) {
+  const sheet = ensureFeedbackDisputesSheet_(ss), lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
+  return sheet.getRange(2,1,lastRow-1,7).getValues()
+    .filter(row=>String(row[0]||'')===String(feedbackId||''))
+    .map(row=>({feedbackId:String(row[0]||''),type:String(row[1]||''),message:String(row[2]||''),outcome:String(row[3]||''),createdAt:feedbackDateToString_(row[4]),createdBy:String(row[5]||''),createdByEmail:normalizeEmail(row[6])}));
+}
+
+function appendFeedbackDisputeUpdate_(ss, feedbackId, type, message, outcome, member, when) {
+  ensureFeedbackDisputesSheet_(ss).appendRow([feedbackId,type,message||'',outcome||'',when,member.name||'',normalizeEmail(member.email)]);
+}
+
+function ensureFeedbackSheet(ss) {
+  ss = ss || SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(SHEET_FEEDBACK);
+  const expected = [
+    'Feedback ID','Feedback Type','Category','Reason','Submitted By','Submitted By Email','Created At',
+    'Feedback For','Feedback For Email','Reviewer','Reviewer Email','Related Type','Related ID','Related Link',
+    'Details','Expected Process / Behavior','Impact','Suggested Action / Guidance','Status',
+    'Acknowledged By','Acknowledged By Email','Acknowledged At','Coached','Coached By','Coached By Email',
+    'Coached At','Coaching Note','Actioned By','Actioned At','Closed By','Closed At','Updated At','Updated By'
+  ];
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEET_FEEDBACK);
+    sheet.appendRow(expected);
+    sheet.setFrozenRows(1);
+    return sheet;
+  }
+  const width = Math.max(sheet.getLastColumn(), expected.length);
+  const headers = sheet.getRange(1,1,1,width).getValues()[0];
+  for (let i=0;i<expected.length;i++) {
+    if (String(headers[i] || '').trim() !== expected[i]) sheet.getRange(1,i+1).setValue(expected[i]);
+  }
+  sheet.setFrozenRows(1);
+  return sheet;
+}
+
+function isValidFeedbackRelatedLink(value) {
+  const link = String(value || '').trim();
+  return !link || /^https?:\/\/[^\s]+$/i.test(link);
+}
+
+function requireFeedbackRelatedLink(value, required) {
+  const link = String(value || '').trim();
+  if (!required && !link) return '';
+  if (!link) throw new Error('Related Link is required when a related item is provided.');
+  if (!isValidFeedbackRelatedLink(link)) throw new Error('Enter a valid Related Link starting with http:// or https://.');
+  return link;
+}
+
+function feedbackRecipientMember(email) {
+  const wanted = normalizeEmail(email);
+  if (!wanted) throw new Error('Please select who the feedback is for.');
+  const matches = _getTeamMembersInternal()
+    .filter(m => String(m.status || '').trim().toLowerCase() === 'active')
+    .filter(m => normalizeEmail(m.email) === wanted)
+    .filter(m => !isAdminMember(m))
+    .filter(m => ['coordinator','support'].includes(String(m.category || '').trim().toLowerCase()));
+  if (!matches.length) throw new Error('Feedback can only be given to an active Support or Coordinator team member.');
+  return matches[0];
+}
+
+function feedbackDateToString_(value) {
+  if (value instanceof Date) return isNaN(value.getTime()) ? '' : value.toISOString();
+  return String(value || '');
+}
+
+function feedbackRowToObject_(row) {
+  return {
+    feedbackId:String(row[F_COL.FEEDBACK_ID-1] || ''),
+    feedbackType:String(row[F_COL.FEEDBACK_TYPE-1] || ''),
+    category:String(row[F_COL.CATEGORY-1] || ''),
+    reason:String(row[F_COL.REASON-1] || ''),
+    submittedBy:String(row[F_COL.SUBMITTED_BY-1] || ''),
+    submittedByEmail:normalizeEmail(row[F_COL.SUBMITTED_BY_EMAIL-1]),
+    createdAt:feedbackDateToString_(row[F_COL.CREATED_AT-1]),
+    feedbackFor:String(row[F_COL.FEEDBACK_FOR-1] || ''),
+    feedbackForEmail:normalizeEmail(row[F_COL.FEEDBACK_FOR_EMAIL-1]),
+    reviewer:String(row[F_COL.REVIEWER-1] || ''),
+    reviewerEmail:normalizeEmail(row[F_COL.REVIEWER_EMAIL-1]),
+    relatedType:String(row[F_COL.RELATED_TYPE-1] || ''),
+    relatedId:String(row[F_COL.RELATED_ID-1] || ''),
+    relatedLink:String(row[F_COL.RELATED_LINK-1] || ''),
+    details:String(row[F_COL.DETAILS-1] || ''),
+    expectedProcess:String(row[F_COL.EXPECTED_PROCESS-1] || ''),
+    impact:String(row[F_COL.IMPACT-1] || ''),
+    suggestedAction:String(row[F_COL.SUGGESTED_ACTION-1] || ''),
+    status:String(row[F_COL.STATUS-1] || ''),
+    acknowledgedBy:String(row[F_COL.ACKNOWLEDGED_BY-1] || ''),
+    acknowledgedByEmail:normalizeEmail(row[F_COL.ACKNOWLEDGED_BY_EMAIL-1]),
+    acknowledgedAt:feedbackDateToString_(row[F_COL.ACKNOWLEDGED_AT-1]),
+    updatedAt:feedbackDateToString_(row[F_COL.UPDATED_AT-1]),
+    updatedBy:String(row[F_COL.UPDATED_BY-1] || '')
+  };
+}
+
+function feedbackUserCanView_(feedback, member) {
+  if (!feedback || !member) return false;
+  const email = normalizeEmail(member.email);
+  if (emailsRepresentSameWorkspaceIdentity(feedback.feedbackForEmail, email)) return true;
+  if (!isSupportMember(member)) return false;
+  if (isAdminMember(member)) return true;
+  if (String(feedback.feedbackType || '') !== 'Team Feedback') return false;
+  const recipient = findTeamMemberByEmail(feedback.feedbackForEmail);
+  return !!recipient && String(recipient.status || '').trim().toLowerCase() === 'active' &&
+    ['coordinator','support'].includes(String(recipient.category || '').trim().toLowerCase());
+}
+
+function getFeedbackCreateOptions(requestingEmail) {
+  const actor = requireAuthenticatedMember(requestingEmail);
+  const recipients = _getTeamMembersInternal()
+    .filter(m => String(m.status || '').trim().toLowerCase() === 'active')
+    .filter(m => !isAdminMember(m))
+    .filter(m => ['coordinator','support'].includes(String(m.category || '').trim().toLowerCase()))
+    .map(m => ({name:String(m.name || ''),email:normalizeEmail(m.email),title:String(m.title || ''),category:String(m.category || '')}))
+    .filter(m => !!m.email && !emailsRepresentSameWorkspaceIdentity(m.email,actor.email))
+    .sort((a,b) => a.name.localeCompare(b.name));
+  return {
+    success:true,
+    canSubmitTeamFeedback:true,
+    canSubmitItFeedback:isAdminMember(actor),
+    recipients:recipients,
+    teamCategories:FEEDBACK_TEAM_CATEGORIES,
+    itCategories:FEEDBACK_IT_CATEGORIES,
+    relatedTypes:FEEDBACK_RELATED_TYPES
+  };
+}
+
+function createFeedback(payload) {
+  return withLock(() => {
+    payload = payload || {};
+    const actor = requireAuthenticatedMember(payload.submittedByEmail);
+    const type = String(payload.feedbackType || 'Team Feedback').trim();
+    const category = String(payload.category || '').trim();
+    const reason = String(payload.reason || '').trim();
+    const details = String(payload.details || '').trim();
+    const expected = String(payload.expectedProcess || '').trim();
+    const impact = String(payload.impact || '').trim();
+    const suggestedAction = String(payload.suggestedAction || '').trim();
+    const relatedType = String(payload.relatedType || '').trim();
+    const relatedId = String(payload.relatedId || '').trim();
+    const relatedLink = requireFeedbackRelatedLink(payload.relatedLink, !!relatedId);
+
+    if (type !== 'Team Feedback' && type !== 'IT / Bug Feedback') throw new Error('Choose a valid Feedback type.');
+    if (type === 'IT / Bug Feedback' && !isAdminMember(actor)) throw new Error('IT / Bug Feedback can only be submitted by an active Admin profile.');
+    if (!category) throw new Error('Please choose a Feedback category.');
+    if (!details || !stripHtmlToText(details)) throw new Error('Feedback details are required.');
+    requireSheetCellLength(reason,'Feedback reason');
+    requireSheetCellLength(details,'Feedback details');
+    requireSheetCellLength(expected,'Expected process / behavior');
+    requireSheetCellLength(impact,'Feedback impact');
+    requireSheetCellLength(suggestedAction,'Suggested action / guidance');
+    rejectEmbeddedBase64Image(details,'Feedback details');
+    rejectEmbeddedBase64Image(expected,'Expected process / behavior');
+    rejectEmbeddedBase64Image(impact,'Feedback impact');
+    rejectEmbeddedBase64Image(suggestedAction,'Suggested action / guidance');
+
+    let recipient = null;
+    if (type === 'Team Feedback') {
+      recipient = feedbackRecipientMember(payload.feedbackForEmail);
+      if (normalizeEmail(recipient.email) === normalizeEmail(actor.email)) throw new Error('Choose a team member other than yourself.');
+      if (!FEEDBACK_TEAM_CATEGORIES.includes(category)) throw new Error('Choose a valid Feedback category.');
+    } else if (!FEEDBACK_IT_CATEGORIES.includes(category)) {
+      throw new Error('Choose a valid IT / Bug Feedback category.');
+    }
+    if (relatedType && !FEEDBACK_RELATED_TYPES.includes(relatedType)) throw new Error('Choose a valid Related To type.');
+    if (relatedId && !relatedType) throw new Error('Choose a Related To type for the related record.');
+    if (relatedType && !relatedId) throw new Error('Enter the Related Name / ID or clear Related To.');
+
+    const now = new Date();
+    const id = 'FB-' + Utilities.getUuid().replace(/-/g,'').slice(0,10).toUpperCase();
+    const status = type === 'Team Feedback' ? FEEDBACK_STATUS_PENDING_ACKNOWLEDGEMENT : FEEDBACK_STATUS_NEW;
+    const sheet = ensureFeedbackSheet(SpreadsheetApp.getActiveSpreadsheet());
+    sheet.appendRow([
+      id,type,category,reason,actor.name,actor.email,now,
+      recipient ? recipient.name : '',recipient ? recipient.email : '', '', '',
+      relatedType,relatedId,relatedLink,details,expected,impact,suggestedAction,status,
+      '', '', '', false, '', '', '', '', '', '', '', '', now, actor.name
+    ]);
+    SpreadsheetApp.flush();
+    logAudit('FEEDBACK_CREATE',actor.email,actor.name,id,{feedbackType:type,category:category,feedbackFor:recipient ? recipient.email : '',status:status});
+    const row = sheet.getRange(sheet.getLastRow(),1,1,F_WIDTH).getValues()[0];
+    const feedback = feedbackRowToObject_(row);
+    if (recipient) safeCreateFeedbackNotification_(feedback,recipient,'new',actor);
+    return {success:true,feedbackId:id,status:status,feedback:feedback};
+  }, {bumpDataVersion:false,operation:'createFeedback'});
+}
+
+function ensureFeedbackNotificationsSheet_(ss) {
+  ss = ss || SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(SHEET_FEEDBACK_NOTIFICATIONS);
+  const headers = ['Notification ID','Recipient Email','Recipient Name','Feedback ID','Title','Preview','Event Type','Actor Name','Actor Email','Created At','Read At','Cleared At','Dedupe Key'];
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEET_FEEDBACK_NOTIFICATIONS);
+    sheet.appendRow(headers);
+    sheet.setFrozenRows(1);
+  } else {
+    const current = sheet.getRange(1,1,1,Math.max(sheet.getLastColumn(),headers.length)).getValues()[0];
+    headers.forEach((header,index)=>{ if(String(current[index]||'').trim()!==header) sheet.getRange(1,index+1).setValue(header); });
+  }
+  return sheet;
+}
+
+function createFeedbackNotification_(feedback, recipient, eventType, actor) {
+  try {
+    if (!feedback || !recipient || !recipient.email || (actor && actor._adminTestMode)) return null;
+    const recipientEmail = normalizeEmail(recipient.email);
+    const actorEmail = normalizeEmail(actor && actor.email);
+    if (!recipientEmail || emailsRepresentSameWorkspaceIdentity(recipientEmail, actorEmail)) return null;
+    const recipientMember = findTeamMemberByEmail(recipientEmail);
+    if (!recipientMember || !isOperationalNotificationProfile(recipientMember)) return null;
+    const prefs = readNotificationPreferencesForEmail(recipientEmail);
+    if (!prefs.bell && !prefs.toast && !prefs.browser && !prefs.sound) return null;
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ensureFeedbackNotificationsSheet_(ss);
+    const key = [String(eventType||''),String(feedback.feedbackId||''),recipientEmail].join(':');
+    if (sheet.getLastRow() >= 2) {
+      const keys = sheet.getRange(2,13,sheet.getLastRow()-1,1).getValues();
+      if (keys.some(row=>String(row[0]||'')===key)) return null;
+    }
+    const copy = eventType === 'new'
+      ? {title:'New feedback to review', preview:String(feedback.category||'Feedback')}
+      : eventType === 'dispute'
+        ? {title:'Feedback dispute needs review', preview:String(feedback.category||'Feedback')}
+        : {title:'Feedback dispute review completed', preview:String(feedback.category||'Feedback')+' · '+String(feedback.status||'')};
+    const id = Utilities.getUuid();
+    sheet.appendRow([id,recipientEmail,recipient.name||recipientMember.name||'',String(feedback.feedbackId||''),copy.title,copy.preview,String(eventType||''),actor&&actor.name||'',actorEmail,new Date(),'','',key]);
+    return id;
+  } catch (err) {
+    try { Logger.log('Feedback notification could not be saved: '+err); } catch (ignore) {}
+    return null;
+  }
+}
+
+function safeCreateFeedbackNotification_(feedback, recipient, eventType, actor) {
+  return createFeedbackNotification_(feedback,recipient,eventType,actor);
+}
+
+function getFeedbackNotifications_(requestingEmail) {
+  const member = requireAuthenticatedMember(requestingEmail);
+  if (!isOperationalNotificationProfile(member)) return [];
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ensureFeedbackNotificationsSheet_(ss);
+  if (sheet.getLastRow() < 2) return [];
+  const email = normalizeEmail(member.email);
+  const feedbackSheet = ensureFeedbackSheet(ss);
+  const feedbackById = {};
+  if (feedbackSheet.getLastRow() >= 2) {
+    feedbackSheet.getRange(2,1,feedbackSheet.getLastRow()-1,F_WIDTH).getValues().forEach(row=>{
+      const item=feedbackRowToObject_(row);
+      if(item.feedbackId) feedbackById[item.feedbackId]=item;
+    });
+  }
+  return sheet.getRange(2,1,sheet.getLastRow()-1,13).getValues()
+    .filter(row=>normalizeEmail(row[1])===email&&!row[11]&&feedbackById[String(row[3]||'')]&&feedbackUserCanView_(feedbackById[String(row[3]||'')],member))
+    .map(row=>({
+      notificationId:String(row[0]||''),recipientEmail:normalizeEmail(row[1]),recipientName:String(row[2]||''),
+      feedbackId:String(row[3]||''),title:String(row[4]||'Feedback update'),preview:String(row[5]||''),
+      eventType:String(row[6]||''),actorName:String(row[7]||''),
+      createdAt:row[9] instanceof Date?row[9].toISOString():String(row[9]||''),
+      readAt:row[10] instanceof Date?row[10].toISOString():String(row[10]||'')
+    }))
+    .sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt))).slice(0,100);
+}
+
+function markFeedbackNotificationRead(notificationId, requestingEmail) {
+  return withLock(()=>{
+    const member=requireOperationalNotificationProfile(requestingEmail), email=normalizeEmail(member.email);
+    const sheet=ensureFeedbackNotificationsSheet_(SpreadsheetApp.getActiveSpreadsheet());
+    if(sheet.getLastRow()<2)return {success:false,message:'Notification not found.',_skipDataVersion:true};
+    const rows=sheet.getRange(2,1,sheet.getLastRow()-1,13).getValues();
+    for(let i=0;i<rows.length;i++){
+      if(String(rows[i][0]||'')!==String(notificationId||''))continue;
+      if(normalizeEmail(rows[i][1])!==email)throw new Error('Access denied: this notification belongs to another user.');
+      const feedback=getFeedbackDetail(String(rows[i][3]||''),member.email).feedback;
+      if(!feedback)throw new Error('You no longer have access to this feedback.');
+      const readAt=rows[i][10] instanceof Date?rows[i][10]:new Date();
+      if(!rows[i][10])sheet.getRange(i+2,11).setValue(readAt);
+      return {success:true,readAt:readAt.toISOString(),_skipDataVersion:true};
+    }
+    return {success:false,message:'Notification not found.',_skipDataVersion:true};
+  },{bumpDataVersion:false,operation:'markFeedbackNotificationRead'});
+}
+
+function getFeedbackData(requestingEmail) {
+  const member = requireAuthenticatedMember(requestingEmail);
+  const sheet = ensureFeedbackSheet(SpreadsheetApp.getActiveSpreadsheet());
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return {data:[],pendingAcknowledgement:[],version:'0',diagnostics:{sheetName:SHEET_FEEDBACK,lastRow:0,requestingEmail:normalizeEmail(member.email),visibleCount:0}};
+  const rows = sheet.getRange(2,1,lastRow-1,F_WIDTH).getValues();
+  const parsed = rows.map(feedbackRowToObject_).filter(f => !!f.feedbackId);
+  const data = parsed.filter(f => feedbackUserCanView_(f,member)).sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
+  const me = normalizeEmail(member.email);
+  return {
+    data:data,
+    pendingAcknowledgement:data.filter(f => emailsRepresentSameWorkspaceIdentity(f.feedbackForEmail,me) && f.status === FEEDBACK_STATUS_PENDING_ACKNOWLEDGEMENT),
+    version:String(lastRow)+':'+String(sheet.getLastColumn()),
+    diagnostics:{sheetName:SHEET_FEEDBACK,lastRow:lastRow,dataRowCount:parsed.length,visibleCount:data.length,requestingEmail:me,latestFeedbackId:parsed.length ? parsed[parsed.length-1].feedbackId : ''}
+  };
+}
+
+function adminBulkDeleteFeedback(feedbackIds, requestingEmail) {
+  return withLock(() => {
+    const admin = requireAuthenticatedAdmin(requestingEmail);
+    const ids = Array.from(new Set((Array.isArray(feedbackIds) ? feedbackIds : []).map(id => String(id || '').trim()).filter(Boolean)));
+    if (!ids.length) throw new Error('Select at least one feedback record to remove.');
+    if (ids.length > 500) throw new Error('Please remove 500 feedback records or fewer at one time.');
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ensureFeedbackSheet(ss);
+    const lastRow = sheet.getLastRow();
+    if (lastRow < 2) throw new Error('The selected feedback records no longer exist. Refresh and try again.');
+    const rows = sheet.getRange(2, 1, lastRow - 1, F_WIDTH).getValues();
+    const rowById = new Map();
+    rows.forEach((row, index) => {
+      const id = String(row[F_COL.FEEDBACK_ID - 1] || '').trim();
+      if (id) rowById.set(id, {rowIndex:index + 2, values:row});
+    });
+    const missing = ids.filter(id => !rowById.has(id));
+    if (missing.length) throw new Error('One or more selected records have changed. Refresh the report and try again.');
+    const targets = ids.map(id => ({id:id, rowIndex:rowById.get(id).rowIndex, values:rowById.get(id).values}));
+    targets.forEach(item => archiveDeletedRow(SHEET_FEEDBACK, item.values, item.id, admin.email));
+    const notifications = ss.getSheetByName(SHEET_FEEDBACK_NOTIFICATIONS);
+    if (notifications && notifications.getLastRow() > 1) {
+      const notificationRows = notifications.getRange(2, 1, notifications.getLastRow() - 1, 13).getValues();
+      const now = new Date();
+      notificationRows.forEach((row, index) => {
+        if (ids.indexOf(String(row[3] || '').trim()) >= 0 && !row[11]) notifications.getRange(index + 2, 12).setValue(now);
+      });
+    }
+    targets.slice().sort((a, b) => b.rowIndex - a.rowIndex).forEach(item => sheet.deleteRow(item.rowIndex));
+    targets.forEach(item => logAudit('FEEDBACK_DELETE', admin.email, admin.name, item.id, {archived:true, bulk:true}));
+    return {success:true, deletedCount:targets.length};
+  }, {bumpDataVersion:false, operation:'adminBulkDeleteFeedback'});
+}
+
+function getFeedbackDetail(feedbackId, requestingEmail) {
+  const member = requireAuthenticatedMember(requestingEmail);
+  const id = String(feedbackId || '').trim();
+  if (!id) throw new Error('Feedback ID is required.');
+  const sheet = ensureFeedbackSheet(SpreadsheetApp.getActiveSpreadsheet());
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) throw new Error('Feedback not found.');
+  const rows = sheet.getRange(2,1,lastRow-1,F_WIDTH).getValues();
+  for (let i=0;i<rows.length;i++) {
+    const item=feedbackRowToObject_(rows[i]);
+    if (item.feedbackId !== id) continue;
+    if (!feedbackUserCanView_(item,member)) throw new Error('You do not have access to this feedback.');
+    return {success:true,feedback:item,updates:feedbackDisputeUpdates_(id,SpreadsheetApp.getActiveSpreadsheet())};
+  }
+  throw new Error('Feedback not found.');
+}
+
+function acknowledgeFeedback(feedbackId, requestingEmail) {
+  const member = requireAuthenticatedMember(requestingEmail);
+  const id = String(feedbackId || '').trim();
+  if (!id) throw new Error('Feedback ID is required.');
+  const sheet = ensureFeedbackSheet(SpreadsheetApp.getActiveSpreadsheet());
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) throw new Error('Feedback not found.');
+  const rows = sheet.getRange(2,1,lastRow-1,F_WIDTH).getValues();
+  let rowIndex=-1, item=null;
+  for (let i=0;i<rows.length;i++) {
+    if (String(rows[i][F_COL.FEEDBACK_ID-1] || '') === id) { rowIndex=i+2; item=feedbackRowToObject_(rows[i]); break; }
+  }
+  if (!item) throw new Error('Feedback not found.');
+  if (!emailsRepresentSameWorkspaceIdentity(item.feedbackForEmail,member.email)) throw new Error('Only the person the feedback is for can acknowledge it.');
+  if (item.status !== FEEDBACK_STATUS_PENDING_ACKNOWLEDGEMENT) return {success:true,alreadyAcknowledged:true,feedback:item};
+  const now=new Date(), email=normalizeEmail(member.email);
+  sheet.getRange(rowIndex,F_COL.STATUS).setValue(FEEDBACK_STATUS_ACKNOWLEDGED);
+  sheet.getRange(rowIndex,F_COL.ACKNOWLEDGED_BY).setValue(member.name || '');
+  sheet.getRange(rowIndex,F_COL.ACKNOWLEDGED_BY_EMAIL).setValue(email);
+  sheet.getRange(rowIndex,F_COL.ACKNOWLEDGED_AT).setValue(now);
+  sheet.getRange(rowIndex,F_COL.UPDATED_AT).setValue(now);
+  sheet.getRange(rowIndex,F_COL.UPDATED_BY).setValue(member.name || '');
+  logAudit('FEEDBACK_ACKNOWLEDGED',email,member.name || '',id,{feedbackId:id});
+  return {success:true,alreadyAcknowledged:false,feedback:feedbackRowToObject_(sheet.getRange(rowIndex,1,1,F_WIDTH).getValues()[0])};
+}
+
+function disputeFeedback(feedbackId, disputeDetails, requestingEmail) {
+  return withLock(() => {
+    const member = requireAuthenticatedMember(requestingEmail), id = String(feedbackId||'').trim(), note = String(disputeDetails||'').trim();
+    if (!id) throw new Error('Feedback ID is required.');
+    if (!note || !stripHtmlToText(note)) throw new Error('Please explain why you are disputing this feedback.');
+    requireSheetCellLength(note,'Feedback dispute details');
+    const ss=SpreadsheetApp.getActiveSpreadsheet(), sheet=ensureFeedbackSheet(ss), lastRow=sheet.getLastRow();
+    if(lastRow<2) throw new Error('Feedback not found.');
+    const rows=sheet.getRange(2,1,lastRow-1,F_WIDTH).getValues(); let rowIndex=-1,item=null;
+    for(let i=0;i<rows.length;i++) if(String(rows[i][F_COL.FEEDBACK_ID-1]||'')===id){rowIndex=i+2;item=feedbackRowToObject_(rows[i]);break;}
+    if(!item) throw new Error('Feedback not found.');
+    if(!emailsRepresentSameWorkspaceIdentity(item.feedbackForEmail,member.email)) throw new Error('Only the person the feedback is for can dispute it.');
+    if(item.feedbackType!=='Team Feedback') throw new Error('Only Team Feedback can be disputed.');
+    if(![FEEDBACK_STATUS_PENDING_ACKNOWLEDGEMENT,FEEDBACK_STATUS_ACKNOWLEDGED].includes(item.status)) throw new Error('Only pending or acknowledged feedback can be disputed.');
+    const now=new Date();
+    if(item.status===FEEDBACK_STATUS_PENDING_ACKNOWLEDGEMENT){
+      sheet.getRange(rowIndex,F_COL.ACKNOWLEDGED_BY).setValue(member.name||'');
+      sheet.getRange(rowIndex,F_COL.ACKNOWLEDGED_BY_EMAIL).setValue(normalizeEmail(member.email));
+      sheet.getRange(rowIndex,F_COL.ACKNOWLEDGED_AT).setValue(now);
+    }
+    sheet.getRange(rowIndex,F_COL.STATUS).setValue(FEEDBACK_STATUS_DISPUTED);
+    sheet.getRange(rowIndex,F_COL.UPDATED_AT).setValue(now); sheet.getRange(rowIndex,F_COL.UPDATED_BY).setValue(member.name||'');
+    appendFeedbackDisputeUpdate_(ss,id,'Dispute',note,'',member,now);
+    logAudit('FEEDBACK_DISPUTED',member.email,member.name||'',id,{status:FEEDBACK_STATUS_DISPUTED});
+    const feedback = feedbackRowToObject_(sheet.getRange(rowIndex,1,1,F_WIDTH).getValues()[0]);
+    _getTeamMembersInternal().filter(m=>isSupportMember(m)&&!isAdminMember(m)&&isOperationalNotificationProfile(m)).forEach(m=>safeCreateFeedbackNotification_(feedback,m,'dispute',member));
+    return {success:true,feedback:feedback,updates:feedbackDisputeUpdates_(id,ss)};
+  },{bumpDataVersion:false,operation:'disputeFeedback'});
+}
+
+function reviewFeedbackDispute(feedbackId, outcome, reviewNote, requestingEmail) {
+  return withLock(() => {
+    const member=requireAuthenticatedMember(requestingEmail), id=String(feedbackId||'').trim(), decision=String(outcome||'').trim(), note=String(reviewNote||'').trim();
+    if(!id) throw new Error('Feedback ID is required.');
+    if(!isSupportMember(member)) throw new Error('Only Support / Admin users can review a feedback dispute.');
+    if(!['Upheld','Action Needed'].includes(decision)) throw new Error('Choose a valid dispute outcome.');
+    if(!note||!stripHtmlToText(note)) throw new Error('Please add a brief review note.');
+    requireSheetCellLength(note,'Feedback review note');
+    const ss=SpreadsheetApp.getActiveSpreadsheet(), sheet=ensureFeedbackSheet(ss), lastRow=sheet.getLastRow();
+    if(lastRow<2) throw new Error('Feedback not found.');
+    const rows=sheet.getRange(2,1,lastRow-1,F_WIDTH).getValues(); let rowIndex=-1,item=null;
+    for(let i=0;i<rows.length;i++) if(String(rows[i][F_COL.FEEDBACK_ID-1]||'')===id){rowIndex=i+2;item=feedbackRowToObject_(rows[i]);break;}
+    if(!item) throw new Error('Feedback not found.');
+    if(!feedbackUserCanView_(item,member)||item.feedbackType!=='Team Feedback') throw new Error('You do not have access to review this feedback.');
+    if(emailsRepresentSameWorkspaceIdentity(item.feedbackForEmail,member.email)) throw new Error('A recipient cannot review their own dispute.');
+    if(item.status!==FEEDBACK_STATUS_DISPUTED) throw new Error('This feedback is not awaiting dispute review.');
+    const now=new Date();
+    sheet.getRange(rowIndex,F_COL.STATUS).setValue(FEEDBACK_STATUS_DISPUTE_RESOLVED);
+    sheet.getRange(rowIndex,F_COL.REVIEWER).setValue(member.name||''); sheet.getRange(rowIndex,F_COL.REVIEWER_EMAIL).setValue(normalizeEmail(member.email));
+    sheet.getRange(rowIndex,F_COL.ACTIONED_BY).setValue(member.name||''); sheet.getRange(rowIndex,F_COL.ACTIONED_AT).setValue(now);
+    sheet.getRange(rowIndex,F_COL.UPDATED_AT).setValue(now); sheet.getRange(rowIndex,F_COL.UPDATED_BY).setValue(member.name||'');
+    appendFeedbackDisputeUpdate_(ss,id,'Review',note,decision,member,now);
+    logAudit('FEEDBACK_DISPUTE_REVIEWED',member.email,member.name||'',id,{outcome:decision,status:FEEDBACK_STATUS_DISPUTE_RESOLVED});
+    const feedback = feedbackRowToObject_(sheet.getRange(rowIndex,1,1,F_WIDTH).getValues()[0]);
+    const recipient = findTeamMemberByEmail(feedback.feedbackForEmail);
+    if (recipient) safeCreateFeedbackNotification_(feedback,recipient,'review',member);
+    return {success:true,feedback:feedback,updates:feedbackDisputeUpdates_(id,ss)};
+  },{bumpDataVersion:false,operation:'reviewFeedbackDispute'});
+}
+
 function ensureTasksSheet(ss) {
   ss = ss || SpreadsheetApp.getActiveSpreadsheet();
   let s = ss.getSheetByName(SHEET_TASKS);
@@ -1761,9 +2249,11 @@ function getTaskNotifications(requestingEmail) {
 }
 
 function getPersistentNotifications(requestingEmail) {
+  const member = requireAuthenticatedMember(requestingEmail);
   return {
-    mentions: getMentionNotifications(requestingEmail),
-    tasks: getTaskNotifications(requestingEmail)
+    mentions: getMentionNotifications(member.email),
+    tasks: getTaskNotifications(member.email),
+    feedback: getFeedbackNotifications_(member.email)
   };
 }
 
@@ -2018,6 +2508,20 @@ function clearReadNotifications(requestingEmail) {
       }
     }
 
+    // Feedback notifications remain in history; clear only read items owned by this profile.
+    let clearedFeedbackCount = 0;
+    const feedbackNotificationSheet = ensureFeedbackNotificationsSheet_(ss);
+    if (feedbackNotificationSheet && feedbackNotificationSheet.getLastRow() >= 2) {
+      const feedbackRows = feedbackNotificationSheet.getRange(2,1,feedbackNotificationSheet.getLastRow()-1,13).getValues();
+      let feedbackChanged = false;
+      const clearedAt = new Date();
+      for (let i=0;i<feedbackRows.length;i++) {
+        if (normalizeEmail(feedbackRows[i][1]) !== email || !feedbackRows[i][10] || feedbackRows[i][11]) continue;
+        feedbackRows[i][11] = clearedAt; clearedFeedbackCount++; feedbackChanged = true;
+      }
+      if (feedbackChanged) feedbackNotificationSheet.getRange(2,12,feedbackRows.length,1).setValues(feedbackRows.map(r=>[r[11]||'']));
+    }
+
     const existing = new Set(readClearedReadTicketIdsForEmail(email));
     eligible.forEach(id => existing.add(id));
     // Keep a generous bounded history so the preference cell cannot grow
@@ -2041,8 +2545,8 @@ function clearReadNotifications(requestingEmail) {
       prefsSheet.getRange(targetRow, 7).setValue(new Date());
     }
 
-    const totalCleared = eligible.length + clearedMentionCount + clearedTaskCount;
-    logAudit('NOTIFICATIONS_CLEAR_READ', member.email, member.name, '', { clearedAnsweredCount: eligible.length, clearedMentionCount: clearedMentionCount, clearedTaskCount: clearedTaskCount, clearedCount: totalCleared });
+    const totalCleared = eligible.length + clearedMentionCount + clearedTaskCount + clearedFeedbackCount;
+    logAudit('NOTIFICATIONS_CLEAR_READ', member.email, member.name, '', { clearedAnsweredCount: eligible.length, clearedMentionCount: clearedMentionCount, clearedTaskCount: clearedTaskCount, clearedFeedbackCount: clearedFeedbackCount, clearedCount: totalCleared });
     return { success: true, clearedCount: totalCleared, clearedAnsweredCount: eligible.length, clearedMentionCount: clearedMentionCount, clearedTaskCount: clearedTaskCount, clearedReadTicketIds: kept };
   }, { bumpDataVersion: false });
 }
@@ -4106,6 +4610,29 @@ function getSupportHubRecordForNavigation(itemId, requestingEmail, recordType) {
   try {
     return { kind:'ticket', record:getTicketForNavigation(id, member.email) };
   } catch (ticketError) {}
+  // Older audit links may provide only ?item=<ID>. Resolve the remaining
+  // supported record types by ID as well, while retaining each type's access
+  // checks. Explicit ?type= values above remain the preferred form.
+  try {
+    const sheet = ensurePeerQuestionsSheet();
+    const lastRow = sheet.getLastRow();
+    const email = normalizeEmail(member.email);
+    const maySeeAll = isSupportMember(member) || isAdminMember(member);
+    if (lastRow > 1) {
+      const rows = sheet.getRange(2, 1, lastRow - 1, P_WIDTH).getValues();
+      for (let i = 0; i < rows.length; i++) {
+        const peer = peerRowToObject(rows[i]);
+        if (peer.id !== id) continue;
+        if (!maySeeAll && peer.askedByEmail !== email && peer.assignedToEmail !== email) break;
+        return { kind:'peer', record:peer };
+      }
+    }
+  } catch (peerError) {}
+  try {
+    const updates = getAnnouncementsData(member.email, true);
+    const item = (updates.active || []).concat(updates.archive || []).find(update => String(update.id) === id);
+    if (item) return { kind:'update', record:item };
+  } catch (updateError) {}
   throw new Error('The linked Support Hub item could not be found or is not available to this account.');
 }
 
