@@ -1662,6 +1662,40 @@ function getFeedbackData(requestingEmail) {
   };
 }
 
+function adminBulkDeleteFeedback(feedbackIds, requestingEmail) {
+  return withLock(() => {
+    const admin = requireAuthenticatedAdmin(requestingEmail);
+    const ids = Array.from(new Set((Array.isArray(feedbackIds) ? feedbackIds : []).map(id => String(id || '').trim()).filter(Boolean)));
+    if (!ids.length) throw new Error('Select at least one feedback record to remove.');
+    if (ids.length > 500) throw new Error('Please remove 500 feedback records or fewer at one time.');
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ensureFeedbackSheet(ss);
+    const lastRow = sheet.getLastRow();
+    if (lastRow < 2) throw new Error('The selected feedback records no longer exist. Refresh and try again.');
+    const rows = sheet.getRange(2, 1, lastRow - 1, F_WIDTH).getValues();
+    const rowById = new Map();
+    rows.forEach((row, index) => {
+      const id = String(row[F_COL.FEEDBACK_ID - 1] || '').trim();
+      if (id) rowById.set(id, {rowIndex:index + 2, values:row});
+    });
+    const missing = ids.filter(id => !rowById.has(id));
+    if (missing.length) throw new Error('One or more selected records have changed. Refresh the report and try again.');
+    const targets = ids.map(id => ({id:id, rowIndex:rowById.get(id).rowIndex, values:rowById.get(id).values}));
+    targets.forEach(item => archiveDeletedRow(SHEET_FEEDBACK, item.values, item.id, admin.email));
+    const notifications = ss.getSheetByName(SHEET_FEEDBACK_NOTIFICATIONS);
+    if (notifications && notifications.getLastRow() > 1) {
+      const notificationRows = notifications.getRange(2, 1, notifications.getLastRow() - 1, 13).getValues();
+      const now = new Date();
+      notificationRows.forEach((row, index) => {
+        if (ids.indexOf(String(row[3] || '').trim()) >= 0 && !row[11]) notifications.getRange(index + 2, 12).setValue(now);
+      });
+    }
+    targets.slice().sort((a, b) => b.rowIndex - a.rowIndex).forEach(item => sheet.deleteRow(item.rowIndex));
+    targets.forEach(item => logAudit('FEEDBACK_DELETE', admin.email, admin.name, item.id, {archived:true, bulk:true}));
+    return {success:true, deletedCount:targets.length};
+  }, {bumpDataVersion:false, operation:'adminBulkDeleteFeedback'});
+}
+
 function getFeedbackDetail(feedbackId, requestingEmail) {
   const member = requireAuthenticatedMember(requestingEmail);
   const id = String(feedbackId || '').trim();
