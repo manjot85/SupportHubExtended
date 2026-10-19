@@ -13958,7 +13958,7 @@ function renderHomeFeedbackPanel(){
   const received=allFeedback.filter(f=>normalizeFeedbackEmail(f.feedbackForEmail)===me&&f.status==='Pending Acknowledgement');
   const disputes=management?allFeedback.filter(f=>f.feedbackType==='Team Feedback'&&f.status==='Disputed — Awaiting Review'&&normalizeFeedbackEmail(f.feedbackForEmail)!==me):[];
   const items=[...new Map([...received,...disputes].map(f=>[f.feedbackId,f])).values()].sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0)).slice(0,6);
-  panel.classList.toggle('hidden',!['coordinator','support'].includes(String(currentTab||'').toLowerCase())||!items.length);
+  panel.classList.toggle('hidden',currentTab!=='coordinator'||!items.length);
   const count=document.getElementById('home-feedback-count'); if(count){count.innerText=String(items.length);count.classList.toggle('hidden',!items.length);}
   const summaryCount=document.getElementById('home-feedback-summary-count'); if(summaryCount)summaryCount.innerText=String(received.length+disputes.length);
   const pendingCount=document.getElementById('home-feedback-pending-count'); if(pendingCount)pendingCount.innerText=String(received.length);
