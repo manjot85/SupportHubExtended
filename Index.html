@@ -578,6 +578,11 @@ body.question-task-window-dragging, body.question-task-window-dragging * { curso
 <div id="my-work-dashboard" class="space-y-4">
   
 
+  <section id="home-announcements" class="hidden mb-4 bg-white border border-amber-200 rounded-2xl shadow-sm overflow-hidden">
+  <div class="px-4 py-3 flex items-center justify-between border-b border-amber-100 bg-amber-50/70 gap-3"><div><p class="text-[10px] font-bold uppercase tracking-wider text-amber-700">Team Updates</p><div class="flex items-center gap-2"><h2 class="text-sm font-bold text-slate-900">Announcements</h2><span id="home-announcement-pending-count" class="hidden rounded-full bg-amber-100 text-amber-800 px-2 py-0.5 text-[10px] font-bold"></span></div></div><button type="button" onclick="switchTab('updates')" class="text-xs font-semibold text-blue-700 hover:underline whitespace-nowrap">View all updates →</button></div>
+  <div id="home-announcement-list" class="divide-y divide-amber-100"></div>
+</section>
+
   <div id="home-overview-grid" class="grid grid-cols-1 xl:grid-cols-3 gap-4">
     <section id="home-priority-overview" class="xl:col-span-2 bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
       <div class="px-4 py-3 bg-gradient-to-r from-rose-50 via-amber-50 to-white border-b border-slate-100 flex items-center gap-3">
@@ -603,15 +608,16 @@ body.question-task-window-dragging, body.question-task-window-dragging * { curso
     </section>
   <section id="home-feedback-panel" class="hidden xl:col-span-3 bg-white border border-amber-200 border-t-4 border-t-amber-500 rounded-2xl overflow-hidden shadow-sm">
   <div class="px-4 py-3 bg-gradient-to-r from-amber-50 via-yellow-50 to-white border-b border-amber-100 flex items-center justify-between gap-3">
-    <div class="min-w-0"><p class="text-[9px] font-black uppercase tracking-[0.16em] text-amber-700 mb-0.5">Feedback</p><div class="flex flex-wrap items-center gap-2"><h3 class="text-sm font-bold text-slate-900">Feedback for you</h3><span id="home-feedback-count" class="hidden rounded-full bg-amber-100 text-amber-800 px-2 py-0.5 text-[10px] font-bold"></span></div><p id="home-feedback-help" class="text-[10px] text-slate-500 mt-0.5"></p></div>
-    <button type="button" onclick="switchTab('feedback')" class="text-[11px] font-bold text-amber-700 hover:text-amber-900 whitespace-nowrap">View feedback →</button>
+    <div class="min-w-0"><p class="text-[9px] font-black uppercase tracking-[0.16em] text-amber-700 mb-0.5">Feedback action items</p><div class="flex flex-wrap items-center gap-2"><h3 class="text-sm font-bold text-slate-900">Feedback</h3><span id="home-feedback-count" class="hidden rounded-full bg-amber-100 text-amber-800 px-2 py-0.5 text-[10px] font-bold"></span></div><p id="home-feedback-help" class="text-[10px] text-slate-500 mt-0.5"></p></div>
+    <button type="button" onclick="openFeedbackHomeFilter('ALL')" class="text-[11px] font-bold text-amber-700 hover:text-amber-900 whitespace-nowrap">View all feedback →</button>
+  </div>
+  <div class="grid grid-cols-2 md:grid-cols-3 gap-2 p-3 border-b border-slate-100">
+    <button id="home-feedback-pending-wrap" type="button" onclick="openFeedbackHomeFilter('PENDING')" class="rounded-xl border border-amber-200 bg-amber-50/60 p-3 text-left hover:border-amber-300"><p class="text-[9px] font-bold uppercase text-amber-700">Pending acknowledgement</p><p id="home-feedback-pending-count" class="mt-1 text-xl font-bold text-slate-900">0</p></button>
+    <button id="home-feedback-dispute-wrap" type="button" onclick="openFeedbackHomeFilter('DISPUTED')" class="hidden rounded-xl border border-rose-200 bg-rose-50/60 p-3 text-left hover:border-rose-300"><p class="text-[9px] font-bold uppercase text-rose-700">Pending dispute review</p><p id="home-feedback-dispute-count" class="mt-1 text-xl font-bold text-slate-900">0</p></button>
   </div>
   <div id="home-feedback-list" class="divide-y divide-slate-100"></div>
 </section>
-  <section id="home-announcements" class="hidden xl:col-span-3 bg-white border border-amber-200 rounded-2xl shadow-sm overflow-hidden">
-  <div class="px-4 py-3 flex items-center justify-between border-b border-amber-100 bg-amber-50/70 gap-3"><div><p class="text-[10px] font-bold uppercase tracking-wider text-amber-700">Team Updates</p><div class="flex items-center gap-2"><h2 class="text-sm font-bold text-slate-900">Announcements</h2><span id="home-announcement-pending-count" class="hidden rounded-full bg-amber-100 text-amber-800 px-2 py-0.5 text-[10px] font-bold"></span></div></div><button type="button" onclick="switchTab('updates')" class="text-xs font-semibold text-blue-700 hover:underline whitespace-nowrap">View all updates →</button></div>
-  <div id="home-announcement-list" class="divide-y divide-amber-100"></div>
-</section></div>
+</div>
 
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
     <div id="home-list-panel-1" class="bg-white border border-slate-200 border-t-4 border-t-rose-400 rounded-2xl overflow-hidden shadow-sm">
@@ -733,13 +739,14 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
   <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col md:flex-row md:items-center justify-between gap-3">
     <div><h2 class="text-base font-bold text-slate-800">Feedback</h2><p id="feedback-view-help" class="text-xs text-slate-500 mt-1">Feedback about you is private. Review it and acknowledge it once understood.</p></div>
   </div>
-  <div class="grid grid-cols-3 gap-3">
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
     <button type="button" onclick="setFeedbackFilter('PENDING')" class="bg-amber-50/70 border border-amber-200 rounded-xl p-4 text-left"><p class="text-[9px] font-bold uppercase text-amber-700">Pending</p><p id="feedback-stat-pending" class="text-xl font-bold text-slate-900 mt-1">0</p></button>
+    <button type="button" onclick="setFeedbackFilter('DISPUTED')" class="bg-rose-50/70 border border-rose-200 rounded-xl p-4 text-left"><p class="text-[9px] font-bold uppercase text-rose-700">Pending Dispute</p><p id="feedback-stat-disputed" class="text-xl font-bold text-slate-900 mt-1">0</p></button>
     <button type="button" onclick="setFeedbackFilter('ACK')" class="bg-emerald-50/60 border border-emerald-200 rounded-xl p-4 text-left"><p class="text-[9px] font-bold uppercase text-emerald-700">Acknowledged</p><p id="feedback-stat-ack" class="text-xl font-bold text-slate-900 mt-1">0</p></button>
     <button type="button" onclick="setFeedbackFilter('ALL')" class="bg-white border border-slate-200 rounded-xl p-4 text-left"><p class="text-[9px] font-bold uppercase text-slate-500">Visible</p><p id="feedback-stat-total" class="text-xl font-bold text-slate-900 mt-1">0</p></button>
   </div>
   <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-4">
-    <div class="flex flex-col sm:flex-row gap-2"><select id="feedback-filter" onchange="renderFeedbackTab()" class="border border-slate-300 rounded-xl px-3 py-2 text-xs"><option value="ALL">All Visible Feedback</option><option value="PENDING">Pending Acknowledgement</option><option value="ACK">Acknowledged</option><option value="DISPUTED">Disputed — Awaiting Review</option></select><input id="feedback-search" oninput="renderFeedbackTab()" class="flex-1 border border-slate-300 rounded-xl px-3 py-2 text-xs" placeholder="Search feedback..."></div>
+    <div class="flex flex-col sm:flex-row gap-2"><select id="feedback-filter" onchange="renderFeedbackTab()" class="border border-slate-300 rounded-xl px-3 py-2 text-xs"><option value="ALL">All Visible Feedback</option><option value="PENDING">Pending Acknowledgement</option><option value="ACK">Acknowledged</option><option value="DISPUTED">Pending Dispute</option></select><input id="feedback-search" oninput="renderFeedbackTab()" class="flex-1 border border-slate-300 rounded-xl px-3 py-2 text-xs" placeholder="Search feedback..."></div>
     <div id="feedback-list" class="divide-y divide-slate-100 mt-3"></div>
   </div>
 </section>
@@ -13797,7 +13804,9 @@ function refreshFeedbackData(force){
     feedbackRefreshInFlight=false; result=result||{};
     allFeedback=result.data||[];
     window.feedbackLastDiagnostics=result.diagnostics||null;
-    const pending=(result.pendingAcknowledgement||[]).length;
+    const me=normalizeFeedbackEmail(currentUser.email), ownPending=(result.pendingAcknowledgement||[]).length;
+    const supportReviews=isFeedbackManagementUser()?allFeedback.filter(f=>f.feedbackType==='Team Feedback'&&f.status==='Disputed — Awaiting Review'&&normalizeFeedbackEmail(f.feedbackForEmail)!==me).length:0;
+    const pending=ownPending+supportReviews;
     const ticker=document.getElementById('feedback-ticker');
     if(ticker){ticker.innerText=pending; ticker.classList.toggle('hidden',pending===0);}
     renderHomeFeedbackPanel();
@@ -13814,11 +13823,17 @@ function feedbackListItem(f){
 }
 function renderHomeFeedbackPanel(){
   const panel=document.getElementById('home-feedback-panel'); if(!panel||!currentUser)return;
-  const me=normalizeFeedbackEmail(currentUser.email);
-  const items=allFeedback.filter(f=>normalizeFeedbackEmail(f.feedbackForEmail)===me&&['Pending Acknowledgement','Disputed — Awaiting Review'].includes(f.status)).slice(0,4);
+  const me=normalizeFeedbackEmail(currentUser.email), management=isFeedbackManagementUser();
+  const received=allFeedback.filter(f=>normalizeFeedbackEmail(f.feedbackForEmail)===me&&f.status==='Pending Acknowledgement');
+  const disputes=management?allFeedback.filter(f=>f.feedbackType==='Team Feedback'&&f.status==='Disputed — Awaiting Review'&&normalizeFeedbackEmail(f.feedbackForEmail)!==me):[];
+  const items=[...new Map([...received,...disputes].map(f=>[f.feedbackId,f])).values()].sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0)).slice(0,6);
   panel.classList.toggle('hidden',currentTab!=='coordinator'||!items.length);
   const count=document.getElementById('home-feedback-count'); if(count){count.innerText=String(items.length);count.classList.toggle('hidden',!items.length);}
-  const help=document.getElementById('home-feedback-help'); if(help)help.innerText=items.some(f=>f.status==='Disputed — Awaiting Review')?'Review a dispute update or feedback waiting for acknowledgement.':'Review and acknowledge or dispute feedback shared with you.';
+  const pendingCount=document.getElementById('home-feedback-pending-count'); if(pendingCount)pendingCount.innerText=String(received.length);
+  const pendingWrap=document.getElementById('home-feedback-pending-wrap'); if(pendingWrap)pendingWrap.classList.toggle('hidden',!received.length);
+  const disputeCount=document.getElementById('home-feedback-dispute-count'); if(disputeCount)disputeCount.innerText=String(disputes.length);
+  const disputeWrap=document.getElementById('home-feedback-dispute-wrap'); if(disputeWrap)disputeWrap.classList.toggle('hidden',!management||!disputes.length);
+  const help=document.getElementById('home-feedback-help'); if(help)help.innerText=management?'Feedback you received and disputes that need Support review.':'Feedback shared with you that needs acknowledgement.';
   const list=document.getElementById('home-feedback-list'); if(!list)return; list.innerHTML=''; items.forEach(f=>list.appendChild(feedbackListItem(f)));
 }
 function openFeedbackHomeFilter(filter){ feedbackFilter=filter||'ALL'; switchTab('feedback'); const e=document.getElementById('feedback-filter'); if(e)e.value=feedbackFilter; renderFeedbackTab(); }
@@ -13827,7 +13842,7 @@ function renderFeedbackTab(){
   const list=document.getElementById('feedback-list'); if(!list||!currentUser)return;
   const filter=String((document.getElementById('feedback-filter')||{}).value||feedbackFilter||'ALL'); feedbackFilter=filter;
   const search=String((document.getElementById('feedback-search')||{}).value||'').trim().toLowerCase(), me=normalizeFeedbackEmail(currentUser.email);
-  const management=isFeedbackManagementUser(), canSeeFeedback=f=>management||normalizeFeedbackEmail(f.feedbackForEmail)===me, pending=allFeedback.filter(f=>canSeeFeedback(f)&&f.status==='Pending Acknowledgement'), ack=allFeedback.filter(f=>canSeeFeedback(f)&&f.status==='Acknowledged');
+  const management=isFeedbackManagementUser(), canSeeFeedback=f=>management||normalizeFeedbackEmail(f.feedbackForEmail)===me, pending=allFeedback.filter(f=>canSeeFeedback(f)&&f.status==='Pending Acknowledgement'), disputed=allFeedback.filter(f=>canSeeFeedback(f)&&f.status==='Disputed — Awaiting Review'), ack=allFeedback.filter(f=>canSeeFeedback(f)&&f.status==='Acknowledged');
   const visible=allFeedback.filter(f=>{
     if(filter==='PENDING' && !(canSeeFeedback(f)&&f.status==='Pending Acknowledgement')) return false;
     if(filter==='ACK' && !(canSeeFeedback(f)&&f.status==='Acknowledged')) return false;
@@ -13835,8 +13850,8 @@ function renderFeedbackTab(){
     if(search && ![f.feedbackId,f.feedbackType,f.category,f.feedbackFor,f.submittedBy,f.status,stripHtml(f.details||'')].join(' ').toLowerCase().includes(search)) return false;
     return true;
   });
-  const set=(id,v)=>{const e=document.getElementById(id);if(e)e.innerText=v;}; set('feedback-stat-pending',pending.length);set('feedback-stat-ack',ack.length);set('feedback-stat-total',allFeedback.length);
-  const help=document.getElementById('feedback-view-help'); if(help)help.innerText=isFeedbackManagementUser()?'Management view: feedback for active Coordinator / Project Manager recipients.':'Feedback about you is private. Review it and acknowledge it once understood.';
+  const set=(id,v)=>{const e=document.getElementById(id);if(e)e.innerText=v;}; set('feedback-stat-pending',pending.length);set('feedback-stat-disputed',disputed.length);set('feedback-stat-ack',ack.length);set('feedback-stat-total',allFeedback.length);
+  const help=document.getElementById('feedback-view-help'); if(help)help.innerText=isFeedbackManagementUser()?'Management view: feedback for active Support and Coordinator recipients.':'Feedback about you is private. Review it and acknowledge it once understood.';
   list.innerHTML=''; if(!visible.length){list.innerHTML='<div class="p-8 text-center text-xs text-slate-400">No feedback matches this view.</div>';return;} visible.forEach(f=>list.appendChild(feedbackListItem(f)));
 }
 function openFeedbackDetail(feedbackId){
@@ -13896,7 +13911,7 @@ function syncFeedbackCreateType(){
   const opts=window.feedbackCreateOptions||{}, type=(document.getElementById('feedback-create-type')||{}).value||'Team Feedback';
   const recWrap=document.getElementById('feedback-recipient-wrap'), rec=document.getElementById('feedback-create-recipient'), cat=document.getElementById('feedback-create-category');
   const isTeam=type==='Team Feedback'; if(recWrap)recWrap.classList.toggle('hidden',!isTeam); if(rec)rec.required=isTeam;
-  if(rec && isTeam){rec.innerHTML='<option value="">Select team member…</option>'+(opts.recipients||[]).map(r=>'<option value="'+esc(r.email)+'">'+esc(r.name)+(r.title?' · '+esc(r.title):'')+'</option>').join('');}
+  if(rec && isTeam){rec.innerHTML='<option value="">Select team member…</option>'+(opts.recipients||[]).map(r=>'<option value="'+esc(r.email)+'">'+esc(r.name)+(r.title?' · '+esc(r.title):'')+(r.category?' — '+esc(r.category):'')+'</option>').join('');}
   const cats=isTeam?(opts.teamCategories||[]):(opts.itCategories||[]); if(cat)cat.innerHTML='<option value="">Select category…</option>'+cats.map(c=>'<option>'+esc(c)+'</option>').join('');
   const related=document.getElementById('feedback-create-related-type'); if(related){const selected=related.value;related.innerHTML='<option value="">No related record</option>'+(opts.relatedTypes||[]).map(value=>'<option>'+esc(value)+'</option>').join('');if((opts.relatedTypes||[]).includes(selected))related.value=selected;}
   syncFeedbackRelatedFields();
