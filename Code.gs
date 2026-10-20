@@ -59,7 +59,7 @@ const FEEDBACK_IT_CATEGORIES = [
 ];
 const FEEDBACK_RELATED_TYPES = [
   'Event', 'Lead Photographer', 'Associate Photographer', 'Lead Videographer', 'Associate Videographer',
-  'Client 1', 'Client 2', 'CR', 'TR', 'Vendor', 'Case'
+  'Client 1', 'Client 2', 'CR', 'TR', 'Vendor', 'Case', 'Event Hub', 'Event Plan'
 ];
 const SHEET_WORK_CATEGORIES = "Work Categories";
 const SHEET_CATEGORY_SUGGESTIONS = "Category Suggestions";
@@ -137,7 +137,9 @@ const EVENT_ROLE_OPTIONS = [
   'Associate Videographer',
   'Client 1',
   'Client 2',
-  'Case'
+  'Case',
+  'Event Hub',
+  'Event Plan'
 ];
 
 const TEAM_COL = {
