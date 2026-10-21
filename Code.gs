@@ -491,10 +491,13 @@ function clearWorkCategoryCache() {
   try { CacheService.getScriptCache().remove(WORK_CATEGORY_CACHE_KEY); } catch (e) {}
 }
 
-function normalizeWorkCategory(value) {
+function normalizeWorkCategory(value, preloadedConfigs) {
   const raw = String(value || '').trim();
   if (!raw) return 'General / Other';
-  const found = getWorkCategoryConfigs(true).find(row => row.category.toLowerCase() === raw.toLowerCase());
+  const normalized = raw.toLowerCase();
+  if (preloadedConfigs instanceof Map) return preloadedConfigs.get(normalized) || 'General / Other';
+  const configs = Array.isArray(preloadedConfigs) ? preloadedConfigs : getWorkCategoryConfigs(true);
+  const found = configs.find(row => row.category.toLowerCase() === normalized);
   return found ? found.category : 'General / Other';
 }
 
@@ -569,9 +572,9 @@ function workCategoryKeywordMatches(text, keyword) {
   return new RegExp('(^|[^a-z0-9])' + needle + '(?=$|[^a-z0-9])', 'i').test(haystack);
 }
 
-function inferWorkCategory(question, eventName) {
+function inferWorkCategory(question, eventName, preloadedConfigs) {
   const text = (String(question || '').replace(/<[^>]*>/g, ' ') + ' ' + String(eventName || '')).toLowerCase();
-  const configs = getWorkCategoryConfigs(false);
+  const configs = Array.isArray(preloadedConfigs) ? preloadedConfigs : getWorkCategoryConfigs(false);
   for (let i = 0; i < configs.length; i++) {
     if (configs[i].category === 'General / Other') continue;
     if (configs[i].keywords.some(k => workCategoryKeywordMatches(text, k))) return configs[i].category;
@@ -4018,6 +4021,11 @@ function getQuestionsDataForMember(requestingEmail, requestingMember) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const qSheet = ss.getSheetByName(SHEET_QUESTIONS);
   const aSheet = ss.getSheetByName(SHEET_ANSWERED);
+  const workCategoryConfigs = getWorkCategoryConfigs(true);
+  const activeWorkCategoryConfigs = workCategoryConfigs.filter(config => config.active);
+  const workCategoryByName = new Map(workCategoryConfigs.map(config => [
+    String(config.category || '').trim().toLowerCase(), config.category
+  ]));
 
   let records = [];
 
@@ -4062,7 +4070,7 @@ function getQuestionsDataForMember(requestingEmail, requestingMember) {
           assignNotes: String(row[Q_COL.ASSIGN_NOTES - 1] || "").trim(),
           statusChangedAt: row[Q_COL.STATUS_CHANGED_AT - 1] ? safeIsoDate(row[Q_COL.STATUS_CHANGED_AT - 1]) : "",
           statusChangedBy: stripNoraPrefix(String(row[Q_COL.STATUS_CHANGED_BY - 1] || '').trim()),
-          category: normalizeWorkCategory(row[Q_COL.WORK_CATEGORY - 1] || inferWorkCategory(qText, row[Q_COL.EVENT - 1])),
+          category: normalizeWorkCategory(row[Q_COL.WORK_CATEGORY - 1] || inferWorkCategory(qText, row[Q_COL.EVENT - 1], activeWorkCategoryConfigs), workCategoryByName),
           eventDate: normalizeEventDate(row[Q_COL.EVENT_DATE - 1]),
           talentRole: String(row[Q_COL.TALENT_ROLE - 1] || '').trim(),
           routedSupportEmail: normalizeEmail(row[Q_COL.ROUTED_SUPPORT_EMAIL - 1]),
@@ -4140,7 +4148,7 @@ function getQuestionsDataForMember(requestingEmail, requestingMember) {
           lastUpdatedAt: lastUpdatedIso,
           hasUnreadUpdate: !requesterHasRead && !!row[A_COL.LAST_UPDATED_AT - 1] &&
             new Date(lastUpdatedIso).getTime() > new Date(answeredIso).getTime(),
-          category: normalizeWorkCategory(row[A_COL.WORK_CATEGORY - 1] || inferWorkCategory(qText, row[A_COL.EVENT - 1])),
+          category: normalizeWorkCategory(row[A_COL.WORK_CATEGORY - 1] || inferWorkCategory(qText, row[A_COL.EVENT - 1], activeWorkCategoryConfigs), workCategoryByName),
           eventDate: normalizeEventDate(row[A_COL.EVENT_DATE - 1]),
           talentRole: String(row[A_COL.TALENT_ROLE - 1] || '').trim(),
           routedSupportEmail: normalizeEmail(row[A_COL.ROUTED_SUPPORT_EMAIL - 1]),
@@ -4475,7 +4483,7 @@ function getSupervisorQuestionsDataIfChanged(requestingEmail, clientVersion) {
       assignNotes: String(row[Q_COL.ASSIGN_NOTES - 1] || '').trim(),
       statusChangedAt: row[Q_COL.STATUS_CHANGED_AT - 1] ? safeIsoDate(row[Q_COL.STATUS_CHANGED_AT - 1]) : '',
       statusChangedBy: stripNoraPrefix(String(row[Q_COL.STATUS_CHANGED_BY - 1] || '').trim()),
-      category: normalizeWorkCategory(row[Q_COL.WORK_CATEGORY - 1] || inferWorkCategory(qText, row[Q_COL.EVENT - 1])),
+      category: normalizeWorkCategory(row[Q_COL.WORK_CATEGORY - 1] || inferWorkCategory(qText, row[Q_COL.EVENT - 1], activeWorkCategoryConfigs), workCategoryByName),
       eventDate: normalizeEventDate(row[Q_COL.EVENT_DATE - 1]),
       talentRole: String(row[Q_COL.TALENT_ROLE - 1] || '').trim(),
       routedSupportEmail: normalizeEmail(row[Q_COL.ROUTED_SUPPORT_EMAIL - 1]),
