@@ -781,21 +781,6 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
         <div class="rounded-lg border border-cyan-200 bg-cyan-50/60 p-3"><p class="text-[9px] font-bold uppercase text-cyan-700">Ready to close</p><p id="feedback-report-action-done" class="text-lg font-bold text-slate-900">0</p></div>
         <div class="rounded-lg border border-indigo-200 bg-indigo-50/60 p-3"><p id="feedback-report-resolved-label" class="text-[9px] font-bold uppercase text-indigo-700">Resolved / closed</p><p id="feedback-report-resolved" class="text-lg font-bold text-slate-900">0</p></div>
       </div>
-      <div id="feedback-insights" class="hidden rounded-xl border border-slate-200 bg-slate-50/70 p-4 space-y-3">
-        <div><h3 class="text-xs font-bold text-slate-800">Feedback insights</h3><p class="text-[10px] text-slate-500 mt-1">Uses the selected date, category and person filters. Status and text search only affect the table below.</p></div>
-        <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2">
-          <div class="rounded-lg border border-slate-200 bg-white p-3"><p class="text-[9px] font-bold uppercase text-slate-500">Feedback submitted</p><p id="feedback-insight-total" class="text-lg font-bold text-slate-900">0</p></div>
-          <div class="rounded-lg border border-amber-200 bg-amber-50/60 p-3"><p class="text-[9px] font-bold uppercase text-amber-700">Awaiting acknowledgement</p><p id="feedback-insight-pending" class="text-lg font-bold text-slate-900">0</p></div>
-          <div class="rounded-lg border border-slate-200 bg-white p-3"><p class="text-[9px] font-bold uppercase text-slate-600">In dispute</p><p id="feedback-insight-disputed" class="text-lg font-bold text-slate-900">0</p></div>
-          <div class="rounded-lg border border-emerald-200 bg-emerald-50/60 p-3"><p class="text-[9px] font-bold uppercase text-emerald-700">Team acknowledgement rate</p><p id="feedback-insight-ack-rate" class="text-lg font-bold text-slate-900">—</p></div>
-          <div class="rounded-lg border border-blue-200 bg-blue-50/60 p-3"><p class="text-[9px] font-bold uppercase text-blue-700">Average time to acknowledge</p><p id="feedback-insight-ack-time" class="text-lg font-bold text-slate-900">—</p></div>
-          <div class="rounded-lg border border-indigo-200 bg-indigo-50/60 p-3"><p class="text-[9px] font-bold uppercase text-indigo-700">Average time to close</p><p id="feedback-insight-close-time" class="text-lg font-bold text-slate-900">—</p></div>
-        </div>
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
-          <div class="rounded-lg border border-slate-200 bg-white p-3"><h4 class="text-[10px] font-bold text-slate-700">Monthly volume</h4><div id="feedback-insight-trend" class="mt-3 space-y-2"></div></div>
-          <div class="rounded-lg border border-slate-200 bg-white p-3"><h4 class="text-[10px] font-bold text-slate-700">Top categories</h4><div id="feedback-insight-categories" class="mt-3 space-y-2"></div></div>
-        </div>
-      </div>
       <div class="overflow-x-auto border border-slate-200 rounded-xl">
         <table class="min-w-full text-left text-[11px]"><thead class="bg-slate-50 text-slate-500 uppercase tracking-wide"><tr>
           <th id="feedback-report-select-th" class="hidden px-3 py-2"><input id="feedback-report-select-all" type="checkbox" aria-label="Select all feedback" onchange="selectAllAdminFeedback(this.checked)"></th>
@@ -1288,6 +1273,9 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
       <button type="button" onclick="openReportWorkspace('support')" class="group border border-slate-200 rounded-xl p-4 text-left hover:border-cyan-300 hover:bg-cyan-50/40 hover:shadow-sm transition">
         <div class="flex items-start justify-between gap-3"><div><p class="text-sm font-bold text-slate-800">Support Workload</p><p class="text-[11px] text-slate-500 mt-1">Answered volume, share, and average answer speed.</p></div><span class="text-cyan-600 group-hover:translate-x-0.5 transition">→</span></div>
       </button>
+      <button type="button" onclick="openReportWorkspace('feedback')" class="group border border-slate-200 rounded-xl p-4 text-left hover:border-amber-300 hover:bg-amber-50/40 hover:shadow-sm transition">
+        <div class="flex items-start justify-between gap-3"><div><p class="text-sm font-bold text-slate-800">Feedback Outcomes</p><p class="text-[11px] text-slate-500 mt-1">Acknowledgement, disputes, closure time, volume, and categories.</p></div><span class="text-amber-600 group-hover:translate-x-0.5 transition">→</span></div>
+      </button>
     </div>
   </div>
 
@@ -1474,6 +1462,28 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
     </div>
   </div>
 
+  <div id="report-feedback-card" class="report-workspace-card hidden border border-slate-200 rounded-xl mb-5 overflow-hidden">
+    <button type="button" onclick="toggleReportSection('report-feedback-insights-section')" class="w-full flex items-center justify-between bg-slate-50 px-4 py-3 text-left hover:bg-slate-100 transition">
+      <div><h3 class="text-sm font-bold text-slate-800">Feedback Outcomes</h3><p class="text-[10px] text-slate-500">Uses the selected report date range and authorized feedback records.</p></div><span class="text-slate-400 text-xs">Show / Hide</span>
+    </button>
+    <div id="report-feedback-insights-section" class="hidden border-t border-slate-200 bg-white">
+      <div id="feedback-insights" class="p-4 space-y-3">
+        <div><h3 class="text-xs font-bold text-slate-800">Feedback insights</h3><p class="text-[10px] text-slate-500 mt-1">Uses the date range selected above. Counts include only records this Support profile is authorized to review.</p></div>
+        <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2">
+          <div class="rounded-lg border border-slate-200 bg-white p-3"><p class="text-[9px] font-bold uppercase text-slate-500">Feedback submitted</p><p id="feedback-insight-total" class="text-lg font-bold text-slate-900">0</p></div>
+          <div class="rounded-lg border border-amber-200 bg-amber-50/60 p-3"><p class="text-[9px] font-bold uppercase text-amber-700">Awaiting acknowledgement</p><p id="feedback-insight-pending" class="text-lg font-bold text-slate-900">0</p></div>
+          <div class="rounded-lg border border-slate-200 bg-white p-3"><p class="text-[9px] font-bold uppercase text-slate-600">In dispute</p><p id="feedback-insight-disputed" class="text-lg font-bold text-slate-900">0</p></div>
+          <div class="rounded-lg border border-emerald-200 bg-emerald-50/60 p-3"><p class="text-[9px] font-bold uppercase text-emerald-700">Team acknowledgement rate</p><p id="feedback-insight-ack-rate" class="text-lg font-bold text-slate-900">—</p></div>
+          <div class="rounded-lg border border-blue-200 bg-blue-50/60 p-3"><p class="text-[9px] font-bold uppercase text-blue-700">Average time to acknowledge</p><p id="feedback-insight-ack-time" class="text-lg font-bold text-slate-900">—</p></div>
+          <div class="rounded-lg border border-indigo-200 bg-indigo-50/60 p-3"><p class="text-[9px] font-bold uppercase text-indigo-700">Average time to close</p><p id="feedback-insight-close-time" class="text-lg font-bold text-slate-900">—</p></div>
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          <div class="rounded-lg border border-slate-200 bg-white p-3"><h4 class="text-[10px] font-bold text-slate-700">Monthly volume</h4><div id="feedback-insight-trend" class="mt-3 space-y-2"></div></div>
+          <div class="rounded-lg border border-slate-200 bg-white p-3"><h4 class="text-[10px] font-bold text-slate-700">Top categories</h4><div id="feedback-insight-categories" class="mt-3 space-y-2"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
   <div id="report-review-card" class="report-workspace-card hidden border border-slate-200 rounded-xl mb-5 overflow-hidden">
     <button type="button" onclick="toggleReportSection('report-review-section')" class="w-full flex items-center justify-between bg-slate-50 px-4 py-3 text-left hover:bg-slate-100 transition">
       <div>
@@ -2759,7 +2769,8 @@ const REPORT_WORKSPACES = {
   tasks: { cardId: 'report-task-card', sectionId: 'report-task-section', title: 'Task Performance', subtitle: 'Task workload, ownership, overdue work, and completion.' },
   followup: { cardId: 'report-followup-card', sectionId: 'report-followup-task-section', title: 'Answer Review & Follow-up Progress', subtitle: 'Answer reading and follow-up task completion in one place.' },
   peer: { cardId: 'report-peer-card', sectionId: 'report-peer-section', title: 'Peer Guidance', subtitle: 'How the team is using Peer Questions for quick internal guidance, including open conversations and response speed.' },
-  support: { cardId: 'report-support-card', sectionId: 'report-support-section', title: 'Support Workload & Answer Speed', subtitle: 'Answered volume, workload share, and average response time.' }
+  support: { cardId: 'report-support-card', sectionId: 'report-support-section', title: 'Support Workload & Answer Speed', subtitle: 'Answered volume, workload share, and average response time.' },
+  feedback: { cardId: 'report-feedback-card', sectionId: 'report-feedback-insights-section', title: 'Feedback Outcomes', subtitle: 'Acknowledgement, disputes, follow-up, closure time, volume, and categories.' }
 };
 let activeAdminWorkspaceKey = '';
 const ADMIN_WORKSPACES = {
@@ -5540,6 +5551,7 @@ function switchTab(name) {
   if (name === 'answered' && previousTab !== 'answered') prepareAnsweredDefaultView();
   if (name === 'updates') loadAnnouncements(true);
   if (name === 'feedback') refreshFeedbackData(true);
+  if (name === 'reporting') refreshFeedbackData(true);
   renderCurrentTab();
 
   // Feeds skipped while Supervisor Desk is active refresh immediately when
@@ -12191,6 +12203,7 @@ function renderReporting() {
   section('Tasks and follow-ups', () => renderTaskReporting(range));
   section('Peer guidance', () => renderPeerReporting(range));
   section('Category insights', () => renderCategoryQuestionInsights(range));
+  section('Feedback outcomes', () => renderFeedbackInsights_());
   if (failures.length) {
     status.innerText = 'Some sections could not display: ' + failures.join(', ') + '. Other reports remain available.';
     document.getElementById('report-retry').classList.remove('hidden');
@@ -12615,7 +12628,7 @@ function reportWorkspaceCards() {
 }
 
 function reportWorkspaceSections() {
-  return ['report-routing-section','report-category-insights-section','report-task-section','report-followup-task-section','report-peer-section','report-support-section','report-review-section'];
+  return ['report-routing-section','report-category-insights-section','report-task-section','report-followup-task-section','report-peer-section','report-support-section','report-feedback-insights-section','report-review-section'];
 }
 
 function setReportWorkspaceHeader(title, subtitle, backLabel) {
@@ -13987,6 +14000,7 @@ function refreshFeedbackData(force){
     if(ticker){ticker.innerText=pending; ticker.classList.toggle('hidden',pending===0);}
     renderHomeFeedbackPanel();
     if(currentTab==='feedback') renderFeedbackTab();
+    if(currentTab==='reporting') renderFeedbackInsights_();
     if(feedbackRefreshQueued){feedbackRefreshQueued=false;setTimeout(()=>refreshFeedbackData(true),0);}
   }).getFeedbackData(currentUser.email);
 }
@@ -14070,17 +14084,8 @@ function feedbackInsightDuration_(hours){
 }
 function feedbackInsightRows_(){
   if(!currentUser||!isFeedbackManagementUser())return [];
-  const from=String((document.getElementById('feedback-report-from')||{}).value||'');
-  const through=String((document.getElementById('feedback-report-to')||{}).value||'');
-  const category=String((document.getElementById('feedback-report-category')||{}).value||'').trim().toLowerCase();
-  const person=String((document.getElementById('feedback-report-person')||{}).value||'').trim().toLowerCase();
-  return allFeedback.filter(f=>{
-    const created=String(f.createdAt||'').slice(0,10);
-    if(from&&created<from||through&&created>through)return false;
-    if(category&&![f.category,f.feedbackType].join(' ').toLowerCase().includes(category))return false;
-    if(person&&![f.feedbackFor,f.feedbackForEmail,f.submittedBy,f.submittedByEmail].join(' ').toLowerCase().includes(person))return false;
-    return true;
-  });
+  const range=getReportDateRange();
+  return allFeedback.filter(f=>inDateRange(f.createdAt,range));
 }
 function renderFeedbackInsights_(){
   const panel=document.getElementById('feedback-insights');
@@ -14138,7 +14143,6 @@ function renderFeedbackReport(){
     feedbackFilter=statusSelect.value;
   }
   const allRows=feedbackReportRows_();
-  renderFeedbackInsights_();
   const allBase=allFeedback.filter(f=>management||normalizeFeedbackEmail(f.feedbackForEmail)===normalizeFeedbackEmail(currentUser.email));
   const set=(id,value)=>{const e=document.getElementById(id);if(e)e.innerText=String(value);};
   if(management){
