@@ -2775,10 +2775,11 @@ let dataRefreshInFlight = false;
 let refreshQueued = false;
 let reportingLoadError = '';
 let categoryInsightsCache = null;
+let reportDataIndexCache = null;
 const reportTokenCache = new WeakMap();
 let historyPrefetchAttempted = false;
-let lastLoadTimings = { supervisor: null, history: null, tasks: null };
-const APP_RELEASE = '13H.6.1';
+let lastLoadTimings = { supervisor: null, history: null, tasks: null, peer: null, 'team-roster': null };
+const APP_RELEASE = '13H.6.8-PEER';
 const PERFORMANCE_SLOW_MS = 5000;
 let sessionPerformanceEvents = [];
 const performanceBaselineSent = new Set();
@@ -5590,7 +5591,7 @@ function switchTab(name) {
 
   // Feeds skipped while Supervisor Desk is active refresh immediately when
   // their own data becomes visible.
-  if (name === 'tasks' || name === 'answered' || name === 'reporting') refreshTasksData();
+  if (name === 'tasks' || name === 'answered') refreshTasksData();
   if (name === 'peer' || name === 'reporting') refreshPeerQuestionsData();
 
   // Supervisor Desk uses a small open-question feed. When another tab opens,
@@ -5601,10 +5602,15 @@ function switchTab(name) {
     currentDataVersion = null;
     if (name === 'answered') loadAnsweredInitialFeed();
     else refreshData();
-  } else if (isSupportUser(currentUser) && (name === 'supervisor' || name === 'coordinator') && previousTab !== name) {
+  } else {
+    // refreshData() owns the task refresh on a cold Reports load. Only start
+    // it here when historical questions are already ready.
+    if (name === 'reporting') refreshTasksData();
+    if (isSupportUser(currentUser) && (name === 'supervisor' || name === 'coordinator') && previousTab !== name) {
     // Never wait behind a large Questions + Answered request. Supervisor Desk
     // has its own independent open-question refresh.
-    refreshSupervisorData(false, false);
+      refreshSupervisorData(false, false);
+    }
   }
 }
 
@@ -12060,7 +12066,7 @@ function reportQuestionOwnerKey(record) {
   return String(record.askedByEmail || getUserDisplayName(record.askedBy) || 'Unknown').trim().toLowerCase();
 }
 
-function buildCategoryQuestionInsights(range) {
+function buildCategoryQuestionInsights(range, reportIndex) {
   const rangeKey = JSON.stringify(range) + todayCSTString();
   if (categoryInsightsCache && categoryInsightsCache.records === allQuestions && categoryInsightsCache.rangeKey === rangeKey) return categoryInsightsCache.value;
   const tokensFor = record => {
@@ -12070,7 +12076,7 @@ function buildCategoryQuestionInsights(range) {
     reportTokenCache.set(record, {question:record.question, tokens});
     return tokens;
   };
-  const records = allQuestions.filter(q => inDateRange(q.created, range));
+  const records = (reportIndex || buildReportDataIndex(range)).createdRecords;
   const categoryMap = {};
   records.forEach(record => {
     const category = record.category || 'General / Other';
@@ -12100,13 +12106,15 @@ function buildCategoryQuestionInsights(range) {
       best.people.add(reportQuestionOwnerKey(record));
       best.answered += record.sheet === 'Answered' && stripHtml(record.answer) ? 1 : 0;
       if (!best.intent && intent) best.intent = intent;
-      const tokenCounts = {};
-      best.records.forEach(item => tokensFor(item).forEach(token => { tokenCounts[token] = (tokenCounts[token] || 0) + 1; }));
-      best.tokens = Object.keys(tokenCounts).filter(token => tokenCounts[token] >= Math.ceil(best.records.length / 2));
+      tokens.forEach(token => best.tokenCounts.set(token, (best.tokenCounts.get(token) || 0) + 1));
+      best.tokens = Array.from(best.tokenCounts.entries())
+        .filter(entry => entry[1] >= Math.ceil(best.records.length / 2))
+        .map(entry => entry[0]);
       if (!best.tokens.length) best.tokens = tokens;
     } else {
       clusters.push({
         category: record.category || 'General / Other', intent, tokens,
+        tokenCounts: new Map(tokens.map(token => [token, 1])),
         records: [record], people: new Set([reportQuestionOwnerKey(record)]),
         answered: record.sheet === 'Answered' && stripHtml(record.answer) ? 1 : 0
       });
@@ -12187,7 +12195,41 @@ function openTopCategoryReport() {
   if (insights.categories.length) showReportDetail('question-category', insights.categories[0].category);
 }
 
+function buildReportDataIndex(range) {
+  const rangeKey = [
+    String(currentDataVersion == null ? '' : currentDataVersion),
+    JSON.stringify(range),
+    todayCSTString()
+  ].join('|');
+  if (reportDataIndexCache &&
+      reportDataIndexCache.records === allQuestions &&
+      reportDataIndexCache.rangeKey === rangeKey) {
+    return reportDataIndexCache.value;
+  }
+
+  const unanswered = [];
+  const answered = [];
+  const createdRecords = [];
+  const activityRecords = [];
+  allQuestions.forEach(record => {
+    const isAnswered = record.sheet === 'Answered';
+    if (inDateRange(record.created, range)) createdRecords.push(record);
+    if (isAnswered) {
+      if (inDateRange(record.answeredDate, range)) answered.push(record);
+    } else if (record.sheet === 'Questions Tracker' && inDateRange(record.created, range)) {
+      unanswered.push(record);
+    }
+    const activityDate = isAnswered ? record.answeredDate : record.created;
+    if (inDateRange(activityDate, range)) activityRecords.push(record);
+  });
+
+  const value = { unanswered, answered, createdRecords, activityRecords };
+  reportDataIndexCache = { records: allQuestions, rangeKey, value };
+  return value;
+}
+
 function renderReporting() {
+  const reportRenderStartedAt = Date.now();
   // A report is not an empty dataset while its independent feeds are loading.
   const ready = currentDataVersion !== null && currentTaskDataVersion !== null;
   const status = document.getElementById('report-load-status');
@@ -12210,8 +12252,9 @@ function renderReporting() {
     oldCard.remove();
   }
   const range = getReportDateRange();
-  const unanswered = allQuestions.filter(q => q.sheet === 'Questions Tracker' && inDateRange(q.created, range));
-  const answered = allQuestions.filter(q => q.sheet === 'Answered' && inDateRange(q.answeredDate, range));
+  const reportIndex = buildReportDataIndex(range);
+  const unanswered = reportIndex.unanswered;
+  const answered = reportIndex.answered;
 
   const ownerRead = answered.filter(ownerCurrentRead);
   const ownerUnread = answered.filter(q => !ownerCurrentRead(q));
@@ -12232,11 +12275,11 @@ function renderReporting() {
     try { render(); } catch (err) { failures.push(name); console.error('Report section failed: ' + name, err); }
   };
   section('Answer speed', () => renderReportBreakdown(answered));
-  section('Routing', () => renderRoutingCoverage(range));
+  section('Routing', () => renderRoutingCoverage(range, reportIndex));
   section('Review progress', () => renderReviewProgress(answered));
   section('Tasks and follow-ups', () => renderTaskReporting(range));
   section('Peer guidance', () => renderPeerReporting(range));
-  section('Category insights', () => renderCategoryQuestionInsights(range));
+  section('Category insights', () => renderCategoryQuestionInsights(range, reportIndex));
   section('Feedback outcomes', () => renderFeedbackInsights_());
   if (failures.length) {
     status.innerText = 'Some sections could not display: ' + failures.join(', ') + '. Other reports remain available.';
@@ -12245,6 +12288,14 @@ function renderReporting() {
 
   // Keep an open detail panel synchronized with the selected date range.
   if (currentReportType) showReportDetail(currentReportType, window.activeReportDetailKey || '');
+  const renderMs = Date.now() - reportRenderStartedAt;
+  lastLoadTimings.report = { roundTripMs: renderMs, serverMs: 0, authMs: 0, dataMs: 0, recordedAt: new Date().toISOString() };
+  recordSessionPerformanceMetric({
+    metric: 'report-render',
+    status: 'success',
+    roundTripMs: renderMs,
+    recordedAt: lastLoadTimings.report.recordedAt
+  });
 }
 
 function reportLoadTimingText() {
@@ -12263,27 +12314,49 @@ function retryReportingData() {
   renderReporting();
 }
 
-function answeredSupportEmailForReport(q) {
+function answeredSupportEmailForReport(q, supportByName) {
   const direct = String(q && q.answeredByEmail || '').trim().toLowerCase();
   if (direct) return direct;
   const raw = stripNoraPrefix(String(q && q.answeredBy || '')).trim().toLowerCase();
+  if (supportByName && supportByName.has(raw)) return supportByName.get(raw);
   const match = supportRoster().find(m => String(m.name || '').trim().toLowerCase() === raw || String(m.email || '').trim().toLowerCase() === raw);
   return match ? String(match.email || '').trim().toLowerCase() : '';
 }
 
-function renderRoutingCoverage(range) {
+function renderRoutingCoverage(range, reportIndex) {
   const body = document.getElementById('report-routing-body');
   if (!body) return;
   const roster = supportRoster().filter(m => String(m.status || '').toLowerCase() === 'active');
-  const scoped = allQuestions.filter(q => inDateRange(q.sheet === 'Answered' ? q.answeredDate : q.created, range));
-  const rows = roster.map(member => {
+  const scoped = (reportIndex || buildReportDataIndex(range)).activityRecords;
+  const statsByEmail = new Map();
+  const supportByName = new Map();
+  roster.forEach(member => {
     const email = String(member.email || '').trim().toLowerCase();
-    const routed = scoped.filter(q => String(q.routedSupportEmail || '').trim().toLowerCase() === email);
-    const open = routed.filter(q => q.sheet === 'Questions Tracker');
-    const answeredOwn = routed.filter(q => q.sheet === 'Answered' && answeredSupportEmailForReport(q) === email);
-    const helpedOthers = scoped.filter(q => q.sheet === 'Answered' && answeredSupportEmailForReport(q) === email && q.routedSupportEmail && String(q.routedSupportEmail).trim().toLowerCase() !== email);
-    return {member, routed:routed.length, open:open.length, answeredOwn:answeredOwn.length, helpedOthers:helpedOthers.length};
-  }).filter(r => r.routed || r.helpedOthers).sort((a,b) => b.routed - a.routed || b.helpedOthers - a.helpedOthers || a.member.name.localeCompare(b.member.name));
+    if (!email) return;
+    statsByEmail.set(email, { member, routed: 0, open: 0, answeredOwn: 0, helpedOthers: 0 });
+    const name = String(member.name || '').trim().toLowerCase();
+    if (name && !supportByName.has(name)) supportByName.set(name, email);
+  });
+
+  scoped.forEach(record => {
+    const routedEmail = String(record.routedSupportEmail || '').trim().toLowerCase();
+    const routedStats = statsByEmail.get(routedEmail);
+    const isAnswered = record.sheet === 'Answered';
+    if (routedStats) {
+      routedStats.routed++;
+      if (!isAnswered && record.sheet === 'Questions Tracker') routedStats.open++;
+      if (isAnswered && answeredSupportEmailForReport(record, supportByName) === routedEmail) routedStats.answeredOwn++;
+    }
+    if (isAnswered && routedEmail) {
+      const answeredEmail = answeredSupportEmailForReport(record, supportByName);
+      const answeredStats = statsByEmail.get(answeredEmail);
+      if (answeredStats && answeredEmail !== routedEmail) answeredStats.helpedOthers++;
+    }
+  });
+
+  const rows = Array.from(statsByEmail.values())
+    .filter(row => row.routed || row.helpedOthers)
+    .sort((a,b) => b.routed - a.routed || b.helpedOthers - a.helpedOthers || a.member.name.localeCompare(b.member.name));
 
   if (!rows.length) {
     body.innerHTML = '<tr><td colspan="6" class="p-6 text-center text-slate-400">No routed questions in this range yet.</td></tr>';
@@ -13031,14 +13104,14 @@ function refreshTeamRoster(force) {
     teamRosterRefreshQueued = false;
     if (rerun) setTimeout(() => refreshTeamRoster(true), 0);
     if (force) showToast('The roster was saved, but the refreshed routing display could not be loaded: ' + (err && err.message ? err.message : err));
-  }).withSuccessHandler(team => {
+  }).withSuccessHandler(response => {
     teamRosterRefreshInFlight = false;
     if (currentUser !== requestingUser) return;
-    recordSessionPerformanceMetric({ metric:'team-roster', status:'success', roundTripMs:Date.now() - rosterRequestStartedAt, recordedAt:new Date().toISOString() });
+    recordLoadTiming('team-roster', response, Date.now() - rosterRequestStartedAt);
     const rerun = teamRosterRefreshQueued;
     teamRosterRefreshQueued = false;
     if (!rerun) {
-      teamMembers = normalizeTeamMembers(team || []);
+      teamMembers = normalizeTeamMembers(response && response.data || []);
       populateFilterDropdowns();
       categoryInsightsCache = null;
       if (currentTab === 'team') renderTeamTable();
@@ -13046,7 +13119,7 @@ function refreshTeamRoster(force) {
     } else {
       setTimeout(() => refreshTeamRoster(true), 0);
     }
-  }).getTeamMembersForCurrentUser();
+  }).getTeamMembersForCurrentUserWithTiming();
 }
 
 function renderTeamTable() {
@@ -13900,7 +13973,7 @@ function refreshPeerQuestionsData(force){
     if(currentUser===requestingUser)recordLoadFailure('peer',err,Date.now()-startedAt);
   }).withSuccessHandler(r=>{
     if(currentUser!==requestingUser)return;
-    recordSessionPerformanceMetric({metric:'peer',status:'success',roundTripMs:Date.now()-startedAt,recordedAt:new Date().toISOString()});
+    recordLoadTiming('peer', r, Date.now() - startedAt);
     if(!r)return;
     if(!r.unchanged){
       allPeerQuestions=r.data||[];
