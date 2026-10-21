@@ -4506,7 +4506,7 @@ function getSupervisorQuestionsDataIfChanged(requestingEmail, clientVersion) {
       assignNotes: String(row[Q_COL.ASSIGN_NOTES - 1] || '').trim(),
       statusChangedAt: row[Q_COL.STATUS_CHANGED_AT - 1] ? safeIsoDate(row[Q_COL.STATUS_CHANGED_AT - 1]) : '',
       statusChangedBy: stripNoraPrefix(String(row[Q_COL.STATUS_CHANGED_BY - 1] || '').trim()),
-      category: normalizeWorkCategory(row[Q_COL.WORK_CATEGORY - 1] || inferWorkCategory(qText, row[Q_COL.EVENT - 1])),
+      category: categoryForFeedRecord(row[Q_COL.WORK_CATEGORY - 1], qText, row[Q_COL.EVENT - 1]),
       eventDate: normalizeEventDate(row[Q_COL.EVENT_DATE - 1]),
       talentRole: String(row[Q_COL.TALENT_ROLE - 1] || '').trim(),
       routedSupportEmail: normalizeEmail(row[Q_COL.ROUTED_SUPPORT_EMAIL - 1]),
