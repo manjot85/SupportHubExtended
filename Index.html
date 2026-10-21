@@ -2778,7 +2778,7 @@ let categoryInsightsCache = null;
 let reportDataIndexCache = null;
 const reportTokenCache = new WeakMap();
 let historyPrefetchAttempted = false;
-let lastLoadTimings = { supervisor: null, history: null, tasks: null, peer: null, 'team-roster': null };
+let lastLoadTimings = { supervisor: null, history: null, tasks: null, peer: null, 'team-roster': null, report: null };
 const APP_RELEASE = '13H.6.8-PEER';
 const PERFORMANCE_SLOW_MS = 5000;
 let sessionPerformanceEvents = [];
@@ -12067,7 +12067,7 @@ function reportQuestionOwnerKey(record) {
 }
 
 function buildCategoryQuestionInsights(range, reportIndex) {
-  const rangeKey = JSON.stringify(range) + todayCSTString();
+  const rangeKey = String(currentDataVersion == null ? '' : currentDataVersion) + '|' + JSON.stringify(range) + todayCSTString();
   if (categoryInsightsCache && categoryInsightsCache.records === allQuestions && categoryInsightsCache.rangeKey === rangeKey) return categoryInsightsCache.value;
   const tokensFor = record => {
     const cached = reportTokenCache.get(record);
@@ -12302,6 +12302,7 @@ function reportLoadTimingText() {
   const values = [];
   if (lastLoadTimings.history) values.push('history ' + (lastLoadTimings.history.roundTripMs / 1000).toFixed(1) + 's');
   if (lastLoadTimings.tasks) values.push('tasks ' + (lastLoadTimings.tasks.roundTripMs / 1000).toFixed(1) + 's');
+  if (lastLoadTimings.report) values.push('report render ' + (lastLoadTimings.report.roundTripMs / 1000).toFixed(1) + 's');
   return values.length ? ' in ' + values.join(', ') : '';
 }
 
@@ -12335,6 +12336,7 @@ function renderRoutingCoverage(range, reportIndex) {
     if (!email) return;
     statsByEmail.set(email, { member, routed: 0, open: 0, answeredOwn: 0, helpedOthers: 0 });
     const name = String(member.name || '').trim().toLowerCase();
+    if (email && !supportByName.has(email)) supportByName.set(email, email);
     if (name && !supportByName.has(name)) supportByName.set(name, email);
   });
 
