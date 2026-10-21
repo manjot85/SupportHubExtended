@@ -4459,6 +4459,20 @@ function getSupervisorQuestionsDataIfChanged(requestingEmail, clientVersion) {
       );
     });
   }
+  let workCategoryConfigs = null;
+  let activeWorkCategoryConfigs = null;
+  let workCategoryByName = null;
+  const categoryForFeedRecord = (storedCategory, question, eventName) => {
+    if (!workCategoryByName) {
+      workCategoryConfigs = getWorkCategoryConfigs(true);
+      activeWorkCategoryConfigs = workCategoryConfigs.filter(config => config.active);
+      workCategoryByName = new Map(workCategoryConfigs.map(config => [
+        String(config.category || '').trim().toLowerCase(), config.category
+      ]));
+    }
+    const category = storedCategory || inferWorkCategory(question, eventName, activeWorkCategoryConfigs);
+    return normalizeWorkCategory(category, workCategoryByName);
+  };
   const records = [];
   for (let i = 0; i < data.length; i++) {
     const row = data[i];
