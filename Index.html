@@ -1481,6 +1481,23 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
           <div class="rounded-lg border border-slate-200 bg-white p-3"><h4 class="text-[10px] font-bold text-slate-700">Monthly volume</h4><div id="feedback-insight-trend" class="mt-3 space-y-2"></div></div>
           <div class="rounded-lg border border-slate-200 bg-white p-3"><h4 class="text-[10px] font-bold text-slate-700">Top categories</h4><div id="feedback-insight-categories" class="mt-3 space-y-2"></div></div>
         </div>
+        <div class="rounded-lg border border-slate-200 bg-white overflow-hidden">
+          <div class="px-3 py-3 border-b border-slate-200 flex flex-wrap items-start justify-between gap-3">
+            <div><h4 class="text-[10px] font-bold text-slate-700">Feedback received by team member</h4><p class="text-[10px] text-slate-500 mt-1">Rank 1 has the fewest. Members with the same count share a rank. Counts show volume, not feedback quality.</p></div>
+            <span class="text-[10px] text-slate-500">Active team members: <strong id="feedback-rank-member-count" class="text-slate-700">0</strong></span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 p-3 bg-slate-50/60">
+            <div class="rounded-lg border border-emerald-200 bg-emerald-50/50 p-3"><p class="text-[9px] font-bold uppercase tracking-wide text-emerald-700">Fewest received · top rank</p><p id="feedback-rank-least" class="text-xs font-semibold text-slate-800 mt-1">—</p></div>
+            <div class="rounded-lg border border-amber-200 bg-amber-50/50 p-3"><p class="text-[9px] font-bold uppercase tracking-wide text-amber-700">Most received · lower rank</p><p id="feedback-rank-most" class="text-xs font-semibold text-slate-800 mt-1">—</p></div>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="min-w-full text-left text-xs">
+              <thead><tr class="bg-slate-50 text-slate-500 font-bold border-y border-slate-200"><th class="p-3 w-20">RANK</th><th class="p-3">TEAM MEMBER</th><th class="p-3">ROLE</th><th class="p-3 text-right">FEEDBACK RECEIVED</th></tr></thead>
+              <tbody id="feedback-rank-body" class="divide-y divide-slate-100"></tbody>
+            </table>
+            <p id="feedback-rank-empty" class="hidden text-center text-xs text-slate-400 p-4">No active team members are available for this report.</p>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -14113,6 +14130,26 @@ function renderFeedbackInsights_(){
   rows.forEach(f=>{const key=String(f.category||f.feedbackType||'Uncategorized');categoryCounts[key]=(categoryCounts[key]||0)+1;});
   const top=Object.keys(categoryCounts).sort((a,b)=>categoryCounts[b]-categoryCounts[a]||a.localeCompare(b)).slice(0,5),maxCategory=Math.max(1,...top.map(key=>categoryCounts[key]));
   if(categories)categories.innerHTML=top.length?top.map(key=>{const count=categoryCounts[key],width=Math.max(3,Math.round(count/maxCategory*100));return '<div class="grid grid-cols-[minmax(0,1fr)_28px] items-center gap-2 text-[10px]"><span class="truncate text-slate-600" title="'+esc(key)+'">'+esc(key)+'</span><span class="text-right font-semibold text-slate-700">'+count+'</span><div class="col-span-2 h-2 rounded-full bg-slate-100 overflow-hidden"><div class="h-full rounded-full bg-emerald-500" style="width:'+width+'%"></div></div></div>';}).join(''):'<p class="text-[10px] text-slate-400">No feedback in this filter.</p>';
+}
+  const recipientsByEmail=new Map();
+  (teamMembers||[]).forEach(member=>{
+    const status=String(member.status||'').trim().toLowerCase(),category=normalizeCategoryClient(member.category||member.role);
+    if(status!=='active'||!['Coordinator','Support'].includes(category)||isAdminUser(member))return;
+    const email=normalizeFeedbackEmail(member.email);if(!email)return;
+    const existing=recipientsByEmail.get(email);
+    if(!existing||String(member.name||'').localeCompare(String(existing.name||''))<0)recipientsByEmail.set(email,member);
+  });
+  const receivedByEmail={};
+  team.forEach(f=>{const email=normalizeFeedbackEmail(f.feedbackForEmail);if(email)receivedByEmail[email]=(receivedByEmail[email]||0)+1;});
+  const ranked=Array.from(recipientsByEmail.entries()).map(([email,member])=>({email,name:String(member.name||'Team member'),role:String(member.title||member.category||member.role||''),count:receivedByEmail[email]||0})).sort((a,b)=>a.count-b.count||a.name.localeCompare(b.name));
+  const memberCount=document.getElementById('feedback-rank-member-count');if(memberCount)memberCount.innerText=String(ranked.length);
+  const summaryNames=(items)=>{if(!items.length)return '—';const names=items.slice(0,2).map(x=>x.name);return names.join(', ')+(items.length>2?' + '+(items.length-2)+' more':'')+' · '+items[0].count+' feedback'+(items[0].count===1?'':'s');};
+  const least=document.getElementById('feedback-rank-least'),most=document.getElementById('feedback-rank-most');
+  if(least)least.innerText=ranked.length?summaryNames(ranked.filter(x=>x.count===ranked[0].count)):'—';
+  if(most)most.innerText=ranked.length?summaryNames(ranked.filter(x=>x.count===ranked[ranked.length-1].count)):'—';
+  const rankBody=document.getElementById('feedback-rank-body'),rankEmpty=document.getElementById('feedback-rank-empty');
+  if(rankBody)rankBody.innerHTML=ranked.map((member,index)=>{const rank=1+ranked.findIndex(x=>x.count===member.count);return '<tr><td class="p-3 text-slate-500">'+rank+'</td><td class="p-3 font-semibold text-slate-800">'+esc(member.name)+'</td><td class="p-3 text-slate-500">'+esc(member.role)+'</td><td class="p-3 text-right font-semibold text-slate-800">'+member.count+'</td></tr>';}).join('');
+  if(rankEmpty)rankEmpty.classList.toggle('hidden',ranked.length>0);
 }
 function renderFeedbackReport(){
   const panel=document.getElementById('feedback-management-report');
