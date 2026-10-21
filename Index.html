@@ -273,9 +273,9 @@ html { font-size: 16px; }
 
 
 #global-create-card { position:relative; z-index:auto; }
-#global-create-card.is-crossing-sticky-header { visibility:hidden; pointer-events:none; }
+#global-create-card.is-crossing-sticky-header { visibility:hidden !important; pointer-events:none !important; }
 #home-create-menu { z-index:91; }
-#home-create-menu.radial-submenu-active > summary { visibility:hidden; pointer-events:none; }
+#home-create-menu.radial-submenu-active > summary { visibility:visible !important; pointer-events:auto !important; }
 #global-create-card:not(.global-create-card-home) #global-create-home-copy { visibility:hidden; }
 body.question-task-window-dragging, body.question-task-window-dragging * { cursor:grabbing !important; user-select:none !important; }
 /* Question -> Create Task workspace: keep both windows visible and independently scrollable. */
@@ -624,9 +624,11 @@ body.question-task-window-dragging, body.question-task-window-dragging * { curso
     <div class="min-w-0"><p class="text-[9px] font-black uppercase tracking-[0.16em] text-amber-700 mb-0.5">Feedback action items</p><div class="flex flex-wrap items-center gap-2"><h3 class="text-sm font-bold text-slate-900">Feedback</h3><span id="home-feedback-count" class="hidden rounded-full bg-amber-100 text-amber-800 px-2 py-0.5 text-[10px] font-bold"></span></div><p id="home-feedback-help" class="text-[10px] text-slate-500 mt-0.5"></p></div>
     <button type="button" onclick="openFeedbackHomeFilter('ALL')" class="text-[11px] font-bold text-amber-700 hover:text-amber-900 whitespace-nowrap">View all feedback →</button>
   </div>
-  <div class="grid grid-cols-2 md:grid-cols-3 gap-2 p-3 border-b border-slate-100">
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-2 p-3 border-b border-slate-100">
     <button id="home-feedback-pending-wrap" type="button" onclick="openFeedbackHomeFilter('PENDING')" class="rounded-xl border border-amber-200 bg-amber-50/60 p-3 text-left hover:border-amber-300"><p class="text-[9px] font-bold uppercase text-amber-700">Pending acknowledgement</p><p id="home-feedback-pending-count" class="mt-1 text-xl font-bold text-slate-900">0</p></button>
-    <button id="home-feedback-dispute-wrap" type="button" onclick="openFeedbackHomeFilter('DISPUTED')" class="hidden rounded-xl border border-rose-200 bg-rose-50/60 p-3 text-left hover:border-rose-300"><p class="text-[9px] font-bold uppercase text-rose-700">Pending dispute review</p><p id="home-feedback-dispute-count" class="mt-1 text-xl font-bold text-slate-900">0</p></button>
+    <button id="home-feedback-dispute-wrap" type="button" onclick="openFeedbackHomeFilter('DISPUTED')" class="hidden rounded-xl border border-slate-200 bg-slate-50 p-3 text-left hover:border-slate-300"><p class="text-[9px] font-bold uppercase text-slate-600">Pending dispute review</p><p id="home-feedback-dispute-count" class="mt-1 text-xl font-bold text-slate-900">0</p></button>
+    <button id="home-feedback-action-wrap" type="button" onclick="openFeedbackHomeFilter('ACTION')" class="hidden rounded-xl border border-orange-200 bg-orange-50/60 p-3 text-left hover:border-orange-300"><p class="text-[9px] font-bold uppercase text-orange-700">My Support actions</p><p id="home-feedback-action-count" class="mt-1 text-xl font-bold text-slate-900">0</p></button>
+    <button id="home-feedback-close-wrap" type="button" onclick="openFeedbackHomeFilter('ACTION_DONE')" class="hidden rounded-xl border border-cyan-200 bg-cyan-50/60 p-3 text-left hover:border-cyan-300"><p class="text-[9px] font-bold uppercase text-cyan-700">Ready to close</p><p id="home-feedback-close-count" class="mt-1 text-xl font-bold text-slate-900">0</p></button>
   </div>
   <div id="home-feedback-list" class="divide-y divide-slate-100"></div>
 </section>
@@ -684,7 +686,7 @@ body.question-task-window-dragging, body.question-task-window-dragging * { curso
 <div>
 <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Event Role / Relationship <span class="normal-case font-medium text-slate-400">(optional)</span></label>
 <select id="inp-talent-role" class="w-full border border-slate-300 p-2.5 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none transition bg-white">
-<option value="">Select Event Role / Relationship</option><option>Lead Photographer</option><option>Associate Photographer</option><option>Lead Videographer</option><option>Associate Videographer</option><option>Client 1</option><option>Client 2</option><option>Case</option>
+<option value="">Select Event Role / Relationship</option><option>Lead Photographer</option><option>Associate Photographer</option><option>Lead Videographer</option><option>Associate Videographer</option><option>Client 1</option><option>Client 2</option><option>Case</option><option>Event Hub</option><option>Event Plan</option>
 </select>
 </div>
 <div id="coord-event-date-wrap">
@@ -748,44 +750,47 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 
 <!-- FEEDBACK: Phase 1 private recipient feedback -->
 <section id="view-feedback" class="hidden space-y-5">
-  <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col md:flex-row md:items-center justify-between gap-3">
-    <div><h2 class="text-base font-bold text-slate-800">Feedback</h2><p id="feedback-view-help" class="text-xs text-slate-500 mt-1">Feedback about you is private. Review it and acknowledge it once understood.</p></div>
+  <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80">
+    <h2 class="text-base font-bold text-slate-800">Feedback</h2>
+    <p id="feedback-view-help" class="text-xs text-slate-500 mt-1">Feedback shared with you and any action that needs your attention.</p>
+    <p id="feedback-flow-help" class="text-[10px] text-slate-500 mt-2 rounded-lg bg-slate-50 border border-slate-200 px-3 py-2"></p>
   </div>
-  <div id="feedback-management-report" class="hidden bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
+  <div id="feedback-management-report" class="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
     <div class="px-4 py-3 flex flex-wrap items-center justify-between gap-3 border-b border-slate-100">
-      <div><h3 class="text-sm font-bold text-slate-800">Feedback report</h3><p class="text-[10px] text-slate-500 mt-1">Management view of records your Support profile is authorized to review.</p></div>
-      <div class="flex items-center gap-2"><button id="feedback-report-delete-selected" type="button" onclick="deleteSelectedAdminFeedback()" class="hidden px-3 py-2 rounded-lg bg-rose-600 text-white text-xs font-semibold hover:bg-rose-700">Remove selected</button><button type="button" onclick="exportFeedbackReportCsv()" class="px-3 py-2 rounded-lg border border-slate-300 text-xs font-semibold text-slate-700 hover:bg-slate-50">Export CSV</button></div>
+      <div><h3 id="feedback-table-heading" class="text-sm font-bold text-slate-800">My Feedback &amp; Action Items</h3><p id="feedback-table-help" class="text-[10px] text-slate-500 mt-1">Open a row to review or acknowledge feedback.</p></div>
+      <div class="flex items-center gap-2"><button id="feedback-report-delete-selected" type="button" onclick="deleteSelectedAdminFeedback()" class="hidden px-3 py-2 rounded-lg bg-rose-600 text-white text-xs font-semibold hover:bg-rose-700">Remove selected</button><button id="feedback-report-export" type="button" onclick="exportFeedbackReportCsv()" class="hidden px-3 py-2 rounded-lg border border-slate-300 text-xs font-semibold text-slate-700 hover:bg-slate-50">Export CSV</button></div>
     </div>
     <div class="p-4 space-y-3">
-      <div class="grid grid-cols-2 lg:grid-cols-5 gap-2">
-        <label class="text-[10px] font-semibold text-slate-500">From<input id="feedback-report-from" type="date" onchange="renderFeedbackReport()" class="mt-1 w-full border border-slate-300 rounded-lg px-2 py-2 text-xs"></label>
-        <label class="text-[10px] font-semibold text-slate-500">Through<input id="feedback-report-to" type="date" onchange="renderFeedbackReport()" class="mt-1 w-full border border-slate-300 rounded-lg px-2 py-2 text-xs"></label>
-        <label class="text-[10px] font-semibold text-slate-500">Status<select id="feedback-report-status" onchange="renderFeedbackReport()" class="mt-1 w-full border border-slate-300 rounded-lg px-2 py-2 text-xs"><option value="ALL">All statuses</option><option>Pending Acknowledgement</option><option>Acknowledged</option><option>Disputed — Awaiting Review</option><option>Dispute Resolved</option></select></label>
-        <label class="text-[10px] font-semibold text-slate-500">Category or type<input id="feedback-report-category" oninput="renderFeedbackReport()" class="mt-1 w-full border border-slate-300 rounded-lg px-2 py-2 text-xs" placeholder="All categories"></label>
-        <label class="text-[10px] font-semibold text-slate-500">Recipient or submitter<input id="feedback-report-person" oninput="renderFeedbackReport()" class="mt-1 w-full border border-slate-300 rounded-lg px-2 py-2 text-xs" placeholder="All people"></label>
+      <div class="flex flex-col sm:flex-row gap-2">
+        <select id="feedback-report-status" onchange="setFeedbackFilter(this.value)" title="Choose a workflow stage. Hover the help text below for what each stage means." aria-label="Filter feedback by workflow stage" class="border border-slate-300 rounded-xl px-3 py-2 text-xs min-w-52">
+          <option value="ALL">All my feedback</option><option value="PENDING">Pending acknowledgement</option><option value="DISPUTED">In dispute — Support review</option><option value="ACK">Acknowledged</option><option value="RESOLVED">Dispute resolved</option>
+        </select>
+        <input id="feedback-report-search" oninput="renderFeedbackReport()" title="Search feedback text, category, people, status, and related record." class="flex-1 border border-slate-300 rounded-xl px-3 py-2 text-xs" placeholder="Search feedback...">
       </div>
-      <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
-        <div class="rounded-lg border border-slate-200 p-3"><p class="text-[9px] font-bold uppercase text-slate-500">Records</p><p id="feedback-report-total" class="text-lg font-bold text-slate-900">0</p></div>
-        <div class="rounded-lg border border-amber-200 bg-amber-50/60 p-3"><p class="text-[9px] font-bold uppercase text-amber-700">Pending</p><p id="feedback-report-pending" class="text-lg font-bold text-slate-900">0</p></div>
-        <div class="rounded-lg border border-emerald-200 bg-emerald-50/60 p-3"><p class="text-[9px] font-bold uppercase text-emerald-700">Acknowledged</p><p id="feedback-report-ack" class="text-lg font-bold text-slate-900">0</p></div>
-        <div class="rounded-lg border border-rose-200 bg-rose-50/60 p-3"><p class="text-[9px] font-bold uppercase text-rose-700">Disputes</p><p id="feedback-report-disputed" class="text-lg font-bold text-slate-900">0</p></div>
-        <div class="rounded-lg border border-indigo-200 bg-indigo-50/60 p-3"><p class="text-[9px] font-bold uppercase text-indigo-700">Resolved</p><p id="feedback-report-resolved" class="text-lg font-bold text-slate-900">0</p></div>
+      <p id="feedback-report-filter-help" class="text-[10px] text-slate-500" title="Hover over each filter for details.">Use status to narrow by workflow stage. Dates, category, person, and search can be combined.</p>
+      <div id="feedback-report-management-filters" class="hidden grid grid-cols-2 lg:grid-cols-4 gap-2">
+        <label title="Only include feedback created on or after this date." class="text-[10px] font-semibold text-slate-500">From<input id="feedback-report-from" type="date" onchange="renderFeedbackReport()" class="mt-1 w-full border border-slate-300 rounded-lg px-2 py-2 text-xs"></label>
+        <label title="Only include feedback created on or before this date." class="text-[10px] font-semibold text-slate-500">Through<input id="feedback-report-to" type="date" onchange="renderFeedbackReport()" class="mt-1 w-full border border-slate-300 rounded-lg px-2 py-2 text-xs"></label>
+        <label title="Match a feedback category or feedback type." class="text-[10px] font-semibold text-slate-500">Category or type<input id="feedback-report-category" oninput="renderFeedbackReport()" class="mt-1 w-full border border-slate-300 rounded-lg px-2 py-2 text-xs" placeholder="All categories"></label>
+        <label title="Match the feedback recipient or the person who submitted it." class="text-[10px] font-semibold text-slate-500">Recipient or submitter<input id="feedback-report-person" oninput="renderFeedbackReport()" class="mt-1 w-full border border-slate-300 rounded-lg px-2 py-2 text-xs" placeholder="All people"></label>
+      </div>
+      <div id="feedback-report-stats" class="hidden grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-2">
+        <button type="button" title="All authorized feedback matching the date, category, person, and search filters." onclick="setFeedbackFilter('ALL')" class="rounded-lg border border-slate-200 p-3 text-left hover:border-blue-300 hover:bg-blue-50/40"><p class="text-[9px] font-bold uppercase text-slate-500">Records</p><p id="feedback-report-total" class="text-lg font-bold text-slate-900">0</p></button>
+        <button type="button" title="Feedback waiting for the recipient to acknowledge it." onclick="setFeedbackFilter('PENDING')" class="rounded-lg border border-amber-200 bg-amber-50/60 p-3 text-left hover:border-amber-400"><p class="text-[9px] font-bold uppercase text-amber-700">Pending</p><p id="feedback-report-pending" class="text-lg font-bold text-slate-900">0</p></button>
+        <button type="button" title="Records the recipient has acknowledged. Acknowledgement completes the normal path; a recipient may still dispute Team Feedback afterward." onclick="setFeedbackFilter('ACK')" class="rounded-lg border border-emerald-200 bg-emerald-50/60 p-3 text-left hover:border-emerald-400"><p class="text-[9px] font-bold uppercase text-emerald-700">Acknowledged</p><p id="feedback-report-ack" class="text-lg font-bold text-slate-900">0</p></button>
+        <button type="button" title="Disputes waiting for a Support review." onclick="setFeedbackFilter('DISPUTED')" class="rounded-lg border border-slate-200 bg-slate-50 p-3 text-left hover:border-slate-400"><p class="text-[9px] font-bold uppercase text-slate-600">Pending dispute review</p><p id="feedback-report-disputed" class="text-lg font-bold text-slate-900">0</p></button>
+        <button type="button" title="Support actions assigned to your Support profile and still in progress." onclick="setFeedbackFilter('ACTION')" class="rounded-lg border border-orange-200 bg-orange-50/60 p-3 text-left hover:border-orange-400"><p class="text-[9px] font-bold uppercase text-orange-700">Support action</p><p id="feedback-report-action" class="text-lg font-bold text-slate-900">0</p></button>
+        <button type="button" title="Support action is complete and is waiting for Support to add a closure note." onclick="setFeedbackFilter('ACTION_DONE')" class="rounded-lg border border-cyan-200 bg-cyan-50/60 p-3 text-left hover:border-cyan-400"><p class="text-[9px] font-bold uppercase text-cyan-700">Ready to close</p><p id="feedback-report-action-done" class="text-lg font-bold text-slate-900">0</p></button>
+        <button type="button" title="Dispute resolved or follow-up closed; these are completed Support workflow outcomes." onclick="setFeedbackFilter('DONE')" class="rounded-lg border border-indigo-200 bg-indigo-50/60 p-3 text-left hover:border-indigo-400"><p id="feedback-report-resolved-label" class="text-[9px] font-bold uppercase text-indigo-700">Resolved / closed</p><p id="feedback-report-resolved" class="text-lg font-bold text-slate-900">0</p></button>
       </div>
       <div class="overflow-x-auto border border-slate-200 rounded-xl">
-        <table class="min-w-full text-left text-[11px]"><thead class="bg-slate-50 text-slate-500 uppercase tracking-wide"><tr><th id="feedback-report-select-th" class="hidden px-3 py-2"><input id="feedback-report-select-all" type="checkbox" aria-label="Select all feedback" onchange="selectAllAdminFeedback(this.checked)"></th><th class="px-3 py-2">Created</th><th class="px-3 py-2">Recipient</th><th class="px-3 py-2">Submitted by</th><th class="px-3 py-2">Category</th><th class="px-3 py-2">Status</th><th class="px-3 py-2">Related</th></tr></thead><tbody id="feedback-report-rows" class="divide-y divide-slate-100"></tbody></table>
+        <table class="min-w-full text-left text-[11px]"><thead class="bg-slate-50 text-slate-500 uppercase tracking-wide"><tr>
+          <th id="feedback-report-select-th" class="hidden px-3 py-2"><input id="feedback-report-select-all" type="checkbox" aria-label="Select all feedback" onchange="selectAllAdminFeedback(this.checked)"></th>
+          <th class="px-3 py-2 whitespace-nowrap">Created</th><th id="feedback-report-recipient-th" class="hidden px-3 py-2">Recipient</th><th id="feedback-report-submitter-th" class="px-3 py-2">From</th><th class="px-3 py-2">Category</th><th class="px-3 py-2">Status / action</th><th class="px-3 py-2">Related</th>
+        </tr></thead><tbody id="feedback-report-rows" class="divide-y divide-slate-100"></tbody></table>
       </div>
-      <p id="feedback-report-empty" class="hidden text-center text-xs text-slate-400 py-3">No records match these report filters.</p>
+      <p id="feedback-report-empty" class="hidden text-center text-xs text-slate-400 py-3">No feedback matches these filters.</p>
     </div>
-  </div>
-  <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-    <button type="button" onclick="setFeedbackFilter('PENDING')" class="bg-amber-50/70 border border-amber-200 rounded-xl p-4 text-left"><p class="text-[9px] font-bold uppercase text-amber-700">Pending</p><p id="feedback-stat-pending" class="text-xl font-bold text-slate-900 mt-1">0</p></button>
-    <button type="button" onclick="setFeedbackFilter('DISPUTED')" class="bg-rose-50/70 border border-rose-200 rounded-xl p-4 text-left"><p class="text-[9px] font-bold uppercase text-rose-700">Pending Dispute</p><p id="feedback-stat-disputed" class="text-xl font-bold text-slate-900 mt-1">0</p></button>
-    <button type="button" onclick="setFeedbackFilter('ACK')" class="bg-emerald-50/60 border border-emerald-200 rounded-xl p-4 text-left"><p class="text-[9px] font-bold uppercase text-emerald-700">Acknowledged</p><p id="feedback-stat-ack" class="text-xl font-bold text-slate-900 mt-1">0</p></button>
-    <button type="button" onclick="setFeedbackFilter('ALL')" class="bg-white border border-slate-200 rounded-xl p-4 text-left"><p class="text-[9px] font-bold uppercase text-slate-500">Visible</p><p id="feedback-stat-total" class="text-xl font-bold text-slate-900 mt-1">0</p></button>
-  </div>
-  <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-4">
-    <div class="flex flex-col sm:flex-row gap-2"><select id="feedback-filter" onchange="renderFeedbackTab()" class="border border-slate-300 rounded-xl px-3 py-2 text-xs"><option value="ALL">All Visible Feedback</option><option value="PENDING">Pending Acknowledgement</option><option value="ACK">Acknowledged</option><option value="DISPUTED">Pending Dispute</option></select><input id="feedback-search" oninput="renderFeedbackTab()" class="flex-1 border border-slate-300 rounded-xl px-3 py-2 text-xs" placeholder="Search feedback..."></div>
-    <div id="feedback-list" class="divide-y divide-slate-100 mt-3"></div>
   </div>
 </section>
 
@@ -1270,6 +1275,9 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
       <button type="button" onclick="openReportWorkspace('support')" class="group border border-slate-200 rounded-xl p-4 text-left hover:border-cyan-300 hover:bg-cyan-50/40 hover:shadow-sm transition">
         <div class="flex items-start justify-between gap-3"><div><p class="text-sm font-bold text-slate-800">Support Workload</p><p class="text-[11px] text-slate-500 mt-1">Answered volume, share, and average answer speed.</p></div><span class="text-cyan-600 group-hover:translate-x-0.5 transition">→</span></div>
       </button>
+      <button type="button" onclick="openReportWorkspace('feedback')" class="group border border-slate-200 rounded-xl p-4 text-left hover:border-amber-300 hover:bg-amber-50/40 hover:shadow-sm transition">
+        <div class="flex items-start justify-between gap-3"><div><p class="text-sm font-bold text-slate-800">Feedback Outcomes</p><p class="text-[11px] text-slate-500 mt-1">Acknowledgement, disputes, closure time, volume, and categories.</p></div><span class="text-amber-600 group-hover:translate-x-0.5 transition">→</span></div>
+      </button>
     </div>
   </div>
 
@@ -1456,6 +1464,60 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
     </div>
   </div>
 
+  <div id="report-feedback-card" class="report-workspace-card hidden border border-slate-200 rounded-xl mb-5 overflow-hidden">
+    <button type="button" onclick="toggleReportSection('report-feedback-insights-section')" class="w-full flex items-center justify-between bg-slate-50 px-4 py-3 text-left hover:bg-slate-100 transition">
+      <div><h3 class="text-sm font-bold text-slate-800">Feedback Outcomes</h3><p class="text-[10px] text-slate-500">Uses the selected report date range and authorized feedback records.</p></div><span class="text-slate-400 text-xs">Show / Hide</span>
+    </button>
+    <div id="report-feedback-insights-section" class="hidden border-t border-slate-200 bg-white">
+      <div id="feedback-insights" class="p-4 space-y-3">
+        <div><h3 class="text-xs font-bold text-slate-800">Feedback insights</h3><p class="text-[10px] text-slate-500 mt-1">Uses the date range selected above. Counts include only records this Support profile is authorized to review.</p></div>
+        <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2">
+          <button type="button" onclick="filterFeedbackInsightRecords_('all')" class="rounded-lg border border-slate-200 bg-white p-3 text-left hover:border-blue-300 hover:bg-blue-50/40 focus:outline-none focus:ring-2 focus:ring-blue-300"><p class="text-[9px] font-bold uppercase text-slate-500">Feedback submitted</p><p id="feedback-insight-total" class="text-lg font-bold text-slate-900">0</p></button>
+          <button type="button" onclick="filterFeedbackInsightRecords_('pending')" class="rounded-lg border border-amber-200 bg-amber-50/60 p-3 text-left hover:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-300"><p class="text-[9px] font-bold uppercase text-amber-700">Awaiting acknowledgement</p><p id="feedback-insight-pending" class="text-lg font-bold text-slate-900">0</p></button>
+          <button type="button" onclick="filterFeedbackInsightRecords_('disputed')" class="rounded-lg border border-slate-200 bg-white p-3 text-left hover:border-slate-400 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-300"><p class="text-[9px] font-bold uppercase text-slate-600">In dispute</p><p id="feedback-insight-disputed" class="text-lg font-bold text-slate-900">0</p></button>
+          <button type="button" onclick="filterFeedbackInsightRecords_('acknowledged')" class="rounded-lg border border-emerald-200 bg-emerald-50/60 p-3 text-left hover:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-300"><p class="text-[9px] font-bold uppercase text-emerald-700">Team acknowledgement rate</p><p id="feedback-insight-ack-rate" class="text-lg font-bold text-slate-900">—</p></button>
+          <button type="button" onclick="filterFeedbackInsightRecords_('acknowledged')" class="rounded-lg border border-blue-200 bg-blue-50/60 p-3 text-left hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-300"><p class="text-[9px] font-bold uppercase text-blue-700">Average time to acknowledge</p><p id="feedback-insight-ack-time" class="text-lg font-bold text-slate-900">—</p></button>
+          <button type="button" onclick="filterFeedbackInsightRecords_('closed')" class="rounded-lg border border-indigo-200 bg-indigo-50/60 p-3 text-left hover:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-300"><p class="text-[9px] font-bold uppercase text-indigo-700">Average time to close</p><p id="feedback-insight-close-time" class="text-lg font-bold text-slate-900">—</p></button>
+        </div>
+        <div class="rounded-lg border border-slate-200 bg-white overflow-hidden">
+          <div class="flex items-center justify-between gap-3 px-3 py-2 border-b border-slate-200"><div><h4 id="feedback-insight-record-title" class="text-[10px] font-bold text-slate-700">Feedback records · all</h4><p class="text-[9px] text-slate-400">Click a summary card, month, or category to filter these records.</p></div><button type="button" onclick="filterFeedbackInsightRecords_('all')" class="text-[10px] font-semibold text-blue-700 hover:text-blue-900">Clear filter</button></div>
+          <div class="overflow-x-auto"><table class="min-w-full text-left text-[10px]"><thead class="bg-slate-50 text-slate-500 uppercase tracking-wide"><tr><th class="px-3 py-2">Created</th><th class="px-3 py-2">Recipient</th><th class="px-3 py-2">Submitted by</th><th class="px-3 py-2">Category</th><th class="px-3 py-2">Status</th><th class="px-3 py-2">Related</th></tr></thead><tbody id="feedback-insight-record-rows" class="divide-y divide-slate-100"></tbody></table></div>
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          <div class="rounded-lg border border-slate-200 bg-white p-3"><h4 class="text-[10px] font-bold text-slate-700">Monthly volume</h4><div id="feedback-insight-trend" class="mt-3 space-y-2"></div></div>
+          <div class="rounded-lg border border-slate-200 bg-white p-3"><h4 class="text-[10px] font-bold text-slate-700">Top categories</h4><div id="feedback-insight-categories" class="mt-3 space-y-2"></div></div>
+        </div>
+        <div class="rounded-lg border border-slate-200 bg-white overflow-hidden">
+          <div class="px-3 py-3 border-b border-slate-200 flex flex-wrap items-start justify-between gap-3">
+            <div><h4 class="text-[10px] font-bold text-slate-700">Feedback received by team title</h4><p class="text-[10px] text-slate-500 mt-1">Filters use active Coordinator and Support profiles and include each person’s team title.</p></div>
+            <span class="text-[10px] text-slate-500">Team members shown: <strong id="feedback-rank-member-count" class="text-slate-700">0</strong></span>
+          </div>
+          <div class="flex flex-col gap-3 p-3 bg-slate-50/60 border-b border-slate-200">
+            <div class="flex flex-wrap items-end gap-3">
+              <fieldset class="min-w-0 flex-1">
+                <legend class="text-[9px] font-bold uppercase tracking-wide text-slate-500 mb-1">Team titles included</legend>
+                <div id="feedback-rank-title-options" class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-700"></div>
+              </fieldset>
+              <label class="text-[9px] font-bold uppercase tracking-wide text-slate-500">Feedback category
+                <select id="feedback-rank-category" onchange="renderFeedbackInsights_()" class="block mt-1 min-w-44 border border-slate-300 rounded-lg bg-white px-2 py-1.5 text-xs font-normal normal-case text-slate-700"><option value="">All categories</option></select>
+              </label>
+              <label class="text-[9px] font-bold uppercase tracking-wide text-slate-500">Show
+                <select id="feedback-rank-view" onchange="renderFeedbackInsights_()" class="block mt-1 min-w-44 border border-slate-300 rounded-lg bg-white px-2 py-1.5 text-xs font-normal normal-case text-slate-700"><option value="all">All matching members</option><option value="top3">Top 3 · most feedback</option><option value="bottom3">Bottom 3 · fewest feedback</option></select>
+              </label>
+              <label class="inline-flex items-center gap-1.5 text-xs text-slate-600 pb-1"><input id="feedback-rank-include-zero" type="checkbox" onchange="renderFeedbackInsights_()">Include members with 0</label>
+            </div>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="min-w-full text-left text-xs">
+              <thead><tr class="bg-slate-50 text-slate-500 font-bold border-y border-slate-200"><th class="p-3 w-16">RANK</th><th class="p-3">TEAM MEMBER</th><th class="p-3">TEAM TITLE</th><th class="p-3 text-right">FEEDBACK RECEIVED</th></tr></thead>
+              <tbody id="feedback-rank-body" class="divide-y divide-slate-100"></tbody>
+            </table>
+            <p id="feedback-rank-empty" class="hidden text-center text-xs text-slate-400 p-4">No team members match these filters.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
   <div id="report-review-card" class="report-workspace-card hidden border border-slate-200 rounded-xl mb-5 overflow-hidden">
     <button type="button" onclick="toggleReportSection('report-review-section')" class="w-full flex items-center justify-between bg-slate-50 px-4 py-3 text-left hover:bg-slate-100 transition">
       <div>
@@ -1819,7 +1881,7 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div><label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Event / Client / Talent Name *</label><input id="quick-question-event" type="text" class="w-full border border-slate-300 rounded-xl p-2.5 text-xs" placeholder="e.g. GS-EMook1-MEvers2-Weddings-1-2027-06-26 / Elizabeth Mook / Eric Lee"></div>
         <div><label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Case / Event URL *</label><input id="quick-question-link" type="url" class="w-full border border-slate-300 rounded-xl p-2.5 text-xs" placeholder="https://salesforce.com/..."></div>
-        <div><label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Event Role / Relationship <span class="normal-case font-medium text-slate-400">(optional)</span></label><select id="quick-question-role" class="w-full border border-slate-300 rounded-xl p-2.5 text-xs bg-white"><option value="">Select Event Role / Relationship</option><option>Lead Photographer</option><option>Associate Photographer</option><option>Lead Videographer</option><option>Associate Videographer</option><option>Client 1</option><option>Client 2</option><option>Case</option></select></div>
+        <div><label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Event Role / Relationship <span class="normal-case font-medium text-slate-400">(optional)</span></label><select id="quick-question-role" class="w-full border border-slate-300 rounded-xl p-2.5 text-xs bg-white"><option value="">Select Event Role / Relationship</option><option>Lead Photographer</option><option>Associate Photographer</option><option>Lead Videographer</option><option>Associate Videographer</option><option>Client 1</option><option>Client 2</option><option>Case</option><option>Event Hub</option><option>Event Plan</option></select></div>
         <div id="quick-event-date-wrap"><label for="quick-question-event-date" class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Event Date <span class="normal-case font-medium text-slate-400">(optional)</span></label><input id="quick-question-event-date" type="date" class="w-full border border-slate-300 px-2.5 py-2 rounded-xl text-xs outline-none"></div>
       </div>
       <div>
@@ -1916,7 +1978,7 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
   <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-xl max-h-[82vh] flex flex-col">
     <div class="px-5 py-4 border-b border-slate-200 flex items-start justify-between gap-3"><div><span class="text-[10px] font-bold uppercase tracking-wider text-amber-700">Feedback</span><h3 id="feedback-detail-title" class="text-lg font-bold text-slate-900 mt-1">Feedback</h3><p id="feedback-detail-meta" class="text-[10px] text-slate-500 mt-1"></p></div><button type="button" onclick="closeFeedbackDetail()" class="text-slate-400 hover:text-slate-700 font-bold text-xl">&times;</button></div>
     <div id="feedback-detail-body" class="p-4 overflow-y-auto space-y-3"></div>
-    <div class="px-4 py-3 border-t border-slate-200 flex items-center justify-between gap-2"><div id="feedback-detail-status" class="text-[11px] font-medium text-slate-600"></div><div class="flex shrink-0 gap-2"><button id="feedback-ack-btn" type="button" onclick="acknowledgeCurrentFeedback()" class="hidden px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-semibold">Acknowledge</button><button type="button" onclick="closeFeedbackDetail()" class="px-3 py-1.5 rounded-lg bg-slate-900 text-white text-[11px] font-semibold">Close</button></div></div>
+    <div class="px-4 py-3 border-t border-slate-200 flex items-center justify-between gap-2"><div id="feedback-detail-status" class="text-[11px] font-medium text-slate-600"></div><div class="flex shrink-0 gap-2"><button id="feedback-ack-btn" type="button" onclick="acknowledgeCurrentFeedback()" class="hidden px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-semibold">Acknowledge feedback</button><button type="button" onclick="closeFeedbackDetail()" class="px-3 py-1.5 rounded-lg bg-slate-900 text-white text-[11px] font-semibold">Close</button></div></div>
   </div>
 </div>
 
@@ -1978,7 +2040,7 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
     </div>
     <div class="task-form-grid grid grid-cols-1 sm:grid-cols-2 gap-3">
       <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Event / Client / Talent / CR / TR <span class="normal-case font-medium text-slate-400">(optional)</span></label><input id="task-create-related-name" oninput="syncTaskCreateRelationshipFields()" class="w-full border border-slate-300 p-2.5 rounded-xl text-xs outline-none" placeholder="Optional: event, client, talent, CR, TR, or vendor"></div>
-      <div id="task-create-related-type-wrap" class="hidden"><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Relationship *</label><select id="task-create-related-type" onchange="syncTaskCreateRelationshipFields()" class="w-full border border-slate-300 p-2.5 rounded-xl text-xs outline-none bg-white"><option value="">-- Select --</option><option>Event</option><option>Lead Photographer</option><option>Associate Photographer</option><option>Lead Videographer</option><option>Associate Videographer</option><option>Client 1</option><option>Client 2</option><option>CR</option><option>TR</option><option>Vendor</option><option>Case</option></select></div>
+      <div id="task-create-related-type-wrap" class="hidden"><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Relationship *</label><select id="task-create-related-type" onchange="syncTaskCreateRelationshipFields()" class="w-full border border-slate-300 p-2.5 rounded-xl text-xs outline-none bg-white"><option value="">-- Select --</option><option>Event</option><option>Lead Photographer</option><option>Associate Photographer</option><option>Lead Videographer</option><option>Associate Videographer</option><option>Client 1</option><option>Client 2</option><option>CR</option><option>TR</option><option>Vendor</option><option>Case</option><option>Event Hub</option><option>Event Plan</option></select></div>
     </div>
     <div id="task-create-related-link-wrap"><label id="task-create-related-link-label" class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Related Link <span class="normal-case font-medium text-slate-400">(optional)</span></label><input id="task-create-related-link" type="url" class="w-full border border-slate-300 p-2.5 rounded-xl text-xs outline-none" placeholder="https://..."></div>
     <div id="task-create-ticket-search-wrap">
@@ -2194,7 +2256,7 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Assigned To *</label><select id="task-edit-assignee" required class="w-full border border-slate-300 p-2.5 rounded-xl text-xs outline-none"></select></div>
       <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Category *</label><select id="task-edit-category" required class="w-full border border-slate-300 p-2.5 rounded-xl text-xs outline-none"></select></div>
-      <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Event / Client / Talent / CR / TR</label><input id="task-edit-related-name" oninput="syncTaskEditRelationshipFields()" class="w-full border border-slate-300 p-2.5 rounded-xl text-xs outline-none"></div><div id="task-edit-related-type-wrap" class="hidden"><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Relationship *</label><select id="task-edit-related-type" onchange="syncTaskEditRelationshipFields()" class="w-full border border-slate-300 p-2.5 rounded-xl text-xs outline-none bg-white"><option value="">-- Select --</option><option>Event</option><option>Lead Photographer</option><option>Associate Photographer</option><option>Lead Videographer</option><option>Associate Videographer</option><option>Client 1</option><option>Client 2</option><option>CR</option><option>TR</option><option>Vendor</option><option>Case</option></select></div>
+      <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Event / Client / Talent / CR / TR</label><input id="task-edit-related-name" oninput="syncTaskEditRelationshipFields()" class="w-full border border-slate-300 p-2.5 rounded-xl text-xs outline-none"></div><div id="task-edit-related-type-wrap" class="hidden"><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Relationship *</label><select id="task-edit-related-type" onchange="syncTaskEditRelationshipFields()" class="w-full border border-slate-300 p-2.5 rounded-xl text-xs outline-none bg-white"><option value="">-- Select --</option><option>Event</option><option>Lead Photographer</option><option>Associate Photographer</option><option>Lead Videographer</option><option>Associate Videographer</option><option>Client 1</option><option>Client 2</option><option>CR</option><option>TR</option><option>Vendor</option><option>Case</option><option>Event Hub</option><option>Event Plan</option></select></div>
       <div class="sm:col-span-2"><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Related Link</label><input id="task-edit-related-link" type="text" class="w-full border border-slate-300 p-2.5 rounded-xl text-xs outline-none"></div>
       <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Due Date</label><input id="task-edit-due" type="date" onchange="if(activeTask&&activeTask.attentionToday)syncTaskAttentionDueDate(this.id,true)" class="w-full border border-slate-300 p-2.5 rounded-xl text-xs outline-none"></div>
       <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-[10px] text-slate-500"><span class="font-bold text-slate-700">Current Status:</span><br><span id="task-edit-status-label"></span><p class="mt-1">If an In Progress task is reassigned, it resets to Pending for the new assignee.</p></div>
@@ -2516,7 +2578,7 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 
 <div><label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Work Category</label><select id="edit-work-category" class="w-full border border-slate-300 p-2.5 rounded-xl text-xs outline-none"></select></div>
 
-<div><label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Event Role</label><select id="edit-talent-role" class="w-full border border-slate-300 p-2.5 rounded-xl text-xs outline-none bg-white"><option value="">Select Event Role / Relationship</option><option>Lead Photographer</option><option>Associate Photographer</option><option>Lead Videographer</option><option>Associate Videographer</option><option>Client 1</option><option>Client 2</option><option>Case</option></select></div>
+<div><label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Event Role</label><select id="edit-talent-role" class="w-full border border-slate-300 p-2.5 rounded-xl text-xs outline-none bg-white"><option value="">Select Event Role / Relationship</option><option>Lead Photographer</option><option>Associate Photographer</option><option>Lead Videographer</option><option>Associate Videographer</option><option>Client 1</option><option>Client 2</option><option>Case</option><option>Event Hub</option><option>Event Plan</option></select></div>
 
 <div id="edit-urgent-row" class="flex flex-wrap items-center gap-3">
 <label id="edit-weekend-label" class="inline-flex items-center gap-2"><input type="checkbox" id="edit-urgent" onchange="toggleAdminEditEventDate()" class="w-4 h-4 accent-amber-600"><span class="text-xs font-bold text-amber-700">Event this weekend</span></label>
@@ -2612,7 +2674,7 @@ This question has not been answered yet.
       <div><label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Ask *</label><select id="peer-assignee" class="w-full border border-slate-300 rounded-xl p-2.5 text-xs"></select></div>
       <div><label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Question *</label><div class="border border-slate-300 rounded-t-xl bg-slate-50 p-1.5 flex items-center gap-1 border-b-0 text-xs text-slate-600"><button type="button" onclick="execEditorCmd('bold')" class="px-2 py-0.5 rounded hover:bg-slate-200 font-bold">B</button><button type="button" onclick="execEditorCmd('italic')" class="px-2 py-0.5 rounded hover:bg-slate-200 italic">I</button><button type="button" onclick="promptInsertLink()" class="px-2 py-0.5 rounded hover:bg-slate-200 underline">🔗 Link</button><label class="px-2 py-0.5 rounded hover:bg-slate-200 cursor-pointer">📷 Image<input type="file" accept="image/png,image/jpeg,image/gif,image/webp" class="hidden" onchange="handleImageInsert(event,'peer-question-text')"></label></div><div id="peer-question-text" contenteditable="true" onpaste="handleEditorPasteImage(event,'peer-question-text')" class="rich-editor-content w-full min-h-[110px] border border-slate-300 p-3 rounded-b-xl text-xs focus:ring-2 focus:ring-emerald-500 outline-none bg-white leading-relaxed" data-placeholder="Keep it simple — what do you need help with?"></div></div>
       <div><label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Event / Client / Talent Name *</label><input id="peer-event" class="w-full border border-slate-300 rounded-xl p-2.5 text-xs" placeholder="Event / client / talent"></div>
-      <div><label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Relationship <span class="normal-case font-medium text-slate-400">(optional)</span></label><select id="peer-related-type" class="w-full border border-slate-300 rounded-xl p-2.5 text-xs bg-white"><option value="">Select relationship</option><option>Event</option><option>Lead Photographer</option><option>Associate Photographer</option><option>Lead Videographer</option><option>Associate Videographer</option><option>Client 1</option><option>Client 2</option><option>CR</option><option>TR</option><option>Vendor</option><option>Case</option></select></div>
+      <div><label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Relationship <span class="normal-case font-medium text-slate-400">(optional)</span></label><select id="peer-related-type" class="w-full border border-slate-300 rounded-xl p-2.5 text-xs bg-white"><option value="">Select relationship</option><option>Event</option><option>Lead Photographer</option><option>Associate Photographer</option><option>Lead Videographer</option><option>Associate Videographer</option><option>Client 1</option><option>Client 2</option><option>CR</option><option>TR</option><option>Vendor</option><option>Case</option><option>Event Hub</option><option>Event Plan</option></select></div>
       <div><label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Related Link *</label><input id="peer-link" type="url" required class="w-full border border-slate-300 rounded-xl p-2.5 text-xs" placeholder="https://..."><p class="text-[10px] text-slate-400 mt-1">Add the related Salesforce link. If there is no specific record URL, use http://login.salesforce.com</p></div>
       <div class="flex justify-end gap-2 pt-2"><button type="button" onclick="closePeerCreateModal()" class="px-4 py-2 text-xs font-semibold text-slate-600">Cancel</button><button id="peer-create-btn" class="bg-emerald-600 text-white px-5 py-2.5 rounded-xl text-xs font-bold">Send Question</button></div>
     </form>
@@ -2713,10 +2775,11 @@ let dataRefreshInFlight = false;
 let refreshQueued = false;
 let reportingLoadError = '';
 let categoryInsightsCache = null;
+let reportDataIndexCache = null;
 const reportTokenCache = new WeakMap();
 let historyPrefetchAttempted = false;
-let lastLoadTimings = { supervisor: null, history: null, tasks: null };
-const APP_RELEASE = '13H.6.1';
+let lastLoadTimings = { supervisor: null, history: null, tasks: null, peer: null, 'team-roster': null, report: null };
+const APP_RELEASE = '13H.6.8-PEER';
 const PERFORMANCE_SLOW_MS = 5000;
 let sessionPerformanceEvents = [];
 const performanceBaselineSent = new Set();
@@ -2741,7 +2804,8 @@ const REPORT_WORKSPACES = {
   tasks: { cardId: 'report-task-card', sectionId: 'report-task-section', title: 'Task Performance', subtitle: 'Task workload, ownership, overdue work, and completion.' },
   followup: { cardId: 'report-followup-card', sectionId: 'report-followup-task-section', title: 'Answer Review & Follow-up Progress', subtitle: 'Answer reading and follow-up task completion in one place.' },
   peer: { cardId: 'report-peer-card', sectionId: 'report-peer-section', title: 'Peer Guidance', subtitle: 'How the team is using Peer Questions for quick internal guidance, including open conversations and response speed.' },
-  support: { cardId: 'report-support-card', sectionId: 'report-support-section', title: 'Support Workload & Answer Speed', subtitle: 'Answered volume, workload share, and average response time.' }
+  support: { cardId: 'report-support-card', sectionId: 'report-support-section', title: 'Support Workload & Answer Speed', subtitle: 'Answered volume, workload share, and average response time.' },
+  feedback: { cardId: 'report-feedback-card', sectionId: 'report-feedback-insights-section', title: 'Feedback Outcomes', subtitle: 'Acknowledgement, disputes, follow-up, closure time, volume, and categories.' }
 };
 let activeAdminWorkspaceKey = '';
 const ADMIN_WORKSPACES = {
@@ -5103,7 +5167,7 @@ function scrollToGlobalSearchGroup(type){
   if(content)content.classList.remove('hidden');
   const icon=document.getElementById('global-search-group-icon-'+type);
   if(icon)icon.textContent='−';
-  section.scrollIntoView({behavior:'smooth',block:'start'});
+  scrollPageTarget(section);
 }
 function renderGlobalSearchResultsPage(rawQuery,response){
   let page=document.getElementById('global-search-results-page');
@@ -5498,6 +5562,13 @@ function activateTabShell(name) {
     tab.classList.toggle('hover:bg-slate-100', !active);
     tab.setAttribute('aria-current', active ? 'page' : 'false');
   });
+
+  // Restore the shared Create dock when navigating. The visibility observer may
+  // have hidden it while a modal was open or while the card crossed the sticky header.
+  if (globalCreateCard) globalCreateCard.classList.remove('is-crossing-sticky-header');
+  const createMenu=document.getElementById('home-create-menu');
+  if(createMenu)createMenu.classList.remove('radial-submenu-active');
+  refreshGlobalCreateVisibility();
 }
 
 function moveGlobalCreateControl(tabName) {
@@ -5515,11 +5586,12 @@ function switchTab(name) {
   if (name === 'answered' && previousTab !== 'answered') prepareAnsweredDefaultView();
   if (name === 'updates') loadAnnouncements(true);
   if (name === 'feedback') refreshFeedbackData(true);
+  if (name === 'reporting') refreshFeedbackData(true);
   renderCurrentTab();
 
   // Feeds skipped while Supervisor Desk is active refresh immediately when
   // their own data becomes visible.
-  if (name === 'tasks' || name === 'answered' || name === 'reporting') refreshTasksData();
+  if (name === 'tasks' || name === 'answered') refreshTasksData();
   if (name === 'peer' || name === 'reporting') refreshPeerQuestionsData();
 
   // Supervisor Desk uses a small open-question feed. When another tab opens,
@@ -5530,10 +5602,15 @@ function switchTab(name) {
     currentDataVersion = null;
     if (name === 'answered') loadAnsweredInitialFeed();
     else refreshData();
-  } else if (isSupportUser(currentUser) && (name === 'supervisor' || name === 'coordinator') && previousTab !== name) {
+  } else {
+    // refreshData() owns the task refresh on a cold Reports load. Only start
+    // it here when historical questions are already ready.
+    if (name === 'reporting') refreshTasksData();
+    if (isSupportUser(currentUser) && (name === 'supervisor' || name === 'coordinator') && previousTab !== name) {
     // Never wait behind a large Questions + Answered request. Supervisor Desk
     // has its own independent open-question refresh.
-    refreshSupervisorData(false, false);
+      refreshSupervisorData(false, false);
+    }
   }
 }
 
@@ -6200,12 +6277,18 @@ function refreshSupervisorData(force, manual) {
     }
   }, err => {
     supervisorRefreshInFlight = false;
+    const errorMessage = err && err.message ? err.message : String(err || 'Unknown error');
+    if (loadStatus) {
+      loadStatus.innerText = currentSupervisorDataVersion === null
+        ? 'Support Queue could not load. Use Refresh to try again.'
+        : 'Support Queue refresh failed. Showing the last loaded records.';
+    }
     if (manual) {
       manualRefreshInFlight = false;
       if (icon) icon.classList.remove('animate-spin');
-      showToast('Could not refresh Supervisor Desk: ' + (err && err.message ? err.message : err));
+      showToast('Could not refresh Support Queue: ' + errorMessage);
     } else {
-      console.error('Supervisor Desk refresh failed:', err);
+      console.error('Support Queue refresh failed:', err);
     }
     refreshSupervisorAuxiliaryFeeds();
     if (supervisorRefreshQueued) {
@@ -7220,9 +7303,29 @@ function handleHomeQuestionComposerEscape(event) {
 
 function configureHomeQuestionComposer(category) {
   const composer = document.getElementById('home-question-composer');
-  if (composer && category !== 'Coordinator' && !composer.classList.contains('hidden')) closeHomeQuestionComposer();
+  if (composer && category === 'Admin' && !composer.classList.contains('hidden')) closeHomeQuestionComposer();
 }
 
+function scrollPageTarget(target,behavior){
+  if(!target||target.classList.contains('hidden'))return false;
+  const targetRect=target.getBoundingClientRect();
+  let topOffset=12;
+  const stickyCandidates=document.querySelectorAll('header.sticky, #admin-test-banner.sticky, [data-scroll-sticky]');
+  stickyCandidates.forEach(el=>{
+    if(el.classList.contains('hidden')||el.getClientRects().length===0)return;
+    const style=window.getComputedStyle(el);
+    if(style.position!=='sticky'&&style.position!=='fixed')return;
+    const rect=el.getBoundingClientRect();
+    if(rect.bottom>0&&rect.top<window.innerHeight)topOffset=Math.max(topOffset,rect.bottom+12);
+  });
+  const createCard=document.getElementById('global-create-card');
+  if(createCard&&!createCard.classList.contains('hidden')&&createCard.getClientRects().length){
+    const style=window.getComputedStyle(createCard),rect=createCard.getBoundingClientRect();
+    if((style.position==='sticky'||style.position==='fixed')&&rect.bottom>0&&rect.top<window.innerHeight)topOffset=Math.max(topOffset,rect.bottom+12);
+  }
+  window.scrollTo({top:Math.max(0,window.scrollY+targetRect.top-topOffset),behavior:behavior||'smooth'});
+  return true;
+}
 function scrollHomeDashboardTo(sectionId,fallbackTab){
   const target=document.getElementById(sectionId);
   if(!target||target.classList.contains('hidden')){
@@ -7230,7 +7333,7 @@ function scrollHomeDashboardTo(sectionId,fallbackTab){
     else if(fallbackTab) switchTab(fallbackTab);
     return;
   }
-  target.scrollIntoView({behavior:'smooth',block:'start'});
+  scrollPageTarget(target);
 }
 function openHomeMetric(index) {
   const action = homeMetricActions[index];
@@ -7485,7 +7588,7 @@ function renderCoordinatorHomeDashboard() {
   const completed = allTasks.filter(t => (isTaskAssignedToMe(t) || isTaskCreatedByMe(t)) && completedRecently(t, 30));
 
   setHomeMetric(1, { label: 'Needs My Review', value: unread.length, help: 'Unread answers', action: () => openPersonalAnswered('UNREAD') });
-  setHomeMetric(2, { label: 'My Open Questions', value: openMine.length, help: 'Waiting for Support', action: () => document.getElementById('coord-table-body')?.scrollIntoView({ behavior: 'smooth', block: 'start' }) });
+  setHomeMetric(2, { label: 'My Open Questions', value: openMine.length, help: 'Waiting for Support', action: () => scrollPageTarget(document.getElementById('coord-table-body')) });
   setHomeMetric(3, { label: 'My Active Tasks', value: activeTasks.length, help: 'Assigned to me', tone: 'task', action: () => openMyTaskView('ACTIVE') });
   setHomeMetric(4, { label: 'Peer Questions', value: peerMine.length, help: 'Assigned to me', action: () => { switchTab('peer'); setPeerFilter('MINE'); } });
   setHomeMetric(5, { label: 'Recently Completed', value: completed.length, help: 'Last 30 days', tone: 'task', action: () => openMyTaskView('COMPLETED') });
@@ -11969,8 +12072,8 @@ function reportQuestionOwnerKey(record) {
   return String(record.askedByEmail || getUserDisplayName(record.askedBy) || 'Unknown').trim().toLowerCase();
 }
 
-function buildCategoryQuestionInsights(range) {
-  const rangeKey = JSON.stringify(range) + todayCSTString();
+function buildCategoryQuestionInsights(range, reportIndex) {
+  const rangeKey = String(currentDataVersion == null ? '' : currentDataVersion) + '|' + JSON.stringify(range) + todayCSTString();
   if (categoryInsightsCache && categoryInsightsCache.records === allQuestions && categoryInsightsCache.rangeKey === rangeKey) return categoryInsightsCache.value;
   const tokensFor = record => {
     const cached = reportTokenCache.get(record);
@@ -11979,7 +12082,7 @@ function buildCategoryQuestionInsights(range) {
     reportTokenCache.set(record, {question:record.question, tokens});
     return tokens;
   };
-  const records = allQuestions.filter(q => inDateRange(q.created, range));
+  const records = (reportIndex || buildReportDataIndex(range)).createdRecords;
   const categoryMap = {};
   records.forEach(record => {
     const category = record.category || 'General / Other';
@@ -12009,13 +12112,15 @@ function buildCategoryQuestionInsights(range) {
       best.people.add(reportQuestionOwnerKey(record));
       best.answered += record.sheet === 'Answered' && stripHtml(record.answer) ? 1 : 0;
       if (!best.intent && intent) best.intent = intent;
-      const tokenCounts = {};
-      best.records.forEach(item => tokensFor(item).forEach(token => { tokenCounts[token] = (tokenCounts[token] || 0) + 1; }));
-      best.tokens = Object.keys(tokenCounts).filter(token => tokenCounts[token] >= Math.ceil(best.records.length / 2));
+      tokens.forEach(token => best.tokenCounts.set(token, (best.tokenCounts.get(token) || 0) + 1));
+      best.tokens = Array.from(best.tokenCounts.entries())
+        .filter(entry => entry[1] >= Math.ceil(best.records.length / 2))
+        .map(entry => entry[0]);
       if (!best.tokens.length) best.tokens = tokens;
     } else {
       clusters.push({
         category: record.category || 'General / Other', intent, tokens,
+        tokenCounts: new Map(tokens.map(token => [token, 1])),
         records: [record], people: new Set([reportQuestionOwnerKey(record)]),
         answered: record.sheet === 'Answered' && stripHtml(record.answer) ? 1 : 0
       });
@@ -12096,7 +12201,41 @@ function openTopCategoryReport() {
   if (insights.categories.length) showReportDetail('question-category', insights.categories[0].category);
 }
 
+function buildReportDataIndex(range) {
+  const rangeKey = [
+    String(currentDataVersion == null ? '' : currentDataVersion),
+    JSON.stringify(range),
+    todayCSTString()
+  ].join('|');
+  if (reportDataIndexCache &&
+      reportDataIndexCache.records === allQuestions &&
+      reportDataIndexCache.rangeKey === rangeKey) {
+    return reportDataIndexCache.value;
+  }
+
+  const unanswered = [];
+  const answered = [];
+  const createdRecords = [];
+  const activityRecords = [];
+  allQuestions.forEach(record => {
+    const isAnswered = record.sheet === 'Answered';
+    if (inDateRange(record.created, range)) createdRecords.push(record);
+    if (isAnswered) {
+      if (inDateRange(record.answeredDate, range)) answered.push(record);
+    } else if (record.sheet === 'Questions Tracker' && inDateRange(record.created, range)) {
+      unanswered.push(record);
+    }
+    const activityDate = isAnswered ? record.answeredDate : record.created;
+    if (inDateRange(activityDate, range)) activityRecords.push(record);
+  });
+
+  const value = { unanswered, answered, createdRecords, activityRecords };
+  reportDataIndexCache = { records: allQuestions, rangeKey, value };
+  return value;
+}
+
 function renderReporting() {
+  const reportRenderStartedAt = Date.now();
   // A report is not an empty dataset while its independent feeds are loading.
   const ready = currentDataVersion !== null && currentTaskDataVersion !== null;
   const status = document.getElementById('report-load-status');
@@ -12119,8 +12258,9 @@ function renderReporting() {
     oldCard.remove();
   }
   const range = getReportDateRange();
-  const unanswered = allQuestions.filter(q => q.sheet === 'Questions Tracker' && inDateRange(q.created, range));
-  const answered = allQuestions.filter(q => q.sheet === 'Answered' && inDateRange(q.answeredDate, range));
+  const reportIndex = buildReportDataIndex(range);
+  const unanswered = reportIndex.unanswered;
+  const answered = reportIndex.answered;
 
   const ownerRead = answered.filter(ownerCurrentRead);
   const ownerUnread = answered.filter(q => !ownerCurrentRead(q));
@@ -12141,11 +12281,12 @@ function renderReporting() {
     try { render(); } catch (err) { failures.push(name); console.error('Report section failed: ' + name, err); }
   };
   section('Answer speed', () => renderReportBreakdown(answered));
-  section('Routing', () => renderRoutingCoverage(range));
+  section('Routing', () => renderRoutingCoverage(range, reportIndex));
   section('Review progress', () => renderReviewProgress(answered));
   section('Tasks and follow-ups', () => renderTaskReporting(range));
   section('Peer guidance', () => renderPeerReporting(range));
-  section('Category insights', () => renderCategoryQuestionInsights(range));
+  section('Category insights', () => renderCategoryQuestionInsights(range, reportIndex));
+  section('Feedback outcomes', () => renderFeedbackInsights_());
   if (failures.length) {
     status.innerText = 'Some sections could not display: ' + failures.join(', ') + '. Other reports remain available.';
     document.getElementById('report-retry').classList.remove('hidden');
@@ -12153,12 +12294,21 @@ function renderReporting() {
 
   // Keep an open detail panel synchronized with the selected date range.
   if (currentReportType) showReportDetail(currentReportType, window.activeReportDetailKey || '');
+  const renderMs = Date.now() - reportRenderStartedAt;
+  lastLoadTimings.report = { roundTripMs: renderMs, serverMs: 0, authMs: 0, dataMs: 0, recordedAt: new Date().toISOString() };
+  recordSessionPerformanceMetric({
+    metric: 'report-render',
+    status: 'success',
+    roundTripMs: renderMs,
+    recordedAt: lastLoadTimings.report.recordedAt
+  });
 }
 
 function reportLoadTimingText() {
   const values = [];
   if (lastLoadTimings.history) values.push('history ' + (lastLoadTimings.history.roundTripMs / 1000).toFixed(1) + 's');
   if (lastLoadTimings.tasks) values.push('tasks ' + (lastLoadTimings.tasks.roundTripMs / 1000).toFixed(1) + 's');
+  if (lastLoadTimings.report) values.push('report render ' + (lastLoadTimings.report.roundTripMs / 1000).toFixed(1) + 's');
   return values.length ? ' in ' + values.join(', ') : '';
 }
 
@@ -12171,27 +12321,50 @@ function retryReportingData() {
   renderReporting();
 }
 
-function answeredSupportEmailForReport(q) {
+function answeredSupportEmailForReport(q, supportByName) {
   const direct = String(q && q.answeredByEmail || '').trim().toLowerCase();
   if (direct) return direct;
   const raw = stripNoraPrefix(String(q && q.answeredBy || '')).trim().toLowerCase();
+  if (supportByName && supportByName.has(raw)) return supportByName.get(raw);
   const match = supportRoster().find(m => String(m.name || '').trim().toLowerCase() === raw || String(m.email || '').trim().toLowerCase() === raw);
   return match ? String(match.email || '').trim().toLowerCase() : '';
 }
 
-function renderRoutingCoverage(range) {
+function renderRoutingCoverage(range, reportIndex) {
   const body = document.getElementById('report-routing-body');
   if (!body) return;
   const roster = supportRoster().filter(m => String(m.status || '').toLowerCase() === 'active');
-  const scoped = allQuestions.filter(q => inDateRange(q.sheet === 'Answered' ? q.answeredDate : q.created, range));
-  const rows = roster.map(member => {
+  const scoped = (reportIndex || buildReportDataIndex(range)).activityRecords;
+  const statsByEmail = new Map();
+  const supportByName = new Map();
+  roster.forEach(member => {
     const email = String(member.email || '').trim().toLowerCase();
-    const routed = scoped.filter(q => String(q.routedSupportEmail || '').trim().toLowerCase() === email);
-    const open = routed.filter(q => q.sheet === 'Questions Tracker');
-    const answeredOwn = routed.filter(q => q.sheet === 'Answered' && answeredSupportEmailForReport(q) === email);
-    const helpedOthers = scoped.filter(q => q.sheet === 'Answered' && answeredSupportEmailForReport(q) === email && q.routedSupportEmail && String(q.routedSupportEmail).trim().toLowerCase() !== email);
-    return {member, routed:routed.length, open:open.length, answeredOwn:answeredOwn.length, helpedOthers:helpedOthers.length};
-  }).filter(r => r.routed || r.helpedOthers).sort((a,b) => b.routed - a.routed || b.helpedOthers - a.helpedOthers || a.member.name.localeCompare(b.member.name));
+    if (!email) return;
+    statsByEmail.set(email, { member, routed: 0, open: 0, answeredOwn: 0, helpedOthers: 0 });
+    const name = String(member.name || '').trim().toLowerCase();
+    if (email && !supportByName.has(email)) supportByName.set(email, email);
+    if (name && !supportByName.has(name)) supportByName.set(name, email);
+  });
+
+  scoped.forEach(record => {
+    const routedEmail = String(record.routedSupportEmail || '').trim().toLowerCase();
+    const routedStats = statsByEmail.get(routedEmail);
+    const isAnswered = record.sheet === 'Answered';
+    if (routedStats) {
+      routedStats.routed++;
+      if (!isAnswered && record.sheet === 'Questions Tracker') routedStats.open++;
+      if (isAnswered && answeredSupportEmailForReport(record, supportByName) === routedEmail) routedStats.answeredOwn++;
+    }
+    if (isAnswered && routedEmail) {
+      const answeredEmail = answeredSupportEmailForReport(record, supportByName);
+      const answeredStats = statsByEmail.get(answeredEmail);
+      if (answeredStats && answeredEmail !== routedEmail) answeredStats.helpedOthers++;
+    }
+  });
+
+  const rows = Array.from(statsByEmail.values())
+    .filter(row => row.routed || row.helpedOthers)
+    .sort((a,b) => b.routed - a.routed || b.helpedOthers - a.helpedOthers || a.member.name.localeCompare(b.member.name));
 
   if (!rows.length) {
     body.innerHTML = '<tr><td colspan="6" class="p-6 text-center text-slate-400">No routed questions in this range yet.</td></tr>';
@@ -12570,7 +12743,7 @@ function reportWorkspaceCards() {
 }
 
 function reportWorkspaceSections() {
-  return ['report-routing-section','report-category-insights-section','report-task-section','report-followup-task-section','report-peer-section','report-support-section','report-review-section'];
+  return ['report-routing-section','report-category-insights-section','report-task-section','report-followup-task-section','report-peer-section','report-support-section','report-feedback-insights-section','report-review-section'];
 }
 
 function setReportWorkspaceHeader(title, subtitle, backLabel) {
@@ -12603,7 +12776,7 @@ function openReportWorkspace(key) {
   collapseReportDetails();
   setReportWorkspaceHeader(config.title, config.subtitle, '← All reports');
   const content = document.getElementById('report-content');
-  if (content) content.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  if (content) scrollPageTarget(content);
 }
 
 function activateReportDetailWorkspace(title, subtitle) {
@@ -12901,7 +13074,7 @@ function openAdminWorkspace(key) {
     loadAdminNotificationControls();
   }
   const view = document.getElementById('view-team');
-  if (view) view.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  if (view) scrollPageTarget(view);
 }
 
 function closeAdminWorkspace() {
@@ -12939,14 +13112,14 @@ function refreshTeamRoster(force) {
     teamRosterRefreshQueued = false;
     if (rerun) setTimeout(() => refreshTeamRoster(true), 0);
     if (force) showToast('The roster was saved, but the refreshed routing display could not be loaded: ' + (err && err.message ? err.message : err));
-  }).withSuccessHandler(team => {
+  }).withSuccessHandler(response => {
     teamRosterRefreshInFlight = false;
     if (currentUser !== requestingUser) return;
-    recordSessionPerformanceMetric({ metric:'team-roster', status:'success', roundTripMs:Date.now() - rosterRequestStartedAt, recordedAt:new Date().toISOString() });
+    recordLoadTiming('team-roster', response, Date.now() - rosterRequestStartedAt);
     const rerun = teamRosterRefreshQueued;
     teamRosterRefreshQueued = false;
     if (!rerun) {
-      teamMembers = normalizeTeamMembers(team || []);
+      teamMembers = normalizeTeamMembers(response && response.data || []);
       populateFilterDropdowns();
       categoryInsightsCache = null;
       if (currentTab === 'team') renderTeamTable();
@@ -12954,7 +13127,7 @@ function refreshTeamRoster(force) {
     } else {
       setTimeout(() => refreshTeamRoster(true), 0);
     }
-  }).getTeamMembersForCurrentUser();
+  }).getTeamMembersForCurrentUserWithTiming();
 }
 
 function renderTeamTable() {
@@ -13525,10 +13698,10 @@ function updateNotificationCenter() {
       const n = item.n;
       const isRead = !!n.readAt;
       const dispute = n.eventType === 'dispute';
-      const bg = isRead ? '' : (dispute ? 'bg-rose-50/60' : 'bg-amber-50/60');
+      const bg = isRead ? '' : (dispute ? 'bg-slate-50' : 'bg-amber-50/60');
       const badge = isRead ? 'FEEDBACK' : (dispute ? 'DISPUTE REVIEW' : 'FEEDBACK ACTION');
       return `<button onclick="openFeedbackNotification('${esc(n.notificationId)}')" class="w-full text-left px-4 py-3 border-b border-slate-100 hover:bg-slate-50 ${bg}">` +
-        '<div class="flex items-center justify-between gap-2"><span class="text-[9px] font-black ' + (dispute?'text-rose-700':'text-amber-700') + '">' + badge + '</span><span class="text-[9px] text-slate-400">' + esc(formatCSTDateTime(n.createdAt, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })) + '</span></div>' +
+        '<div class="flex items-center justify-between gap-2"><span class="text-[9px] font-black ' + (dispute?'text-slate-600':'text-amber-700') + '">' + badge + '</span><span class="text-[9px] text-slate-400">' + esc(formatCSTDateTime(n.createdAt, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })) + '</span></div>' +
         '<p class="text-xs font-semibold text-slate-800 truncate mt-1">' + esc(n.title || 'Feedback update') + '</p>' +
         '<p class="text-[10px] text-slate-500 truncate">' + esc((n.preview || 'Open feedback') + (n.actorName ? ' · ' + n.actorName : '')) + '</p>' +
         '</button>';
@@ -13808,7 +13981,7 @@ function refreshPeerQuestionsData(force){
     if(currentUser===requestingUser)recordLoadFailure('peer',err,Date.now()-startedAt);
   }).withSuccessHandler(r=>{
     if(currentUser!==requestingUser)return;
-    recordSessionPerformanceMetric({metric:'peer',status:'success',roundTripMs:Date.now()-startedAt,recordedAt:new Date().toISOString()});
+    recordLoadTiming('peer', r, Date.now() - startedAt);
     if(!r)return;
     if(!r.unchanged){
       allPeerQuestions=r.data||[];
@@ -13912,8 +14085,10 @@ function isFeedbackManagementUser(){ return !!currentUser && isSupportUser(curre
 function feedbackStatusClass(status){
   if(status==='Pending Acknowledgement') return 'bg-amber-50 text-amber-700 border-amber-200';
   if(status==='Acknowledged') return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-  if(status==='Disputed — Awaiting Review') return 'bg-rose-50 text-rose-700 border-rose-200';
-  if(status==='Dispute Resolved') return 'bg-indigo-50 text-indigo-700 border-indigo-200';
+  if(status==='Disputed — Awaiting Review') return 'bg-slate-100 text-slate-700 border-slate-300';
+  if(status==='Dispute Resolved'||status==='Closed') return 'bg-indigo-50 text-indigo-700 border-indigo-200';
+  if(status==='Action Required'||status==='Action In Progress') return 'bg-orange-50 text-orange-700 border-orange-200';
+  if(status==='Action Completed') return 'bg-cyan-50 text-cyan-700 border-cyan-200';
   return 'bg-slate-50 text-slate-600 border-slate-200';
 }
 function refreshFeedbackData(force){
@@ -13940,6 +14115,7 @@ function refreshFeedbackData(force){
     if(ticker){ticker.innerText=pending; ticker.classList.toggle('hidden',pending===0);}
     renderHomeFeedbackPanel();
     if(currentTab==='feedback') renderFeedbackTab();
+    if(currentTab==='reporting') renderFeedbackInsights_();
     if(feedbackRefreshQueued){feedbackRefreshQueued=false;setTimeout(()=>refreshFeedbackData(true),0);}
   }).getFeedbackData(currentUser.email);
 }
@@ -13952,82 +14128,255 @@ function feedbackListItem(f){
 }
 function renderHomeFeedbackPanel(){
   const panel=document.getElementById('home-feedback-panel'); if(!panel||!currentUser)return;
-  const me=normalizeFeedbackEmail(currentUser.email), management=isFeedbackManagementUser();
+  const me=normalizeFeedbackEmail(currentUser.email), management=isFeedbackManagementUser(),admin=isAdminUser(currentUser);
   const received=allFeedback.filter(f=>normalizeFeedbackEmail(f.feedbackForEmail)===me&&f.status==='Pending Acknowledgement');
   const disputes=management?allFeedback.filter(f=>f.feedbackType==='Team Feedback'&&f.status==='Disputed — Awaiting Review'&&normalizeFeedbackEmail(f.feedbackForEmail)!==me):[];
-  const items=[...new Map([...received,...disputes].map(f=>[f.feedbackId,f])).values()].sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0)).slice(0,6);
+  const canOwn=f=>admin||normalizeFeedbackEmail(f.actionOwnerEmail)===me;
+  const actions=management?allFeedback.filter(f=>canOwn(f)&&['Action Required','Action In Progress'].includes(f.status)):[], readyToClose=management?allFeedback.filter(f=>canOwn(f)&&f.status==='Action Completed'):[];
+  const items=[...new Map([...received,...disputes,...actions,...readyToClose].map(f=>[f.feedbackId,f])).values()].sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0)).slice(0,6);
   panel.classList.add('hidden');
   const count=document.getElementById('home-feedback-count'); if(count){count.innerText=String(items.length);count.classList.toggle('hidden',!items.length);}
-  const summaryCount=document.getElementById('home-feedback-summary-count'); if(summaryCount)summaryCount.innerText=String(received.length+disputes.length);
+  const summaryCount=document.getElementById('home-feedback-summary-count'); if(summaryCount)summaryCount.innerText=String(received.length+disputes.length+actions.length+readyToClose.length);
   const pendingCount=document.getElementById('home-feedback-pending-count'); if(pendingCount)pendingCount.innerText=String(received.length);
   const pendingWrap=document.getElementById('home-feedback-pending-wrap'); if(pendingWrap)pendingWrap.classList.toggle('hidden',!received.length);
   const disputeCount=document.getElementById('home-feedback-dispute-count'); if(disputeCount)disputeCount.innerText=String(disputes.length);
   const disputeWrap=document.getElementById('home-feedback-dispute-wrap'); if(disputeWrap)disputeWrap.classList.toggle('hidden',!management||!disputes.length);
-  const help=document.getElementById('home-feedback-help'); if(help)help.innerText=management?'Feedback you received and disputes that need Support review.':'Feedback shared with you that needs acknowledgement.';
+  const actionCount=document.getElementById('home-feedback-action-count'); if(actionCount)actionCount.innerText=String(actions.length);
+  const actionWrap=document.getElementById('home-feedback-action-wrap'); if(actionWrap)actionWrap.classList.toggle('hidden',!management||!actions.length);
+  const closeCount=document.getElementById('home-feedback-close-count'); if(closeCount)closeCount.innerText=String(readyToClose.length);
+  const closeWrap=document.getElementById('home-feedback-close-wrap'); if(closeWrap)closeWrap.classList.toggle('hidden',!management||!readyToClose.length);
+  const help=document.getElementById('home-feedback-help'); if(help)help.innerText=management?'Feedback you received, disputes to review, and Support follow-up assigned to you.':'Feedback shared with you that needs acknowledgement.';
   const list=document.getElementById('home-feedback-list'); if(list)list.innerHTML='';
 }
-function openFeedbackHomeFilter(filter){ feedbackFilter=filter||'ALL'; switchTab('feedback'); const e=document.getElementById('feedback-filter'); if(e)e.value=feedbackFilter; renderFeedbackTab(); }
-function setFeedbackFilter(filter){ feedbackFilter=filter||'ALL'; const e=document.getElementById('feedback-filter'); if(e)e.value=feedbackFilter; renderFeedbackTab(); }
+function openFeedbackHomeFilter(filter){ feedbackFilter=filter||'ALL'; switchTab('feedback'); const e=document.getElementById('feedback-report-status'); if(e)e.value=feedbackFilter; renderFeedbackTab(); }
 function renderFeedbackTab(){
   renderFeedbackReport();
-  const list=document.getElementById('feedback-list'); if(!list||!currentUser)return;
-  const filter=String((document.getElementById('feedback-filter')||{}).value||feedbackFilter||'ALL'); feedbackFilter=filter;
-  const search=String((document.getElementById('feedback-search')||{}).value||'').trim().toLowerCase(), me=normalizeFeedbackEmail(currentUser.email);
-  const management=isFeedbackManagementUser(), canSeeFeedback=f=>management||normalizeFeedbackEmail(f.feedbackForEmail)===me, pending=allFeedback.filter(f=>canSeeFeedback(f)&&f.status==='Pending Acknowledgement'), disputed=allFeedback.filter(f=>canSeeFeedback(f)&&f.status==='Disputed — Awaiting Review'), ack=allFeedback.filter(f=>canSeeFeedback(f)&&f.status==='Acknowledged');
-  const visible=allFeedback.filter(f=>{
-    if(filter==='PENDING' && !(canSeeFeedback(f)&&f.status==='Pending Acknowledgement')) return false;
-    if(filter==='ACK' && !(canSeeFeedback(f)&&f.status==='Acknowledged')) return false;
-    if(filter==='DISPUTED' && !(canSeeFeedback(f)&&f.status==='Disputed — Awaiting Review')) return false;
-    if(search && ![f.feedbackId,f.feedbackType,f.category,f.feedbackFor,f.submittedBy,f.status,stripHtml(f.details||'')].join(' ').toLowerCase().includes(search)) return false;
-    return true;
-  });
-  const set=(id,v)=>{const e=document.getElementById(id);if(e)e.innerText=v;}; set('feedback-stat-pending',pending.length);set('feedback-stat-disputed',disputed.length);set('feedback-stat-ack',ack.length);set('feedback-stat-total',allFeedback.length);
-  const help=document.getElementById('feedback-view-help'); if(help)help.innerText=isFeedbackManagementUser()?'Management view: feedback for active Support and Coordinator recipients.':'Feedback about you is private. Review it and acknowledge it once understood.';
-  list.innerHTML=''; if(!visible.length){list.innerHTML='<div class="p-8 text-center text-xs text-slate-400">No feedback matches this view.</div>';return;} visible.forEach(f=>list.appendChild(feedbackListItem(f)));
 }
-function feedbackReportRows_(){
-  if(!isFeedbackManagementUser())return [];
+function setFeedbackFilter(filter){
+  feedbackFilter=filter||'ALL';
+  const status=document.getElementById('feedback-report-status');
+  if(status)status.value=feedbackFilter;
+  renderFeedbackReport();
+}
+function feedbackReportRows_(ignoreStatus){
+  if(!currentUser)return [];
+  const management=isFeedbackManagementUser(), me=normalizeFeedbackEmail(currentUser.email);
+  let rows=allFeedback.filter(f=>management||normalizeFeedbackEmail(f.feedbackForEmail)===me);
   const fromField=document.getElementById('feedback-report-from'),toField=document.getElementById('feedback-report-to');
-  const today=new Date(), todayString=today.toISOString().slice(0,10);
-  if(toField&&!toField.value)toField.value=todayString;
-  if(fromField&&!fromField.value){const start=new Date(today);start.setDate(start.getDate()-89);fromField.value=start.toISOString().slice(0,10);}
-  const from=fromField&&fromField.value?fromField.value:'',to=toField&&toField.value?toField.value:'';
-  const status=(document.getElementById('feedback-report-status')||{}).value||'ALL';
-  const category=String((document.getElementById('feedback-report-category')||{}).value||'').trim().toLowerCase();
-  const person=String((document.getElementById('feedback-report-person')||{}).value||'').trim().toLowerCase();
-  return allFeedback.filter(f=>{
-    const day=String(f.createdAt||'').slice(0,10);
-    if(from&&day<from)return false;if(to&&day>to)return false;
-    if(status!=='ALL'&&String(f.status||'')!==status)return false;
-    if(category&&![f.category,f.feedbackType].join(' ').toLowerCase().includes(category))return false;
-    if(person&&![f.feedbackFor,f.feedbackForEmail,f.submittedBy,f.submittedByEmail].join(' ').toLowerCase().includes(person))return false;
+  if(management){
+    const today=new Date(), todayString=today.toISOString().slice(0,10);
+    if(toField&&!toField.value)toField.value=todayString;
+    if(fromField&&!fromField.value){const start=new Date(today);start.setDate(start.getDate()-89);fromField.value=start.toISOString().slice(0,10);}
+    const from=fromField&&fromField.value?fromField.value:'',to=toField&&toField.value?toField.value:'';
+    rows=rows.filter(f=>{const day=String(f.createdAt||'').slice(0,10);return (!from||day>=from)&&(!to||day<=to);});
+    const category=String((document.getElementById('feedback-report-category')||{}).value||'').trim().toLowerCase();
+    const person=String((document.getElementById('feedback-report-person')||{}).value||'').trim().toLowerCase();
+    if(category)rows=rows.filter(f=>[f.category,f.feedbackType].join(' ').toLowerCase().includes(category));
+    if(person)rows=rows.filter(f=>[f.feedbackFor,f.feedbackForEmail,f.submittedBy,f.submittedByEmail].join(' ').toLowerCase().includes(person));
+  }
+  const search=String((document.getElementById('feedback-report-search')||{}).value||'').trim().toLowerCase();
+  if(search)rows=rows.filter(f=>[f.feedbackId,f.feedbackType,f.category,f.reason,f.feedbackFor,f.submittedBy,f.status,f.actionOwner,f.actionPlan,f.actionCompletionNote,f.closureNote,f.relatedType,f.relatedId,stripHtml(f.details||'')].join(' ').toLowerCase().includes(search));
+  const status=ignoreStatus?'ALL':((document.getElementById('feedback-report-status')||{}).value||feedbackFilter||'ALL');
+  if(status==='PENDING')rows=rows.filter(f=>f.status==='Pending Acknowledgement');
+  if(status==='DISPUTED')rows=rows.filter(f=>f.status==='Disputed — Awaiting Review');
+  if(status==='ACK')rows=rows.filter(f=>f.status==='Acknowledged');
+  if(status==='RESOLVED')rows=rows.filter(f=>f.status==='Dispute Resolved');
+  if(status==='ACTION')rows=rows.filter(f=>['Action Required','Action In Progress'].includes(f.status)&&(isAdminUser(currentUser)||normalizeFeedbackEmail(f.actionOwnerEmail)===me));
+  if(status==='ACTION_DONE')rows=rows.filter(f=>f.status==='Action Completed'&&(isAdminUser(currentUser)||normalizeFeedbackEmail(f.actionOwnerEmail)===me));
+  if(status==='CLOSED')rows=rows.filter(f=>f.status==='Closed');
+  if(status==='DONE')rows=rows.filter(f=>['Dispute Resolved','Closed'].includes(f.status));
+  if(status==='RECIPIENT_FOLLOWUP')rows=rows.filter(f=>['Disputed — Awaiting Review','Action Required','Action In Progress','Action Completed'].includes(f.status));
+  return rows.sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
+}
+function feedbackInsightHours_(startValue,endValue){
+  const start=new Date(startValue||'').getTime(),end=new Date(endValue||'').getTime();
+  if(!Number.isFinite(start)||!Number.isFinite(end)||end<start)return null;
+  return (end-start)/3600000;
+}
+function feedbackInsightDuration_(hours){
+  if(!Number.isFinite(hours)||hours<0)return '—';
+  if(hours<24)return Math.round(hours)+' h';
+  const days=hours/24;
+  return days<14?days.toFixed(1)+' d':Math.round(days)+' d';
+}
+function feedbackInsightRows_(){
+  if(!currentUser||!isFeedbackManagementUser())return [];
+  const range=getReportDateRange();
+  return allFeedback.filter(f=>inDateRange(f.createdAt,range));
+}
+function renderFeedbackInsights_(){
+  const panel=document.getElementById('feedback-insights');
+  const visible=!!(panel&&currentUser&&isFeedbackManagementUser());
+  if(panel)panel.classList.toggle('hidden',!visible);
+  if(!visible)return;
+  const rows=feedbackInsightRows_(),team=rows.filter(f=>f.feedbackType==='Team Feedback');
+  const acknowledged=team.filter(f=>!!f.acknowledgedAt);
+  const ackHours=acknowledged.map(f=>feedbackInsightHours_(f.createdAt,f.acknowledgedAt)).filter(v=>v!==null);
+  const closed=rows.map(f=>feedbackInsightHours_(f.createdAt,f.closedAt)).filter(v=>v!==null);
+  const set=(id,value)=>{const el=document.getElementById(id);if(el)el.innerText=String(value);};
+  set('feedback-insight-total',rows.length);
+  set('feedback-insight-pending',rows.filter(f=>f.status==='Pending Acknowledgement').length);
+  set('feedback-insight-disputed',rows.filter(f=>f.status==='Disputed — Awaiting Review').length);
+  set('feedback-insight-ack-rate',team.length?Math.round(acknowledged.length/team.length*100)+'%':'—');
+  set('feedback-insight-ack-time',ackHours.length?feedbackInsightDuration_(ackHours.reduce((a,b)=>a+b,0)/ackHours.length):'—');
+  set('feedback-insight-close-time',closed.length?feedbackInsightDuration_(closed.reduce((a,b)=>a+b,0)/closed.length):'—');
+  const trend=document.getElementById('feedback-insight-trend');
+  const categories=document.getElementById('feedback-insight-categories');
+  const monthCounts={};
+  rows.forEach(f=>{const d=new Date(f.createdAt||'');if(!Number.isFinite(d.getTime()))return;const key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');monthCounts[key]=(monthCounts[key]||0)+1;});
+  const months=Object.keys(monthCounts).sort().slice(-6),maxMonth=Math.max(1,...months.map(k=>monthCounts[k]));
+  if(trend)trend.innerHTML=months.length?months.map(key=>{const d=new Date(key+'-01T12:00:00Z'),label=d.toLocaleDateString('en-US',{month:'short',year:'2-digit',timeZone:'UTC'}),count=monthCounts[key],width=Math.max(3,Math.round(count/maxMonth*100));return '<button type="button" onclick="filterFeedbackInsightRecords_(\'month\',this.dataset.month)" data-month="'+key+'" class="grid w-full grid-cols-[54px_minmax(0,1fr)_28px] items-center gap-2 rounded px-1 py-1 text-left text-[10px] hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-300"><span class="text-slate-500">'+esc(label)+'</span><span class="h-2 rounded-full bg-slate-100 overflow-hidden"><span class="block h-full rounded-full bg-indigo-500" style="width:'+width+'%"></span></span><span class="text-right font-semibold text-slate-700">'+count+'</span></button>';}).join(''):'<p class="text-[10px] text-slate-400">No feedback in this date range.</p>';
+  const recordFilter=window.feedbackInsightRecordFilter||{type:'all',value:''};
+  const filteredRecords=rows.filter(f=>{
+    if(recordFilter.type==='pending')return f.status==='Pending Acknowledgement';
+    if(recordFilter.type==='disputed')return f.status==='Disputed — Awaiting Review';
+    if(recordFilter.type==='acknowledged')return f.feedbackType==='Team Feedback'&&!!f.acknowledgedAt;
+    if(recordFilter.type==='closed')return !!f.closedAt;
+    if(recordFilter.type==='month'){const d=new Date(f.createdAt||'');return Number.isFinite(d.getTime())&&d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')===recordFilter.value;}
+    if(recordFilter.type==='category')return String(f.category||f.feedbackType||'Uncategorized')===recordFilter.value;
     return true;
   }).sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
+  const filterLabels={all:'all',pending:'awaiting acknowledgement',disputed:'in dispute',acknowledged:'acknowledged feedback',closed:'closed feedback'};
+  const recordTitle=document.getElementById('feedback-insight-record-title');
+  if(recordTitle)recordTitle.innerText='Feedback records · '+(recordFilter.type==='month'?recordFilter.value:recordFilter.type==='category'?recordFilter.value:(filterLabels[recordFilter.type]||'all'));
+  const recordBody=document.getElementById('feedback-insight-record-rows');
+  if(recordBody)recordBody.innerHTML=filteredRecords.length?filteredRecords.map(f=>'<tr class="hover:bg-slate-50"><td class="px-3 py-2 whitespace-nowrap">'+esc(formatCSTDateTime(f.createdAt))+'</td><td class="px-3 py-2">'+esc(f.feedbackFor||'')+'</td><td class="px-3 py-2">'+esc(f.submittedBy||'')+'</td><td class="px-3 py-2">'+esc(f.category||f.feedbackType||'Uncategorized')+'</td><td class="px-3 py-2">'+esc(f.status||'')+'</td><td class="px-3 py-2">'+esc([f.relatedType,f.relatedId].filter(Boolean).join(' · '))+'</td></tr>').join(''):'<tr><td colspan="6" class="px-3 py-5 text-center text-slate-400">No feedback records match this filter.</td></tr>';
+  const categoryCounts={};
+  rows.forEach(f=>{const key=String(f.category||f.feedbackType||'Uncategorized');categoryCounts[key]=(categoryCounts[key]||0)+1;});
+  const top=Object.keys(categoryCounts).sort((a,b)=>categoryCounts[b]-categoryCounts[a]||a.localeCompare(b)).slice(0,5),maxCategory=Math.max(1,...top.map(key=>categoryCounts[key]));
+  if(categories)categories.innerHTML=top.length?top.map(key=>{const count=categoryCounts[key],width=Math.max(3,Math.round(count/maxCategory*100));return '<button type="button" onclick="filterFeedbackInsightRecords_(\'category\',this.dataset.category)" data-category="'+esc(key)+'" class="w-full text-left rounded px-1 py-1 hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-300"><span class="grid grid-cols-[minmax(0,1fr)_28px] items-center gap-2 text-[10px]"><span class="truncate text-slate-600" title="'+esc(key)+'">'+esc(key)+'</span><span class="text-right font-semibold text-slate-700">'+count+'</span><span class="col-span-2 h-2 rounded-full bg-slate-100 overflow-hidden"><span class="block h-full rounded-full bg-emerald-500" style="width:'+width+'%"></span></span></span></button>';}).join(''):'<p class="text-[10px] text-slate-400">No feedback in this filter.</p>';
+
+  const categoryFilter=document.getElementById('feedback-rank-category');
+  const availableCategories=Array.from(new Set(team.map(f=>String(f.category||'Uncategorized').trim()||'Uncategorized'))).sort((a,b)=>a.localeCompare(b));
+  if(categoryFilter){
+    const selected=categoryFilter.value;
+    categoryFilter.innerHTML='<option value="">All categories</option>'+availableCategories.map(value=>'<option value="'+esc(value)+'">'+esc(value)+'</option>').join('');
+    if(availableCategories.includes(selected))categoryFilter.value=selected;
+  }
+  const selectedCategory=categoryFilter?String(categoryFilter.value||''):'';
+  const recipientsByEmail=new Map();
+  (teamMembers||[]).forEach(member=>{
+    const status=String(member.status||'').trim().toLowerCase(),accessRole=normalizeCategoryClient(member.category||member.role);
+    if(status!=='active'||!['Coordinator','Support'].includes(accessRole)||isAdminUser(member))return;
+    const email=normalizeFeedbackEmail(member.email);if(!email)return;
+    const existing=recipientsByEmail.get(email);
+    if(!existing||String(member.name||'').localeCompare(String(existing.name||''))<0)recipientsByEmail.set(email,member);
+  });
+  const titleOf=member=>String(member.title||'No title').trim()||'No title';
+  const titleOptions=Array.from(new Set(Array.from(recipientsByEmail.values(),titleOf))).sort((a,b)=>a.localeCompare(b));
+  if(!(window.feedbackInsightSelectedTitles instanceof Set))window.feedbackInsightSelectedTitles=new Set(titleOptions);
+  else{
+    const previous=window.feedbackInsightSelectedTitles;
+    Array.from(previous).forEach(title=>{if(!titleOptions.includes(title))previous.delete(title);});
+  }
+  const titleOptionsEl=document.getElementById('feedback-rank-title-options');
+  if(titleOptionsEl)titleOptionsEl.innerHTML=titleOptions.map(title=>'<label class="inline-flex items-center gap-1.5"><input type="checkbox" class="feedback-rank-title" value="'+esc(title)+'" '+(window.feedbackInsightSelectedTitles.has(title)?'checked':'')+' onchange="setFeedbackInsightTitles_()"> '+esc(title)+'</label>').join('')||'<span class="text-slate-400">No active team titles</span>';
+  const recordsByEmail={};
+  team.filter(f=>!selectedCategory||String(f.category||'Uncategorized').trim()===selectedCategory).forEach(f=>{
+    const email=normalizeFeedbackEmail(f.feedbackForEmail);if(email)recordsByEmail[email]=(recordsByEmail[email]||0)+1;
+  });
+  const includeZero=!!document.getElementById('feedback-rank-include-zero')?.checked;
+  const view=(document.getElementById('feedback-rank-view')||{}).value||'all';
+  let ranked=Array.from(recipientsByEmail.entries())
+    .filter(([,member])=>window.feedbackInsightSelectedTitles.has(titleOf(member)))
+    .map(([email,member])=>({email,name:String(member.name||'Team member'),title:titleOf(member),count:recordsByEmail[email]||0}))
+    .filter(member=>includeZero||member.count>0)
+    .sort((a,b)=>b.count-a.count||a.name.localeCompare(b.name));
+  if(view==='top3')ranked=ranked.slice(0,3);
+  if(view==='bottom3')ranked=ranked.slice(-Math.min(3,ranked.length)).reverse();
+  set('feedback-rank-member-count',ranked.length);
+  const rankBody=document.getElementById('feedback-rank-body'),rankEmpty=document.getElementById('feedback-rank-empty');
+  if(rankBody)rankBody.innerHTML=ranked.map((member,index)=>'<tr><td class="p-3 text-slate-500">'+(index+1)+'</td><td class="p-3 font-semibold text-slate-800">'+esc(member.name)+'</td><td class="p-3 text-slate-500">'+esc(member.title)+'</td><td class="p-3 text-right font-semibold text-slate-800">'+member.count+'</td></tr>').join('');
+
+}
+function setFeedbackInsightTitles_(){
+  window.feedbackInsightSelectedTitles=new Set(Array.from(document.querySelectorAll('.feedback-rank-title:checked')).map(el=>String(el.value||'')));
+  renderFeedbackInsights_();
+}
+function filterFeedbackInsightRecords_(type,value){
+  window.feedbackInsightRecordFilter={type:String(type||'all'),value:String(value||'')};
+  renderFeedbackInsights_();
 }
 function renderFeedbackReport(){
   const panel=document.getElementById('feedback-management-report');
-  if(!panel)return;
-  const allowed=isFeedbackManagementUser();
-  panel.classList.toggle('hidden',!allowed);
-  if(!allowed)return;
-  const rows=feedbackReportRows_();
+  if(!panel||!currentUser)return;
+  const management=isFeedbackManagementUser(), admin=!!(currentUser&&isAdminUser(currentUser));
+  panel.classList.remove('hidden');
+  const heading=document.getElementById('feedback-table-heading'),tableHelp=document.getElementById('feedback-table-help'),viewHelp=document.getElementById('feedback-view-help');
+  if(heading)heading.innerText=management?'Feedback review':'My Feedback & Action Items';
+  const flowHelp=document.getElementById('feedback-flow-help');
+  if(flowHelp)flowHelp.innerText=management?'Normal path: Pending acknowledgement → Acknowledged (complete). If disputed: Pending dispute review → Support resolves the dispute, or assigns an action → In progress → Ready to close → Closed.':'Your path: Pending acknowledgement → Acknowledged (normal review complete). You may still dispute Team Feedback afterward; Support reviews disputes and handles any follow-up. Dispute review is a Support action.';
+  if(tableHelp)tableHelp.innerText=management?'Open a row to review or manage Support follow-up. Count cards filter the records below.':'Open a row to acknowledge feedback or review its status. Count cards filter your records.';
+  if(viewHelp)viewHelp.innerText=management?'Management view of records your Support profile is authorized to review.':'Feedback shared with you. Acknowledgement is the normal completion point; Support handles any dispute review.';
+  const filterHelp=document.getElementById('feedback-report-filter-help');
+  if(filterHelp)filterHelp.innerText=management?'Hover over the status filter for stage details. Pending dispute review is Support-owned; Ready to close means the action is done but still needs a closure note.':'Hover over the status filter for stage details. Pending acknowledgement is your action; dispute review stays with Support.';
+  const managementFilters=document.getElementById('feedback-report-management-filters');
+  if(managementFilters){managementFilters.classList.toggle('hidden',!management);managementFilters.classList.toggle('grid',management);}
+  const stats=document.getElementById('feedback-report-stats');
+  if(stats){stats.classList.toggle('hidden',!management);stats.classList.toggle('grid',management);}
+  const exportButton=document.getElementById('feedback-report-export');if(exportButton)exportButton.classList.toggle('hidden',!management);
+  const deleteButton=document.getElementById('feedback-report-delete-selected');
+  if(deleteButton){deleteButton.classList.toggle('hidden',!admin);deleteButton.innerText=selectedFeedbackForDeletion.size?'Remove selected ('+selectedFeedbackForDeletion.size+')':'Remove selected';deleteButton.disabled=!selectedFeedbackForDeletion.size;deleteButton.classList.toggle('opacity-50',!selectedFeedbackForDeletion.size);}
+  const statusSelect=document.getElementById('feedback-report-status');
+  if(statusSelect){
+    const previous=String(statusSelect.value||feedbackFilter||'ALL');
+    const options=management?[
+      ['ALL','All authorized feedback','All records matching your other filters.'],
+      ['PENDING','Pending acknowledgement','Waiting for the feedback recipient to acknowledge.'],
+      ['DISPUTED','Pending dispute review','Recipient disputed feedback; Support review is pending.'],
+      ['ACTION','My Support actions','Support action assigned to you and still in progress.'],
+      ['ACTION_DONE','Ready to close','Support action is complete; add the closure note to finish.'],
+      ['DONE','Resolved or closed','Terminal Support outcomes: dispute resolved or follow-up closed.'],
+      ['ACK','Acknowledged','Recipient acknowledged; normal path complete, though they may still dispute Team Feedback.']
+    ]:[
+      ['ALL','All my feedback','All records shared with you.'],
+      ['PENDING','Needs my acknowledgement','Your action is to review and acknowledge this feedback.'],
+      ['RECIPIENT_FOLLOWUP','Dispute / Support follow-up','Dispute review and Support follow-up are handled by Support.'],
+      ['ACK','Acknowledged','Your review is complete unless you choose to dispute Team Feedback.'],
+      ['DONE','Resolved or closed','Support has completed dispute review or closed its follow-up.']
+    ];
+    statusSelect.innerHTML=options.map(o=>'<option value="'+o[0]+'" title="'+esc(o[2])+'">'+esc(o[1])+'</option>').join('');
+    statusSelect.value=options.some(o=>o[0]===previous)?previous:'ALL';
+    statusSelect.title=(options.find(o=>o[0]===statusSelect.value)||options[0])[2];
+    feedbackFilter=statusSelect.value;
+  }
+  const allRows=feedbackReportRows_();
+  const statsRows=management?feedbackReportRows_(true):[];
   const set=(id,value)=>{const e=document.getElementById(id);if(e)e.innerText=String(value);};
-  set('feedback-report-total',rows.length);
-  set('feedback-report-pending',rows.filter(f=>f.status==='Pending Acknowledgement').length);
-  set('feedback-report-ack',rows.filter(f=>f.status==='Acknowledged').length);
-  set('feedback-report-disputed',rows.filter(f=>f.status==='Disputed — Awaiting Review').length);
-  set('feedback-report-resolved',rows.filter(f=>f.status==='Dispute Resolved').length);
+  if(management){
+    set('feedback-report-total',statsRows.length);
+    set('feedback-report-pending',statsRows.filter(f=>f.status==='Pending Acknowledgement').length);
+    set('feedback-report-ack',statsRows.filter(f=>f.status==='Acknowledged').length);
+    set('feedback-report-disputed',statsRows.filter(f=>f.status==='Disputed — Awaiting Review').length);
+    set('feedback-report-action',statsRows.filter(f=>['Action Required','Action In Progress'].includes(f.status)&&(admin||normalizeFeedbackEmail(f.actionOwnerEmail)===normalizeFeedbackEmail(currentUser.email))).length);
+    set('feedback-report-action-done',statsRows.filter(f=>f.status==='Action Completed'&&(admin||normalizeFeedbackEmail(f.actionOwnerEmail)===normalizeFeedbackEmail(currentUser.email))).length);
+    set('feedback-report-resolved',statsRows.filter(f=>['Dispute Resolved','Closed'].includes(f.status)).length);
+  }
   const body=document.getElementById('feedback-report-rows'),empty=document.getElementById('feedback-report-empty');
   if(!body)return;
-  const canBulkDelete=!!(currentUser&&isAdminUser(currentUser));
-  const selectTh=document.getElementById('feedback-report-select-th');
-  if(selectTh)selectTh.classList.toggle('hidden',!canBulkDelete);
-  const deleteButton=document.getElementById('feedback-report-delete-selected');
-  if(deleteButton){deleteButton.classList.toggle('hidden',!canBulkDelete);deleteButton.innerText=selectedFeedbackForDeletion.size?'Remove selected ('+selectedFeedbackForDeletion.size+')':'Remove selected';deleteButton.disabled=!selectedFeedbackForDeletion.size;deleteButton.classList.toggle('opacity-50',!selectedFeedbackForDeletion.size);}
+  const selectTh=document.getElementById('feedback-report-select-th');if(selectTh)selectTh.classList.toggle('hidden',!admin);
+  const recipientTh=document.getElementById('feedback-report-recipient-th');if(recipientTh)recipientTh.classList.toggle('hidden',!management);
+  const submitterTh=document.getElementById('feedback-report-submitter-th');if(submitterTh)submitterTh.innerText=management?'Submitted by':'From';
   const selectAll=document.getElementById('feedback-report-select-all');
-  if(selectAll){const selectedVisible=rows.filter(f=>selectedFeedbackForDeletion.has(String(f.feedbackId))).length;selectAll.checked=!!rows.length&&selectedVisible===rows.length;selectAll.indeterminate=selectedVisible>0&&selectedVisible<rows.length;}
-  body.innerHTML=rows.map(f=>'<tr class="cursor-pointer hover:bg-slate-50" onclick="openFeedbackDetail(\''+esc(f.feedbackId)+'\')">'+(canBulkDelete?'<td class="px-3 py-2" onclick="event.stopPropagation()"><input type="checkbox" aria-label="Select feedback" '+(selectedFeedbackForDeletion.has(String(f.feedbackId))?'checked':'')+' onchange="toggleAdminFeedbackSelection(\''+esc(f.feedbackId)+'\',this.checked)"></td>':'')+'<td class="px-3 py-2 whitespace-nowrap">'+esc(formatCSTDateTime(f.createdAt))+'</td><td class="px-3 py-2">'+esc(f.feedbackFor||'')+'</td><td class="px-3 py-2">'+esc(f.submittedBy||'')+'</td><td class="px-3 py-2">'+esc(f.category||f.feedbackType||'')+'</td><td class="px-3 py-2">'+esc(f.status||'')+'</td><td class="px-3 py-2">'+esc([f.relatedType,f.relatedId].filter(Boolean).join(' · '))+'</td></tr>').join('');
-  if(empty)empty.classList.toggle('hidden',rows.length>0);
+  if(selectAll){const selectedVisible=allRows.filter(f=>selectedFeedbackForDeletion.has(String(f.feedbackId))).length;selectAll.checked=!!allRows.length&&selectedVisible===allRows.length;selectAll.indeterminate=selectedVisible>0&&selectedVisible<allRows.length;}
+  const rendered=allRows.map(f=>{
+    const id=esc(f.feedbackId),recipient=normalizeFeedbackEmail(f.feedbackForEmail)===normalizeFeedbackEmail(currentUser.email);
+    let statusText=String(f.status||'New');
+    if(recipient&&f.status==='Pending Acknowledgement')statusText='Needs your acknowledgement';
+    else if(recipient&&f.status==='Disputed — Awaiting Review')statusText='In dispute — Support review';
+    else if(management&&f.status==='Disputed — Awaiting Review')statusText='Pending dispute review';
+    else if(recipient&&['Action Required','Action In Progress'].includes(f.status))statusText='Support follow-up in progress';
+    else if(recipient&&f.status==='Action Completed')statusText='Support follow-up completed';
+    else if(recipient&&f.status==='Closed')statusText='Support follow-up closed';
+    const selectCell=admin?'<td class="px-3 py-2" onclick="event.stopPropagation()"><input type="checkbox" aria-label="Select feedback" '+(selectedFeedbackForDeletion.has(String(f.feedbackId))?'checked':'')+' onchange="toggleAdminFeedbackSelection(\''+id+'\',this.checked)"></td>':'';
+    const recipientCell=management?'<td class="px-3 py-2">'+esc(f.feedbackFor||'')+'</td>':'';
+    const submitter=management?f.submittedBy:(f.submittedBy||'Team member');
+    const category='<div class="font-semibold text-slate-800">'+esc(f.category||f.feedbackType||'Feedback')+'</div>'+(f.reason?'<div class="mt-0.5 text-[10px] font-normal normal-case text-slate-500">'+esc(f.reason)+'</div>':'');
+    const related=[f.relatedType,f.relatedId].filter(Boolean).join(' · ');
+    return '<tr role="button" tabindex="0" class="cursor-pointer hover:bg-slate-50 focus:bg-blue-50" onclick="openFeedbackDetail(\''+id+'\')" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();openFeedbackDetail(\''+id+'\')}">'+selectCell+'<td class="px-3 py-2 whitespace-nowrap">'+esc(formatCSTDateTime(f.createdAt))+'</td>'+recipientCell+'<td class="px-3 py-2">'+esc(submitter||'')+'</td><td class="px-3 py-2">'+category+'</td><td class="px-3 py-2"><span class="inline-flex rounded-full border px-2 py-1 text-[9px] font-bold '+feedbackStatusClass(f.status)+'">'+esc(statusText)+'</span></td><td class="px-3 py-2">'+esc(related)+'</td></tr>';
+  }).join('');
+  body.innerHTML=rendered;
+  if(empty){empty.classList.toggle('hidden',allRows.length>0);empty.innerText=allRows.length?'':'No feedback matches these filters.';}
 }
 function toggleAdminFeedbackSelection(feedbackId,checked){
   if(!currentUser||!isAdminUser(currentUser))return;
@@ -14076,8 +14425,11 @@ function openFeedbackDetail(feedbackId){
     const isRecipient=normalizeFeedbackEmail(activeFeedback.feedbackForEmail)===normalizeFeedbackEmail(currentUser.email);
     const isManager=isFeedbackManagementUser();
     const history=(res.updates||[]).map(update=>'<div class="rounded-lg border border-slate-200 bg-white p-3"><div class="flex flex-wrap items-center justify-between gap-2"><span class="text-[10px] font-bold uppercase tracking-wide text-slate-600">'+esc(update.type||'Update')+(update.outcome?' · '+esc(update.outcome):'')+'</span><span class="text-[10px] text-slate-400">'+esc(formatCSTDateTime(update.createdAt))+' · '+esc(update.createdBy||'Team member')+'</span></div><p class="text-xs text-slate-700 mt-2 whitespace-pre-wrap">'+esc(update.message||'')+'</p></div>').join('');
-    const disputeForm= (isRecipient&&['Pending Acknowledgement','Acknowledged'].includes(activeFeedback.status))?'<div class="border-t border-slate-100 pt-3"><p class="text-[10px] font-bold uppercase tracking-wider text-rose-700 mb-1">Dispute this feedback</p><p class="text-[11px] text-slate-500 mb-2">Submitting a dispute confirms you reviewed the feedback. Explain what you believe is inaccurate; Support will review your note.</p><textarea id="feedback-dispute-note" rows="3" maxlength="4000" class="w-full border border-slate-300 rounded-xl p-3 text-xs" placeholder="Explain what you believe is incorrect…"></textarea><button type="button" onclick="submitFeedbackDispute()" class="mt-2 px-3 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold">Submit dispute</button></div>':'';
-    const reviewForm=(isManager&&activeFeedback.status==='Disputed — Awaiting Review')?'<div class="border-t border-slate-100 pt-4"><p class="text-[10px] font-bold uppercase tracking-wider text-indigo-700 mb-1">Supervisor review</p><p class="text-[11px] text-slate-500 mb-2">Record the decision and a short explanation. The recipient can see the outcome.</p><textarea id="feedback-review-note" rows="3" maxlength="4000" class="w-full border border-slate-300 rounded-xl p-3 text-xs" placeholder="Review note…"></textarea><div class="flex flex-wrap gap-2 mt-2"><button type="button" onclick="resolveFeedbackDispute(\'Upheld\')" class="px-3 py-2 rounded-lg border border-slate-300 text-slate-700 text-xs font-bold">Feedback upheld</button><button type="button" onclick="resolveFeedbackDispute(\'Action Needed\')" class="px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold">Action needed</button></div></div>':'';
+    const disputeForm=(isRecipient&&['Pending Acknowledgement','Acknowledged'].includes(activeFeedback.status))?'<div class="border-t border-slate-100 pt-3"><button type="button" onclick="toggleFeedbackDisputeForm()" class="px-3 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold">Dispute feedback</button><div id="feedback-dispute-form" class="hidden mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3"><p class="text-[11px] text-slate-600 mb-2">If something is inaccurate, explain why. Support will review your note.</p><label class="block text-[10px] font-semibold text-slate-600">Reason for dispute<textarea id="feedback-dispute-note" rows="3" maxlength="4000" class="mt-1 w-full border border-slate-300 rounded-lg bg-white px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-blue-500" placeholder="Explain what you believe is incorrect…"></textarea></label><div class="flex justify-end mt-2"><button type="button" onclick="submitFeedbackDispute()" class="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold">Submit dispute</button></div></div></div>':'';
+    const reviewerNoteForm=(isRecipient&&activeFeedback.status==='Pending Acknowledgement')?'<div class="border-t border-slate-100 pt-3"><label class="block text-[10px] font-semibold text-slate-600">Reviewer notes <span class="font-normal text-slate-400">(optional)</span><textarea id="feedback-reviewer-note" rows="2" maxlength="4000" class="mt-1 w-full border border-slate-300 rounded-lg bg-white px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-blue-500" placeholder="Add a note for the Support team, if needed…"></textarea></label><p class="text-[10px] text-slate-400 mt-1">Your note will be saved with your acknowledgement and visible to Support.</p></div>':'';
+    const reviewForm=(isManager&&!isRecipient&&activeFeedback.status==='Disputed — Awaiting Review')?'<div class="border-t border-slate-100 pt-4"><p class="text-[10px] font-bold uppercase tracking-wider text-indigo-700 mb-1">Support review</p><p class="text-[11px] text-slate-500 mb-2">Record the decision and explanation. If follow-up is needed, assign yourself as owner and add a plan and target date.</p><textarea id="feedback-review-note" rows="3" maxlength="4000" class="w-full border border-slate-300 rounded-xl p-3 text-xs" placeholder="Review note visible to the recipient…"></textarea><label class="block text-[10px] font-semibold text-slate-500 mt-3">Support action plan — required for Action needed<textarea id="feedback-action-plan" rows="2" maxlength="4000" class="mt-1 w-full border border-slate-300 rounded-xl p-3 text-xs" placeholder="What follow-up will Support complete?"></textarea></label><label class="block text-[10px] font-semibold text-slate-500 mt-2">Target date (optional)<input id="feedback-action-due-date" type="date" class="mt-1 w-full border border-slate-300 rounded-lg px-3 py-2 text-xs"></label><div class="flex flex-wrap gap-2 mt-3"><button type="button" onclick="resolveFeedbackDispute(\'Upheld\')" class="px-3 py-2 rounded-lg border border-slate-300 text-slate-700 text-xs font-bold">Feedback upheld</button><button type="button" onclick="resolveFeedbackDispute(\'Action Needed\')" class="px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold">Create Support action</button></div></div>':'';
+    const canManageAction=isManager&&!isRecipient;
+    const actionPanel=canManageAction&&['Action Required','Action In Progress','Action Completed','Closed'].includes(activeFeedback.status)?'<div class="border-t border-slate-100 pt-4"><div class="flex flex-wrap items-center justify-between gap-2"><p class="text-[10px] font-bold uppercase tracking-wider text-orange-700">Support follow-up</p><span class="text-[10px] text-slate-500">'+esc(activeFeedback.actionOwner||'')+(activeFeedback.actionDueDate?' · Due '+esc(activeFeedback.actionDueDate):'')+'</span></div>'+(activeFeedback.actionPlan?'<p class="text-xs text-slate-700 mt-2 whitespace-pre-wrap">'+esc(activeFeedback.actionPlan)+'</p>':'')+(activeFeedback.status==='Action Required'?'<p class="text-[11px] text-slate-500 mt-2">Start the assigned follow-up when work begins.</p><button type="button" onclick="submitFeedbackAction(\'START\')" class="mt-2 px-3 py-2 rounded-lg bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold">Start action</button>':'')+(activeFeedback.status==='Action In Progress'?'<label class="block text-[10px] font-semibold text-slate-500 mt-3">What was completed? *<textarea id="feedback-action-completion" rows="3" maxlength="4000" class="mt-1 w-full border border-slate-300 rounded-xl p-3 text-xs" placeholder="Summarize the follow-up completed…"></textarea></label><label class="block text-[10px] font-semibold text-slate-500 mt-2">Coaching note (optional)<textarea id="feedback-action-coaching" rows="2" maxlength="4000" class="mt-1 w-full border border-slate-300 rounded-xl p-3 text-xs" placeholder="Record coaching only if it took place…"></textarea></label><button type="button" onclick="submitFeedbackAction(\'COMPLETE\')" class="mt-2 px-3 py-2 rounded-lg bg-cyan-700 hover:bg-cyan-800 text-white text-xs font-bold">Mark action complete</button>':'')+(activeFeedback.status==='Action Completed'?'<p class="text-[11px] text-slate-600 mt-2"><strong>Completed:</strong> '+esc(activeFeedback.actionCompletionNote||'')+'</p><label class="block text-[10px] font-semibold text-slate-500 mt-3">Closure note *<textarea id="feedback-action-closure" rows="2" maxlength="4000" class="mt-1 w-full border border-slate-300 rounded-xl p-3 text-xs" placeholder="Confirm why follow-up is complete…"></textarea></label><button type="button" onclick="submitFeedbackAction(\'CLOSE\')" class="mt-2 px-3 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold">Close feedback</button>':'')+(activeFeedback.status==='Closed'?'<p class="text-[11px] text-slate-600 mt-2"><strong>Completed:</strong> '+esc(activeFeedback.actionCompletionNote||'')+'</p>'+(activeFeedback.coachingNote?'<p class="text-[11px] text-slate-600 mt-2"><strong>Coaching:</strong> '+esc(activeFeedback.coachingNote)+'</p>':'')+'<p class="text-[11px] text-slate-600 mt-2"><strong>Closed:</strong> '+esc(activeFeedback.closureNote||'')+'</p>':'')+'</div>':'';
     const html='<div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[11px]">'+
       '<div><span class="font-semibold text-slate-500">For</span><div class="text-slate-800 mt-0.5">'+esc(recipient||'—')+'</div></div>'+
       '<div><span class="font-semibold text-slate-500">Submitted by</span><div class="text-slate-800 mt-0.5">'+esc(submitted||'—')+'</div></div>'+
@@ -14085,12 +14437,16 @@ function openFeedbackDetail(feedbackId){
       '<div><span class="font-semibold text-slate-500">Reason</span><div class="text-slate-800 mt-0.5">'+esc(activeFeedback.reason||'—')+'</div></div><div><span class="font-semibold text-slate-500">Status</span><div class="mt-0.5"><span class="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border '+feedbackStatusClass(activeFeedback.status)+'">'+esc(activeFeedback.status||'New')+'</span></div></div></div>'+
       '<div class="border-t border-slate-100 pt-4"><p class="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">Feedback</p><div class="rich-editor-content text-sm text-slate-700 leading-6">'+renderStoredRichHtml(activeFeedback.details||'')+'</div></div>'+
       (activeFeedback.relatedId?'<div class="border-t border-slate-100 pt-4 text-[11px]"><span class="font-semibold text-slate-500">Related</span><div class="text-slate-800 mt-0.5">'+esc(activeFeedback.relatedType||'')+': '+esc(activeFeedback.relatedId)+'</div>'+(activeFeedback.relatedLink?'<a href="'+esc(activeFeedback.relatedLink)+'" target="_blank" rel="noopener noreferrer" class="text-blue-600 underline mt-1 inline-block">Open related link</a>':'')+'</div>':'')+
-      (history?'<div class="border-t border-slate-100 pt-4"><p class="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">Dispute history</p><div class="space-y-2">'+history+'</div></div>':'')+disputeForm+reviewForm;
+      (history?'<div class="border-t border-slate-100 pt-4"><p class="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">Feedback history</p><div class="space-y-2">'+history+'</div></div>':'')+disputeForm+reviewerNoteForm+reviewForm+actionPanel;
     document.getElementById('feedback-detail-body').innerHTML=html;
     const ackBtn=document.getElementById('feedback-ack-btn'); ackBtn.classList.toggle('hidden',!(isRecipient&&activeFeedback.status==='Pending Acknowledgement'));
-    const statusMessage=activeFeedback.status==='Pending Acknowledgement'?'Please review and acknowledge this feedback once understood.':(activeFeedback.status==='Acknowledged'?'Acknowledged.':(activeFeedback.status==='Disputed — Awaiting Review'?'This dispute is waiting for Support review.':(activeFeedback.status==='Dispute Resolved'?'The dispute has been reviewed.':'Feedback status: '+(activeFeedback.status||'New'))));
+    const statusMessage=activeFeedback.status==='Pending Acknowledgement'?'Please review and acknowledge this feedback once understood.':(activeFeedback.status==='Acknowledged'?'Acknowledged.':(activeFeedback.status==='Disputed — Awaiting Review'?'This dispute is waiting for Support review.':(activeFeedback.status==='Dispute Resolved'?'The dispute has been reviewed.':(['Action Required','Action In Progress','Action Completed'].includes(activeFeedback.status)?'Support is following up on this feedback.':(activeFeedback.status==='Closed'?'Support has closed the follow-up.':'Feedback status: '+(activeFeedback.status||'New'))))));
     document.getElementById('feedback-detail-status').innerText=statusMessage;
   }).getFeedbackDetail(feedbackId,currentUser.email);
+}
+function toggleFeedbackDisputeForm(){
+  const form=document.getElementById('feedback-dispute-form');
+  if(form)form.classList.toggle('hidden');
 }
 function submitFeedbackDispute(){
   if(!activeFeedback||!currentUser)return;
@@ -14099,13 +14455,32 @@ function submitFeedbackDispute(){
 }
 function resolveFeedbackDispute(outcome){
   if(!activeFeedback||!currentUser)return;
-  const id=activeFeedback.feedbackId, note=(document.getElementById('feedback-review-note')||{}).value||'';
-  google.script.run.withFailureHandler(err=>showToast('Could not save review: '+(err&&err.message?err.message:err))).withSuccessHandler(()=>{showToast('Dispute review saved.');refreshFeedbackData(true);openFeedbackDetail(id);}).reviewFeedbackDispute(id,outcome,note,currentUser.email);
+  const id=activeFeedback.feedbackId, note=(document.getElementById('feedback-review-note')||{}).value||'', plan=(document.getElementById('feedback-action-plan')||{}).value||'', due=(document.getElementById('feedback-action-due-date')||{}).value||'';
+  if(outcome==='Action Needed'&&!plan.trim()){showToast('Add a Support action plan before assigning follow-up.');return;}
+  google.script.run.withFailureHandler(err=>showToast('Could not save review: '+(err&&err.message?err.message:err))).withSuccessHandler(()=>{showToast(outcome==='Action Needed'?'Support action assigned to you.':'Dispute review saved.');refreshFeedbackData(true);openFeedbackDetail(id);}).reviewFeedbackDispute(id,outcome,note,plan,due,currentUser.email);
+}
+function submitFeedbackAction(action){
+  if(!activeFeedback||!currentUser)return;
+  const id=activeFeedback.feedbackId,payload={};
+  if(action==='COMPLETE'){
+    payload.completionNote=(document.getElementById('feedback-action-completion')||{}).value||'';
+    payload.coachingNote=(document.getElementById('feedback-action-coaching')||{}).value||'';
+    if(!payload.completionNote.trim()){showToast('Describe the follow-up completed first.');return;}
+  }
+  if(action==='CLOSE'){
+    payload.closureNote=(document.getElementById('feedback-action-closure')||{}).value||'';
+    if(!payload.closureNote.trim()){showToast('Add a closure note first.');return;}
+  }
+  google.script.run.withFailureHandler(err=>showToast('Could not update Support action: '+(err&&err.message?err.message:err))).withSuccessHandler(res=>{
+    activeFeedback=res&&res.feedback?res.feedback:activeFeedback;
+    showToast(action==='START'?'Support action started.':(action==='COMPLETE'?'Support action marked complete.':'Feedback follow-up closed.'));
+    refreshFeedbackData(true);openFeedbackDetail(id);
+  }).updateFeedbackAction(id,action,payload,currentUser.email);
 }
 function closeFeedbackDetail(){const e=document.getElementById('feedback-detail-modal');if(e)e.classList.add('hidden');activeFeedback=null;}
 function acknowledgeCurrentFeedback(){
-  if(!activeFeedback||!currentUser)return; const id=activeFeedback.feedbackId,btn=document.getElementById('feedback-ack-btn'); if(btn)btn.disabled=true;
-  google.script.run.withFailureHandler(err=>{if(btn)btn.disabled=false;showToast('Could not acknowledge feedback: '+(err&&err.message?err.message:err));}).withSuccessHandler(res=>{if(btn)btn.disabled=false;activeFeedback=res.feedback;showToast('Feedback acknowledged.');closeFeedbackDetail();refreshFeedbackData(true);}).acknowledgeFeedback(id,currentUser.email);
+  if(!activeFeedback||!currentUser)return; const id=activeFeedback.feedbackId,note=(document.getElementById('feedback-reviewer-note')||{}).value||'',btn=document.getElementById('feedback-ack-btn'); if(btn)btn.disabled=true;
+  google.script.run.withFailureHandler(err=>{if(btn)btn.disabled=false;showToast('Could not acknowledge feedback: '+(err&&err.message?err.message:err));}).withSuccessHandler(res=>{if(btn)btn.disabled=false;activeFeedback=res.feedback;showToast('Feedback acknowledged.');closeFeedbackDetail();refreshFeedbackData(true);}).acknowledgeFeedback(id,currentUser.email,note);
 }
 function openCreateFeedbackModal(){
   if(!currentUser)return; const modal=document.getElementById('create-feedback-modal'); if(!modal)return; modal.classList.remove('hidden');
@@ -14116,9 +14491,17 @@ function openCreateFeedbackModal(){
 }
 function closeCreateFeedbackModal(){const e=document.getElementById('create-feedback-modal');if(e)e.classList.add('hidden');clearRichEditor('feedback-create-details');['feedback-create-related-type','feedback-create-related-id','feedback-create-related-link'].forEach(id=>{const field=document.getElementById(id);if(field)field.value='';});syncFeedbackRelatedFields();}
 function syncFeedbackCreateType(){
-  const opts=window.feedbackCreateOptions||{}, type=(document.getElementById('feedback-create-type')||{}).value||'Team Feedback';
+  const opts=window.feedbackCreateOptions||{}, select=document.getElementById('feedback-create-type');
+  if(select){
+    const existing=select.querySelector('option[value="IT / Bug Feedback"]');
+    if(opts.canSubmitItFeedback&&!existing){const option=document.createElement('option');option.value='IT / Bug Feedback';option.textContent='Feedback for IT - Bug fix';select.appendChild(option);}
+    else if(!opts.canSubmitItFeedback&&existing)existing.remove();
+  }
+  const type=(select||{}).value||'Team Feedback';
   const recWrap=document.getElementById('feedback-recipient-wrap'), rec=document.getElementById('feedback-create-recipient'), cat=document.getElementById('feedback-create-category');
-  const isTeam=type==='Team Feedback'; if(recWrap)recWrap.classList.toggle('hidden',!isTeam); if(rec)rec.required=isTeam;
+  const help=document.getElementById('feedback-type-help'), isTeam=type==='Team Feedback';
+  if(recWrap)recWrap.classList.toggle('hidden',!isTeam); if(rec)rec.required=isTeam;
+  if(help)help.textContent=isTeam?'Team Feedback is visible to the recipient and Supervisor+ when needed.':'Feedback for IT - Bug fix is submitted to the Support Hub administrators.';
   if(rec && isTeam){rec.innerHTML='<option value="">Select team member…</option>'+(opts.recipients||[]).map(r=>'<option value="'+esc(r.email)+'">'+esc(r.name)+(r.title?' · '+esc(r.title):'')+(r.category?' — '+esc(r.category):'')+'</option>').join('');}
   const cats=isTeam?(opts.teamCategories||[]):(opts.itCategories||[]); if(cat)cat.innerHTML='<option value="">Select category…</option>'+cats.map(c=>'<option>'+esc(c)+'</option>').join('');
   const related=document.getElementById('feedback-create-related-type'); if(related){const selected=related.value;related.innerHTML='<option value="">No related record</option>'+(opts.relatedTypes||[]).map(value=>'<option>'+esc(value)+'</option>').join('');if((opts.relatedTypes||[]).includes(selected))related.value=selected;}
