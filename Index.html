@@ -6277,12 +6277,18 @@ function refreshSupervisorData(force, manual) {
     }
   }, err => {
     supervisorRefreshInFlight = false;
+    const errorMessage = err && err.message ? err.message : String(err || 'Unknown error');
+    if (loadStatus) {
+      loadStatus.innerText = currentSupervisorDataVersion === null
+        ? 'Support Queue could not load. Use Refresh to try again.'
+        : 'Support Queue refresh failed. Showing the last loaded records.';
+    }
     if (manual) {
       manualRefreshInFlight = false;
       if (icon) icon.classList.remove('animate-spin');
-      showToast('Could not refresh Supervisor Desk: ' + (err && err.message ? err.message : err));
+      showToast('Could not refresh Support Queue: ' + errorMessage);
     } else {
-      console.error('Supervisor Desk refresh failed:', err);
+      console.error('Support Queue refresh failed:', err);
     }
     refreshSupervisorAuxiliaryFeeds();
     if (supervisorRefreshQueued) {
