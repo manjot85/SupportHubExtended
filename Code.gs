@@ -4021,11 +4021,20 @@ function getQuestionsDataForMember(requestingEmail, requestingMember) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const qSheet = ss.getSheetByName(SHEET_QUESTIONS);
   const aSheet = ss.getSheetByName(SHEET_ANSWERED);
-  const workCategoryConfigs = getWorkCategoryConfigs(true);
-  const activeWorkCategoryConfigs = workCategoryConfigs.filter(config => config.active);
-  const workCategoryByName = new Map(workCategoryConfigs.map(config => [
-    String(config.category || '').trim().toLowerCase(), config.category
-  ]));
+  let workCategoryConfigs = null;
+  let activeWorkCategoryConfigs = null;
+  let workCategoryByName = null;
+  const categoryForFeedRecord = (storedCategory, question, eventName) => {
+    if (!workCategoryByName) {
+      workCategoryConfigs = getWorkCategoryConfigs(true);
+      activeWorkCategoryConfigs = workCategoryConfigs.filter(config => config.active);
+      workCategoryByName = new Map(workCategoryConfigs.map(config => [
+        String(config.category || '').trim().toLowerCase(), config.category
+      ]));
+    }
+    const category = storedCategory || inferWorkCategory(question, eventName, activeWorkCategoryConfigs);
+    return normalizeWorkCategory(category, workCategoryByName);
+  };
 
   let records = [];
 
@@ -4070,7 +4079,7 @@ function getQuestionsDataForMember(requestingEmail, requestingMember) {
           assignNotes: String(row[Q_COL.ASSIGN_NOTES - 1] || "").trim(),
           statusChangedAt: row[Q_COL.STATUS_CHANGED_AT - 1] ? safeIsoDate(row[Q_COL.STATUS_CHANGED_AT - 1]) : "",
           statusChangedBy: stripNoraPrefix(String(row[Q_COL.STATUS_CHANGED_BY - 1] || '').trim()),
-          category: normalizeWorkCategory(row[Q_COL.WORK_CATEGORY - 1] || inferWorkCategory(qText, row[Q_COL.EVENT - 1], activeWorkCategoryConfigs), workCategoryByName),
+          category: categoryForFeedRecord(row[Q_COL.WORK_CATEGORY - 1], qText, row[Q_COL.EVENT - 1]),
           eventDate: normalizeEventDate(row[Q_COL.EVENT_DATE - 1]),
           talentRole: String(row[Q_COL.TALENT_ROLE - 1] || '').trim(),
           routedSupportEmail: normalizeEmail(row[Q_COL.ROUTED_SUPPORT_EMAIL - 1]),
@@ -4148,7 +4157,7 @@ function getQuestionsDataForMember(requestingEmail, requestingMember) {
           lastUpdatedAt: lastUpdatedIso,
           hasUnreadUpdate: !requesterHasRead && !!row[A_COL.LAST_UPDATED_AT - 1] &&
             new Date(lastUpdatedIso).getTime() > new Date(answeredIso).getTime(),
-          category: normalizeWorkCategory(row[A_COL.WORK_CATEGORY - 1] || inferWorkCategory(qText, row[A_COL.EVENT - 1], activeWorkCategoryConfigs), workCategoryByName),
+          category: categoryForFeedRecord(row[A_COL.WORK_CATEGORY - 1], qText, row[A_COL.EVENT - 1]),
           eventDate: normalizeEventDate(row[A_COL.EVENT_DATE - 1]),
           talentRole: String(row[A_COL.TALENT_ROLE - 1] || '').trim(),
           routedSupportEmail: normalizeEmail(row[A_COL.ROUTED_SUPPORT_EMAIL - 1]),
@@ -4483,7 +4492,7 @@ function getSupervisorQuestionsDataIfChanged(requestingEmail, clientVersion) {
       assignNotes: String(row[Q_COL.ASSIGN_NOTES - 1] || '').trim(),
       statusChangedAt: row[Q_COL.STATUS_CHANGED_AT - 1] ? safeIsoDate(row[Q_COL.STATUS_CHANGED_AT - 1]) : '',
       statusChangedBy: stripNoraPrefix(String(row[Q_COL.STATUS_CHANGED_BY - 1] || '').trim()),
-      category: normalizeWorkCategory(row[Q_COL.WORK_CATEGORY - 1] || inferWorkCategory(qText, row[Q_COL.EVENT - 1], activeWorkCategoryConfigs), workCategoryByName),
+      category: categoryForFeedRecord(row[Q_COL.WORK_CATEGORY - 1], qText, row[Q_COL.EVENT - 1]),
       eventDate: normalizeEventDate(row[Q_COL.EVENT_DATE - 1]),
       talentRole: String(row[Q_COL.TALENT_ROLE - 1] || '').trim(),
       routedSupportEmail: normalizeEmail(row[Q_COL.ROUTED_SUPPORT_EMAIL - 1]),
