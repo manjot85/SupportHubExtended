@@ -14130,7 +14130,6 @@ function renderFeedbackInsights_(){
   rows.forEach(f=>{const key=String(f.category||f.feedbackType||'Uncategorized');categoryCounts[key]=(categoryCounts[key]||0)+1;});
   const top=Object.keys(categoryCounts).sort((a,b)=>categoryCounts[b]-categoryCounts[a]||a.localeCompare(b)).slice(0,5),maxCategory=Math.max(1,...top.map(key=>categoryCounts[key]));
   if(categories)categories.innerHTML=top.length?top.map(key=>{const count=categoryCounts[key],width=Math.max(3,Math.round(count/maxCategory*100));return '<div class="grid grid-cols-[minmax(0,1fr)_28px] items-center gap-2 text-[10px]"><span class="truncate text-slate-600" title="'+esc(key)+'">'+esc(key)+'</span><span class="text-right font-semibold text-slate-700">'+count+'</span><div class="col-span-2 h-2 rounded-full bg-slate-100 overflow-hidden"><div class="h-full rounded-full bg-emerald-500" style="width:'+width+'%"></div></div></div>';}).join(''):'<p class="text-[10px] text-slate-400">No feedback in this filter.</p>';
-}
   const recipientsByEmail=new Map();
   (teamMembers||[]).forEach(member=>{
     const status=String(member.status||'').trim().toLowerCase(),category=normalizeCategoryClient(member.category||member.role);
