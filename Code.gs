@@ -996,7 +996,7 @@ const PERFORMANCE_HEADERS = [
   'Timestamp', 'Metric', 'Status', 'User Email', 'User Name', 'Role',
   'Round Trip Ms', 'Server Ms', 'Auth Ms', 'Data Ms', 'Error', 'Release', 'Sample Type'
 ];
-const PERFORMANCE_METRICS = ['supervisor','history','tasks','peer','team-roster','search-server'];
+const PERFORMANCE_METRICS = ['supervisor','history','tasks','peer','team-roster','search-server','report-render'];
 
 function ensurePerformanceLogSheet_(ss) {
   ss = ss || SpreadsheetApp.getActiveSpreadsheet();
@@ -1147,6 +1147,23 @@ function getTeamMembersForCurrentUser() {
   // changes immediately, while normal authentication/submission calls keep
   // using the fast versioned roster cache.
   return _getTeamMembersInternal(true);
+}
+
+// Timed variant used by the current client. Keep the array-returning endpoint
+// above for older deployed clients that still expect that response shape.
+function getTeamMembersForCurrentUserWithTiming() {
+  const startedAt = Date.now();
+  requireAuthenticatedMember();
+  const authenticatedAt = Date.now();
+  const data = _getTeamMembersInternal(true);
+  return {
+    data: data,
+    serverTiming: {
+      totalMs: Date.now() - startedAt,
+      authMs: authenticatedAt - startedAt,
+      dataMs: Date.now() - authenticatedAt
+    }
+  };
 }
 
 // ==========================================
@@ -8252,21 +8269,57 @@ function parsePeerThread(raw){ try{ const a=JSON.parse(String(raw||'[]')); retur
 function peerRowToObject(row){
   return { id:String(row[0]||''), question:String(row[1]||''), eventName:String(row[2]||''), askedBy:String(row[3]||''), askedByEmail:normalizeEmail(row[4]), assignedTo:String(row[5]||''), assignedToEmail:normalizeEmail(row[6]), created:safeIsoDate(row[7]), updated:safeIsoDate(row[8]), status:String(row[9]||PEER_STATUS_OPEN), thread:parsePeerThread(row[10]), caseLink:String(row[11]||''), closedAt:row[12]?safeIsoDate(row[12]):'', closedBy:String(row[13]||''), relatedEntityType:String(row[14]||'') };
 }
-function getPeerQuestionsData(requestingEmail){
-  const actor=requireAuthenticatedMember(requestingEmail);
-  const actorEmail=normalizeEmail(actor.email);
-  const sh=ensurePeerQuestionsSheet();
-  if(sh.getLastRow()<2) return {version:getPeerDataVersion(),data:[]};
-  const rows=sh.getRange(2,1,sh.getLastRow()-1,P_WIDTH).getValues();
-  const canSeeAll=isSupportMember(actor)||isAdminMember(actor);
-  const data=rows.map(peerRowToObject).filter(p=>canSeeAll || p.askedByEmail===actorEmail || p.assignedToEmail===actorEmail);
-  return {version:getPeerDataVersion(),data:data};
+function getPeerQuestionsDataForActor_(actor) {
+  const actorEmail = normalizeEmail(actor.email);
+  const sheet = ensurePeerQuestionsSheet();
+  let data = [];
+  if (sheet.getLastRow() > 1) {
+    const rows = sheet.getRange(2, 1, sheet.getLastRow() - 1, P_WIDTH).getValues();
+    const canSeeAll = isSupportMember(actor) || isAdminMember(actor);
+    data = rows.map(peerRowToObject).filter(peer =>
+      canSeeAll || peer.askedByEmail === actorEmail || peer.assignedToEmail === actorEmail
+    );
+  }
+  return { version: getPeerDataVersion(), data: data };
 }
-function getPeerQuestionsDataIfChanged(requestingEmail, clientVersion){
-  const actor=requireAuthenticatedMember(requestingEmail);
-  const v=getPeerDataVersion();
-  if(Number(clientVersion)===v) return {unchanged:true,version:v};
-  return getPeerQuestionsData(actor.email);
+
+function getPeerQuestionsData(requestingEmail) {
+  const startedAt = Date.now();
+  const actor = requireAuthenticatedMember(requestingEmail);
+  const authenticatedAt = Date.now();
+  const result = getPeerQuestionsDataForActor_(actor);
+  result.serverTiming = {
+    totalMs: Date.now() - startedAt,
+    authMs: authenticatedAt - startedAt,
+    dataMs: Date.now() - authenticatedAt
+  };
+  return result;
+}
+
+function getPeerQuestionsDataIfChanged(requestingEmail, clientVersion) {
+  const startedAt = Date.now();
+  const actor = requireAuthenticatedMember(requestingEmail);
+  const authenticatedAt = Date.now();
+  const version = getPeerDataVersion();
+  if (Number(clientVersion) === version) {
+    return {
+      unchanged: true,
+      version: version,
+      serverTiming: {
+        totalMs: Date.now() - startedAt,
+        authMs: authenticatedAt - startedAt,
+        dataMs: Date.now() - authenticatedAt
+      }
+    };
+  }
+
+  const result = getPeerQuestionsDataForActor_(actor);
+  result.serverTiming = {
+    totalMs: Date.now() - startedAt,
+    authMs: authenticatedAt - startedAt,
+    dataMs: Date.now() - authenticatedAt
+  };
+  return result;
 }
 function findPeerRow(id){
   const sh=ensurePeerQuestionsSheet(); if(sh.getLastRow()<2) throw new Error('Peer question not found.');
