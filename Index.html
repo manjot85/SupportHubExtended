@@ -1483,19 +1483,31 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
         </div>
         <div class="rounded-lg border border-slate-200 bg-white overflow-hidden">
           <div class="px-3 py-3 border-b border-slate-200 flex flex-wrap items-start justify-between gap-3">
-            <div><h4 class="text-[10px] font-bold text-slate-700">Feedback received by team member</h4><p class="text-[10px] text-slate-500 mt-1">Rank 1 has the fewest. Members with the same count share a rank. Counts show volume, not feedback quality.</p></div>
+            <div><h4 class="text-[10px] font-bold text-slate-700">Feedback volume by role</h4><p class="text-[10px] text-slate-500 mt-1">Grouped by role; Coordinator is included by default. Scores compare each person with their role average. More feedback means a lower volume score; this measures volume, not feedback quality.</p></div>
             <span class="text-[10px] text-slate-500">Active team members: <strong id="feedback-rank-member-count" class="text-slate-700">0</strong></span>
           </div>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 p-3 bg-slate-50/60">
-            <div class="rounded-lg border border-emerald-200 bg-emerald-50/50 p-3"><p class="text-[9px] font-bold uppercase tracking-wide text-emerald-700">Fewest received · top rank</p><p id="feedback-rank-least" class="text-xs font-semibold text-slate-800 mt-1">—</p></div>
-            <div class="rounded-lg border border-amber-200 bg-amber-50/50 p-3"><p class="text-[9px] font-bold uppercase tracking-wide text-amber-700">Most received · lower rank</p><p id="feedback-rank-most" class="text-xs font-semibold text-slate-800 mt-1">—</p></div>
+          <div class="flex flex-col lg:flex-row lg:items-end gap-3 p-3 bg-slate-50/60 border-b border-slate-200">
+            <fieldset class="min-w-0">
+              <legend class="text-[9px] font-bold uppercase tracking-wide text-slate-500 mb-1">Roles included</legend>
+              <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-700">
+                <label class="inline-flex items-center gap-1.5"><input type="checkbox" class="feedback-rank-role" value="Coordinator" checked onchange="renderFeedbackInsights_()">Coordinator</label>
+                <label class="inline-flex items-center gap-1.5"><input type="checkbox" class="feedback-rank-role" value="Support" checked onchange="renderFeedbackInsights_()">Support</label>
+              </div>
+            </fieldset>
+            <label class="text-[9px] font-bold uppercase tracking-wide text-slate-500">Feedback category
+              <select id="feedback-rank-category" onchange="renderFeedbackInsights_()" class="block mt-1 min-w-52 border border-slate-300 rounded-lg bg-white px-2 py-1.5 text-xs font-normal normal-case text-slate-700">
+                <option value="">All categories</option>
+              </select>
+            </label>
+            <span id="feedback-rank-average" class="text-[10px] text-slate-500 lg:ml-auto">Average received per active member: —</span>
           </div>
+          <p class="px-3 pt-2 text-[9px] text-slate-400">Score formula: 100 at zero; 50 at the selected role’s average; 0 at twice the average or more.</p>
           <div class="overflow-x-auto">
             <table class="min-w-full text-left text-xs">
-              <thead><tr class="bg-slate-50 text-slate-500 font-bold border-y border-slate-200"><th class="p-3 w-20">RANK</th><th class="p-3">TEAM MEMBER</th><th class="p-3">ROLE</th><th class="p-3 text-right">FEEDBACK RECEIVED</th></tr></thead>
+              <thead><tr class="bg-slate-50 text-slate-500 font-bold border-y border-slate-200"><th class="p-3 w-24">VOLUME SCORE</th><th class="p-3">TEAM MEMBER</th><th class="p-3">ROLE</th><th class="p-3 text-right">FEEDBACK RECEIVED</th><th class="p-3 text-right">ROLE AVERAGE</th></tr></thead>
               <tbody id="feedback-rank-body" class="divide-y divide-slate-100"></tbody>
             </table>
-            <p id="feedback-rank-empty" class="hidden text-center text-xs text-slate-400 p-4">No active team members are available for this report.</p>
+            <p id="feedback-rank-empty" class="hidden text-center text-xs text-slate-400 p-4">No active team members match the selected roles.</p>
           </div>
         </div>
       </div>
@@ -14130,24 +14142,45 @@ function renderFeedbackInsights_(){
   rows.forEach(f=>{const key=String(f.category||f.feedbackType||'Uncategorized');categoryCounts[key]=(categoryCounts[key]||0)+1;});
   const top=Object.keys(categoryCounts).sort((a,b)=>categoryCounts[b]-categoryCounts[a]||a.localeCompare(b)).slice(0,5),maxCategory=Math.max(1,...top.map(key=>categoryCounts[key]));
   if(categories)categories.innerHTML=top.length?top.map(key=>{const count=categoryCounts[key],width=Math.max(3,Math.round(count/maxCategory*100));return '<div class="grid grid-cols-[minmax(0,1fr)_28px] items-center gap-2 text-[10px]"><span class="truncate text-slate-600" title="'+esc(key)+'">'+esc(key)+'</span><span class="text-right font-semibold text-slate-700">'+count+'</span><div class="col-span-2 h-2 rounded-full bg-slate-100 overflow-hidden"><div class="h-full rounded-full bg-emerald-500" style="width:'+width+'%"></div></div></div>';}).join(''):'<p class="text-[10px] text-slate-400">No feedback in this filter.</p>';
+
+  const categoryFilter=document.getElementById('feedback-rank-category');
+  const availableCategories=Array.from(new Set(team.map(f=>String(f.category||'Uncategorized').trim()||'Uncategorized'))).sort((a,b)=>a.localeCompare(b));
+  if(categoryFilter){
+    const selected=categoryFilter.value;
+    categoryFilter.innerHTML='<option value="">All categories</option>'+availableCategories.map(value=>'<option value="'+esc(value)+'">'+esc(value)+'</option>').join('');
+    if(availableCategories.includes(selected))categoryFilter.value=selected;
+  }
+  const selectedCategory=categoryFilter?String(categoryFilter.value||''):'';
+  const selectedRoles=Array.from(document.querySelectorAll('.feedback-rank-role:checked')).map(el=>String(el.value||''));
   const recipientsByEmail=new Map();
   (teamMembers||[]).forEach(member=>{
-    const status=String(member.status||'').trim().toLowerCase(),category=normalizeCategoryClient(member.category||member.role);
-    if(status!=='active'||!['Coordinator','Support'].includes(category)||isAdminUser(member))return;
+    const status=String(member.status||'').trim().toLowerCase(),accessRole=normalizeCategoryClient(member.category||member.role);
+    if(status!=='active'||!['Coordinator','Support'].includes(accessRole)||!selectedRoles.includes(accessRole)||isAdminUser(member))return;
     const email=normalizeFeedbackEmail(member.email);if(!email)return;
     const existing=recipientsByEmail.get(email);
     if(!existing||String(member.name||'').localeCompare(String(existing.name||''))<0)recipientsByEmail.set(email,member);
   });
-  const receivedByEmail={};
-  team.forEach(f=>{const email=normalizeFeedbackEmail(f.feedbackForEmail);if(email)receivedByEmail[email]=(receivedByEmail[email]||0)+1;});
-  const ranked=Array.from(recipientsByEmail.entries()).map(([email,member])=>({email,name:String(member.name||'Team member'),role:String(member.title||member.category||member.role||''),count:receivedByEmail[email]||0})).sort((a,b)=>a.count-b.count||a.name.localeCompare(b.name));
-  const memberCount=document.getElementById('feedback-rank-member-count');if(memberCount)memberCount.innerText=String(ranked.length);
-  const summaryNames=(items)=>{if(!items.length)return '—';const names=items.slice(0,2).map(x=>x.name);return names.join(', ')+(items.length>2?' + '+(items.length-2)+' more':'')+' · '+items[0].count+' feedback'+(items[0].count===1?'':'s');};
-  const least=document.getElementById('feedback-rank-least'),most=document.getElementById('feedback-rank-most');
-  if(least)least.innerText=ranked.length?summaryNames(ranked.filter(x=>x.count===ranked[0].count)):'—';
-  if(most)most.innerText=ranked.length?summaryNames(ranked.filter(x=>x.count===ranked[ranked.length-1].count)):'—';
+  const recordsByEmail={};
+  team.filter(f=>!selectedCategory||String(f.category||'Uncategorized').trim()===selectedCategory).forEach(f=>{
+    const email=normalizeFeedbackEmail(f.feedbackForEmail);if(email)recordsByEmail[email]=(recordsByEmail[email]||0)+1;
+  });
+  const members=Array.from(recipientsByEmail.entries()).map(([email,member])=>({email,name:String(member.name||'Team member'),role:normalizeCategoryClient(member.category||member.role),count:recordsByEmail[email]||0}));
+  const roleOrder=['Coordinator','Support'];
+  const groups=roleOrder.filter(role=>selectedRoles.includes(role)).map(role=>{
+    const people=members.filter(member=>member.role===role);
+    const average=people.length?people.reduce((sum,member)=>sum+member.count,0)/people.length:0;
+    return {role,average,people:people.map(member=>({...member,score:average>0?Math.max(0,Math.round(100-(member.count/average)*50)):100})).sort((a,b)=>b.score-a.score||a.count-b.count||a.name.localeCompare(b.name))};
+  });
+  const ranked=groups.flatMap(group=>group.people);
+  set('feedback-rank-member-count',ranked.length);
+  set('feedback-rank-average',groups.length?groups.map(group=>group.role+': '+group.average.toFixed(1)).join(' · ')+' average received per active member':'Select at least one role');
   const rankBody=document.getElementById('feedback-rank-body'),rankEmpty=document.getElementById('feedback-rank-empty');
-  if(rankBody)rankBody.innerHTML=ranked.map((member,index)=>{const rank=1+ranked.findIndex(x=>x.count===member.count);return '<tr><td class="p-3 text-slate-500">'+rank+'</td><td class="p-3 font-semibold text-slate-800">'+esc(member.name)+'</td><td class="p-3 text-slate-500">'+esc(member.role)+'</td><td class="p-3 text-right font-semibold text-slate-800">'+member.count+'</td></tr>';}).join('');
+  if(rankBody)rankBody.innerHTML=groups.flatMap(group=>{
+    if(!group.people.length)return [];
+    const header='<tr class="bg-slate-50"><th colspan="5" class="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wide text-slate-600">'+esc(group.role)+' · average '+group.average.toFixed(1)+' feedbacks per active member</th></tr>';
+    const rowsHtml=group.people.map(member=>'<tr><td class="p-3 font-semibold text-slate-700">'+member.score+'</td><td class="p-3 font-semibold text-slate-800">'+esc(member.name)+'</td><td class="p-3 text-slate-500">'+esc(member.role)+'</td><td class="p-3 text-right font-semibold text-slate-800">'+member.count+'</td><td class="p-3 text-right text-slate-500">'+group.average.toFixed(1)+'</td></tr>');
+    return [header,...rowsHtml];
+  }).join('');
   if(rankEmpty)rankEmpty.classList.toggle('hidden',ranked.length>0);
 }
 function renderFeedbackReport(){
