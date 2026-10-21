@@ -753,6 +753,7 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
   <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80">
     <h2 class="text-base font-bold text-slate-800">Feedback</h2>
     <p id="feedback-view-help" class="text-xs text-slate-500 mt-1">Feedback shared with you and any action that needs your attention.</p>
+    <p id="feedback-flow-help" class="text-[10px] text-slate-500 mt-2 rounded-lg bg-slate-50 border border-slate-200 px-3 py-2"></p>
   </div>
   <div id="feedback-management-report" class="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
     <div class="px-4 py-3 flex flex-wrap items-center justify-between gap-3 border-b border-slate-100">
@@ -761,25 +762,26 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
     </div>
     <div class="p-4 space-y-3">
       <div class="flex flex-col sm:flex-row gap-2">
-        <select id="feedback-report-status" onchange="setFeedbackFilter(this.value)" class="border border-slate-300 rounded-xl px-3 py-2 text-xs min-w-52">
+        <select id="feedback-report-status" onchange="setFeedbackFilter(this.value)" title="Choose a workflow stage. Hover the help text below for what each stage means." aria-label="Filter feedback by workflow stage" class="border border-slate-300 rounded-xl px-3 py-2 text-xs min-w-52">
           <option value="ALL">All my feedback</option><option value="PENDING">Pending acknowledgement</option><option value="DISPUTED">In dispute — Support review</option><option value="ACK">Acknowledged</option><option value="RESOLVED">Dispute resolved</option>
         </select>
-        <input id="feedback-report-search" oninput="renderFeedbackReport()" class="flex-1 border border-slate-300 rounded-xl px-3 py-2 text-xs" placeholder="Search feedback...">
+        <input id="feedback-report-search" oninput="renderFeedbackReport()" title="Search feedback text, category, people, status, and related record." class="flex-1 border border-slate-300 rounded-xl px-3 py-2 text-xs" placeholder="Search feedback...">
       </div>
+      <p id="feedback-report-filter-help" class="text-[10px] text-slate-500" title="Hover over each filter for details.">Use status to narrow by workflow stage. Dates, category, person, and search can be combined.</p>
       <div id="feedback-report-management-filters" class="hidden grid grid-cols-2 lg:grid-cols-4 gap-2">
-        <label class="text-[10px] font-semibold text-slate-500">From<input id="feedback-report-from" type="date" onchange="renderFeedbackReport()" class="mt-1 w-full border border-slate-300 rounded-lg px-2 py-2 text-xs"></label>
-        <label class="text-[10px] font-semibold text-slate-500">Through<input id="feedback-report-to" type="date" onchange="renderFeedbackReport()" class="mt-1 w-full border border-slate-300 rounded-lg px-2 py-2 text-xs"></label>
-        <label class="text-[10px] font-semibold text-slate-500">Category or type<input id="feedback-report-category" oninput="renderFeedbackReport()" class="mt-1 w-full border border-slate-300 rounded-lg px-2 py-2 text-xs" placeholder="All categories"></label>
-        <label class="text-[10px] font-semibold text-slate-500">Recipient or submitter<input id="feedback-report-person" oninput="renderFeedbackReport()" class="mt-1 w-full border border-slate-300 rounded-lg px-2 py-2 text-xs" placeholder="All people"></label>
+        <label title="Only include feedback created on or after this date." class="text-[10px] font-semibold text-slate-500">From<input id="feedback-report-from" type="date" onchange="renderFeedbackReport()" class="mt-1 w-full border border-slate-300 rounded-lg px-2 py-2 text-xs"></label>
+        <label title="Only include feedback created on or before this date." class="text-[10px] font-semibold text-slate-500">Through<input id="feedback-report-to" type="date" onchange="renderFeedbackReport()" class="mt-1 w-full border border-slate-300 rounded-lg px-2 py-2 text-xs"></label>
+        <label title="Match a feedback category or feedback type." class="text-[10px] font-semibold text-slate-500">Category or type<input id="feedback-report-category" oninput="renderFeedbackReport()" class="mt-1 w-full border border-slate-300 rounded-lg px-2 py-2 text-xs" placeholder="All categories"></label>
+        <label title="Match the feedback recipient or the person who submitted it." class="text-[10px] font-semibold text-slate-500">Recipient or submitter<input id="feedback-report-person" oninput="renderFeedbackReport()" class="mt-1 w-full border border-slate-300 rounded-lg px-2 py-2 text-xs" placeholder="All people"></label>
       </div>
       <div id="feedback-report-stats" class="hidden grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-2">
-        <div class="rounded-lg border border-slate-200 p-3"><p class="text-[9px] font-bold uppercase text-slate-500">Records</p><p id="feedback-report-total" class="text-lg font-bold text-slate-900">0</p></div>
-        <div class="rounded-lg border border-amber-200 bg-amber-50/60 p-3"><p class="text-[9px] font-bold uppercase text-amber-700">Pending</p><p id="feedback-report-pending" class="text-lg font-bold text-slate-900">0</p></div>
-        <div class="rounded-lg border border-emerald-200 bg-emerald-50/60 p-3"><p class="text-[9px] font-bold uppercase text-emerald-700">Acknowledged</p><p id="feedback-report-ack" class="text-lg font-bold text-slate-900">0</p></div>
-        <div class="rounded-lg border border-slate-200 bg-slate-50 p-3"><p class="text-[9px] font-bold uppercase text-slate-600">Pending dispute review</p><p id="feedback-report-disputed" class="text-lg font-bold text-slate-900">0</p></div>
-        <div class="rounded-lg border border-orange-200 bg-orange-50/60 p-3"><p class="text-[9px] font-bold uppercase text-orange-700">Support action</p><p id="feedback-report-action" class="text-lg font-bold text-slate-900">0</p></div>
-        <div class="rounded-lg border border-cyan-200 bg-cyan-50/60 p-3"><p class="text-[9px] font-bold uppercase text-cyan-700">Ready to close</p><p id="feedback-report-action-done" class="text-lg font-bold text-slate-900">0</p></div>
-        <div class="rounded-lg border border-indigo-200 bg-indigo-50/60 p-3"><p id="feedback-report-resolved-label" class="text-[9px] font-bold uppercase text-indigo-700">Resolved / closed</p><p id="feedback-report-resolved" class="text-lg font-bold text-slate-900">0</p></div>
+        <button type="button" title="All authorized feedback matching the date, category, person, and search filters." onclick="setFeedbackFilter('ALL')" class="rounded-lg border border-slate-200 p-3 text-left hover:border-blue-300 hover:bg-blue-50/40"><p class="text-[9px] font-bold uppercase text-slate-500">Records</p><p id="feedback-report-total" class="text-lg font-bold text-slate-900">0</p></button>
+        <button type="button" title="Feedback waiting for the recipient to acknowledge it." onclick="setFeedbackFilter('PENDING')" class="rounded-lg border border-amber-200 bg-amber-50/60 p-3 text-left hover:border-amber-400"><p class="text-[9px] font-bold uppercase text-amber-700">Pending</p><p id="feedback-report-pending" class="text-lg font-bold text-slate-900">0</p></button>
+        <button type="button" title="Records the recipient has acknowledged. Acknowledgement completes the normal path; a recipient may still dispute Team Feedback afterward." onclick="setFeedbackFilter('ACK')" class="rounded-lg border border-emerald-200 bg-emerald-50/60 p-3 text-left hover:border-emerald-400"><p class="text-[9px] font-bold uppercase text-emerald-700">Acknowledged</p><p id="feedback-report-ack" class="text-lg font-bold text-slate-900">0</p></button>
+        <button type="button" title="Disputes waiting for a Support review." onclick="setFeedbackFilter('DISPUTED')" class="rounded-lg border border-slate-200 bg-slate-50 p-3 text-left hover:border-slate-400"><p class="text-[9px] font-bold uppercase text-slate-600">Pending dispute review</p><p id="feedback-report-disputed" class="text-lg font-bold text-slate-900">0</p></button>
+        <button type="button" title="Support actions assigned to your Support profile and still in progress." onclick="setFeedbackFilter('ACTION')" class="rounded-lg border border-orange-200 bg-orange-50/60 p-3 text-left hover:border-orange-400"><p class="text-[9px] font-bold uppercase text-orange-700">Support action</p><p id="feedback-report-action" class="text-lg font-bold text-slate-900">0</p></button>
+        <button type="button" title="Support action is complete and is waiting for Support to add a closure note." onclick="setFeedbackFilter('ACTION_DONE')" class="rounded-lg border border-cyan-200 bg-cyan-50/60 p-3 text-left hover:border-cyan-400"><p class="text-[9px] font-bold uppercase text-cyan-700">Ready to close</p><p id="feedback-report-action-done" class="text-lg font-bold text-slate-900">0</p></button>
+        <button type="button" title="Dispute resolved or follow-up closed; these are completed Support workflow outcomes." onclick="setFeedbackFilter('DONE')" class="rounded-lg border border-indigo-200 bg-indigo-50/60 p-3 text-left hover:border-indigo-400"><p id="feedback-report-resolved-label" class="text-[9px] font-bold uppercase text-indigo-700">Resolved / closed</p><p id="feedback-report-resolved" class="text-lg font-bold text-slate-900">0</p></button>
       </div>
       <div class="overflow-x-auto border border-slate-200 rounded-xl">
         <table class="min-w-full text-left text-[11px]"><thead class="bg-slate-50 text-slate-500 uppercase tracking-wide"><tr>
@@ -14075,7 +14077,7 @@ function setFeedbackFilter(filter){
   if(status)status.value=feedbackFilter;
   renderFeedbackReport();
 }
-function feedbackReportRows_(){
+function feedbackReportRows_(ignoreStatus){
   if(!currentUser)return [];
   const management=isFeedbackManagementUser(), me=normalizeFeedbackEmail(currentUser.email);
   let rows=allFeedback.filter(f=>management||normalizeFeedbackEmail(f.feedbackForEmail)===me);
@@ -14093,7 +14095,7 @@ function feedbackReportRows_(){
   }
   const search=String((document.getElementById('feedback-report-search')||{}).value||'').trim().toLowerCase();
   if(search)rows=rows.filter(f=>[f.feedbackId,f.feedbackType,f.category,f.reason,f.feedbackFor,f.submittedBy,f.status,f.actionOwner,f.actionPlan,f.actionCompletionNote,f.closureNote,f.relatedType,f.relatedId,stripHtml(f.details||'')].join(' ').toLowerCase().includes(search));
-  const status=(document.getElementById('feedback-report-status')||{}).value||feedbackFilter||'ALL';
+  const status=ignoreStatus?'ALL':((document.getElementById('feedback-report-status')||{}).value||feedbackFilter||'ALL');
   if(status==='PENDING')rows=rows.filter(f=>f.status==='Pending Acknowledgement');
   if(status==='DISPUTED')rows=rows.filter(f=>f.status==='Disputed — Awaiting Review');
   if(status==='ACK')rows=rows.filter(f=>f.status==='Acknowledged');
@@ -14101,6 +14103,8 @@ function feedbackReportRows_(){
   if(status==='ACTION')rows=rows.filter(f=>['Action Required','Action In Progress'].includes(f.status)&&(isAdminUser(currentUser)||normalizeFeedbackEmail(f.actionOwnerEmail)===me));
   if(status==='ACTION_DONE')rows=rows.filter(f=>f.status==='Action Completed'&&(isAdminUser(currentUser)||normalizeFeedbackEmail(f.actionOwnerEmail)===me));
   if(status==='CLOSED')rows=rows.filter(f=>f.status==='Closed');
+  if(status==='DONE')rows=rows.filter(f=>['Dispute Resolved','Closed'].includes(f.status));
+  if(status==='RECIPIENT_FOLLOWUP')rows=rows.filter(f=>['Disputed — Awaiting Review','Action Required','Action In Progress','Action Completed'].includes(f.status));
   return rows.sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
 }
 function feedbackInsightHours_(startValue,endValue){
@@ -14219,8 +14223,12 @@ function renderFeedbackReport(){
   panel.classList.remove('hidden');
   const heading=document.getElementById('feedback-table-heading'),tableHelp=document.getElementById('feedback-table-help'),viewHelp=document.getElementById('feedback-view-help');
   if(heading)heading.innerText=management?'Feedback review':'My Feedback & Action Items';
-  if(tableHelp)tableHelp.innerText=management?'Open a row to review feedback; use Pending Dispute Review for Support follow-up.':'Open a row to acknowledge feedback or review its current status.';
-  if(viewHelp)viewHelp.innerText=management?'Management view of records your Support profile is authorized to review.':'Feedback shared with you. Pending acknowledgement is your action; disputes are awaiting Support review.';
+  const flowHelp=document.getElementById('feedback-flow-help');
+  if(flowHelp)flowHelp.innerText=management?'Normal path: Pending acknowledgement → Acknowledged (complete). If disputed: Pending dispute review → Support resolves the dispute, or assigns an action → In progress → Ready to close → Closed.':'Your path: Pending acknowledgement → Acknowledged (normal review complete). You may still dispute Team Feedback afterward; Support reviews disputes and handles any follow-up. Dispute review is a Support action.';
+  if(tableHelp)tableHelp.innerText=management?'Open a row to review or manage Support follow-up. Count cards filter the records below.':'Open a row to acknowledge feedback or review its status. Count cards filter your records.';
+  if(viewHelp)viewHelp.innerText=management?'Management view of records your Support profile is authorized to review.':'Feedback shared with you. Acknowledgement is the normal completion point; Support handles any dispute review.';
+  const filterHelp=document.getElementById('feedback-report-filter-help');
+  if(filterHelp)filterHelp.innerText=management?'Hover over the status filter for stage details. Pending dispute review is Support-owned; Ready to close means the action is done but still needs a closure note.':'Hover over the status filter for stage details. Pending acknowledgement is your action; dispute review stays with Support.';
   const managementFilters=document.getElementById('feedback-report-management-filters');
   if(managementFilters){managementFilters.classList.toggle('hidden',!management);managementFilters.classList.toggle('grid',management);}
   const stats=document.getElementById('feedback-report-stats');
@@ -14232,25 +14240,36 @@ function renderFeedbackReport(){
   if(statusSelect){
     const previous=String(statusSelect.value||feedbackFilter||'ALL');
     const options=management?[
-      ['ALL','All authorized feedback'],['PENDING','Pending acknowledgement'],['DISPUTED','Pending dispute review'],['ACTION','My Support actions'],['ACTION_DONE','Ready to close'],['CLOSED','Closed'],['ACK','Acknowledged'],['RESOLVED','Dispute resolved']
+      ['ALL','All authorized feedback','All records matching your other filters.'],
+      ['PENDING','Pending acknowledgement','Waiting for the feedback recipient to acknowledge.'],
+      ['DISPUTED','Pending dispute review','Recipient disputed feedback; Support review is pending.'],
+      ['ACTION','My Support actions','Support action assigned to you and still in progress.'],
+      ['ACTION_DONE','Ready to close','Support action is complete; add the closure note to finish.'],
+      ['DONE','Resolved or closed','Terminal Support outcomes: dispute resolved or follow-up closed.'],
+      ['ACK','Acknowledged','Recipient acknowledged; normal path complete, though they may still dispute Team Feedback.']
     ]:[
-      ['ALL','All my feedback'],['PENDING','Pending acknowledgement'],['DISPUTED','In dispute — Support review'],['ACTION','Support follow-up'],['ACTION_DONE','Action completed'],['CLOSED','Closed'],['ACK','Acknowledged'],['RESOLVED','Dispute resolved']
+      ['ALL','All my feedback','All records shared with you.'],
+      ['PENDING','Needs my acknowledgement','Your action is to review and acknowledge this feedback.'],
+      ['RECIPIENT_FOLLOWUP','Dispute / Support follow-up','Dispute review and Support follow-up are handled by Support.'],
+      ['ACK','Acknowledged','Your review is complete unless you choose to dispute Team Feedback.'],
+      ['DONE','Resolved or closed','Support has completed dispute review or closed its follow-up.']
     ];
-    statusSelect.innerHTML=options.map(o=>'<option value="'+o[0]+'">'+esc(o[1])+'</option>').join('');
+    statusSelect.innerHTML=options.map(o=>'<option value="'+o[0]+'" title="'+esc(o[2])+'">'+esc(o[1])+'</option>').join('');
     statusSelect.value=options.some(o=>o[0]===previous)?previous:'ALL';
+    statusSelect.title=(options.find(o=>o[0]===statusSelect.value)||options[0])[2];
     feedbackFilter=statusSelect.value;
   }
   const allRows=feedbackReportRows_();
-  const allBase=allFeedback.filter(f=>management||normalizeFeedbackEmail(f.feedbackForEmail)===normalizeFeedbackEmail(currentUser.email));
+  const statsRows=management?feedbackReportRows_(true):[];
   const set=(id,value)=>{const e=document.getElementById(id);if(e)e.innerText=String(value);};
   if(management){
-    set('feedback-report-total',allRows.length);
-    set('feedback-report-pending',allRows.filter(f=>f.status==='Pending Acknowledgement').length);
-    set('feedback-report-ack',allRows.filter(f=>f.status==='Acknowledged').length);
-    set('feedback-report-disputed',allRows.filter(f=>f.status==='Disputed — Awaiting Review').length);
-    set('feedback-report-action',allRows.filter(f=>['Action Required','Action In Progress'].includes(f.status)).length);
-    set('feedback-report-action-done',allRows.filter(f=>f.status==='Action Completed').length);
-    set('feedback-report-resolved',allRows.filter(f=>['Dispute Resolved','Closed'].includes(f.status)).length);
+    set('feedback-report-total',statsRows.length);
+    set('feedback-report-pending',statsRows.filter(f=>f.status==='Pending Acknowledgement').length);
+    set('feedback-report-ack',statsRows.filter(f=>f.status==='Acknowledged').length);
+    set('feedback-report-disputed',statsRows.filter(f=>f.status==='Disputed — Awaiting Review').length);
+    set('feedback-report-action',statsRows.filter(f=>['Action Required','Action In Progress'].includes(f.status)&&(admin||normalizeFeedbackEmail(f.actionOwnerEmail)===normalizeFeedbackEmail(currentUser.email))).length);
+    set('feedback-report-action-done',statsRows.filter(f=>f.status==='Action Completed'&&(admin||normalizeFeedbackEmail(f.actionOwnerEmail)===normalizeFeedbackEmail(currentUser.email))).length);
+    set('feedback-report-resolved',statsRows.filter(f=>['Dispute Resolved','Closed'].includes(f.status)).length);
   }
   const body=document.getElementById('feedback-report-rows'),empty=document.getElementById('feedback-report-empty');
   if(!body)return;
