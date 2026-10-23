@@ -1196,10 +1196,18 @@ function getTeamMembersForCurrentUserWithTiming() {
 const BASE_TITLES = ["Coordinator", "Sr. Coordinator", "Supervisor", "Escalation Supervisor", "Assistant Manager", "Manager", "Director"];
 const CONFIG_KEY_CUSTOM_TITLES = 'CUSTOM_TITLES_LIST';
 
+function getSupportHubDirectLinkBaseUrl_() {
+  // ScriptApp.getService().getUrl() returns the /dev URL while this app is
+  // running as a test deployment. Never publish that editor-only endpoint.
+  const configured = String(PropertiesService.getScriptProperties().getProperty('SUPPORT_HUB_EXEC_URL') || '').trim();
+  const candidate = configured || String(ScriptApp.getService().getUrl() || '').trim();
+  return /^https:\/\/script\.google\.com\/(?:a\/orionphotogroup\.com\/)?macros\/s\/[^/]+\/exec$/.test(candidate) ? candidate : '';
+}
+
 function doGet() {
   ensureSheetsExist();
   const template = HtmlService.createTemplateFromFile('Index');
-  template.supportHubWebAppUrl = ScriptApp.getService().getUrl();
+  template.supportHubWebAppUrl = getSupportHubDirectLinkBaseUrl_();
   return template
     .evaluate()
     .setTitle('Support Hub')
