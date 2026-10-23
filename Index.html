@@ -4383,8 +4383,14 @@ function openPendingEmailDeepLink() {
         if(!list.some(existing=>String(existing.id)===String(item.id)))list.push(item);
         openAnnouncementDetail(item.id || link.id);
       } else {
-        mergeNavigationQuestions([result.record]);
-        openTicketDetail(result.record.sheet || 'Questions Tracker', result.record.ticketId || link.id);
+        const question = result.record;
+        mergeNavigationQuestions([question]);
+        const ticketId = question.ticketId || link.id;
+        if (question.sheet === 'Questions Tracker' && String(question.status || '').toLowerCase() !== 'answered') {
+          openAnswerModal(ticketId);
+        } else {
+          openTicketDetail(question.sheet || 'Questions Tracker', ticketId);
+        }
       }
       clearOpenedSupportHubDeepLink(link);
     } catch (err) {
