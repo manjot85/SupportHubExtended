@@ -4230,6 +4230,18 @@ function clearOpenedSupportHubDeepLink(link) {
   } catch (e) {}
   if (pendingEmailDeepLink && String(pendingEmailDeepLink.id)===String(link.id)) pendingEmailDeepLink=null;
 }
+function showSupportHubDeepLinkError(err) {
+  const reason = err && err.message ? err.message : String(err || 'Google could not verify your account.');
+  const message = 'Could not open this shared record link. ' + reason +
+    ' Direct links require the web app to execute as the user accessing it and to be available to Orion Photo Group accounts.';
+  const error = document.getElementById('login-error-msg');
+  if (error) {
+    error.innerText = message;
+    error.classList.remove('hidden');
+  } else {
+    showToast(message);
+  }
+}
 function openDomainGuestDeepLink() {
   if (emailDeepLinkOpenInFlight) return;
   pendingEmailDeepLink = pendingEmailDeepLink || readSupportHubDeepLink();
@@ -4246,7 +4258,7 @@ function openDomainGuestDeepLink() {
     clearOpenedSupportHubDeepLink(link);
   }).withFailureHandler(err => {
     emailDeepLinkOpenInFlight = false;
-    showToast(err && err.message ? err.message : 'This link requires an active Orion Photo Group Google session.');
+    showSupportHubDeepLinkError(err);
   }).getSupportHubRecordForDomainLink(link.id, link.kind === 'item' ? '' : link.kind);
 }
 function domainGuestPlainText(value) {
@@ -4396,8 +4408,9 @@ function attemptAdminAutoLogin() {
   const status = document.getElementById('workspace-auto-status');
   if (status) { status.innerText = 'Checking your signed-in Google account...'; status.classList.remove('hidden'); }
 
-  google.script.run.withFailureHandler(() => {
+  google.script.run.withFailureHandler(err => {
     if (status) status.classList.add('hidden');
+    if (pendingEmailDeepLink) showSupportHubDeepLinkError(err);
   }).withSuccessHandler(res => {
     if (status) status.classList.add('hidden');
     const profiles = (res && res.profiles) || [];
