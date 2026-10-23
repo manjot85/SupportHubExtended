@@ -4317,7 +4317,10 @@ function supportHubDirectUrl(kind,id) {
   const value=String(id||'').trim();
   if(!value)return '';
   const meta=document.querySelector('meta[name="support-hub-web-app-url"]');
-  const base=meta&&meta.content?meta.content:window.location.origin+window.location.pathname;
+  const base=String(meta&&meta.content||'').trim();
+  // A /dev URL is an editor-only Apps Script test endpoint. Do not copy it
+  // as a share link or silently substitute an unverified deployment URL.
+  if(!/^https:\/\/script\.google\.com\/(?:a\/orionphotogroup\.com\/)?macros\/s\/[^/]+\/exec$/.test(base))return '';
   const url=new URL(base);
   url.searchParams.set('item',value);
   url.searchParams.set('type',String(kind||'').toLowerCase());
@@ -4325,7 +4328,7 @@ function supportHubDirectUrl(kind,id) {
 }
 function copySupportHubDirectLink(kind,id) {
   const url=supportHubDirectUrl(kind,id);
-  if(!url){showToast('This record link is not available.');return;}
+  if(!url){showToast('Share links are available from the deployed /exec app, not the /dev test page.');return;}
   const copied=()=>showToast('Direct record link copied.');
   const fallback=()=>{
     const field=document.createElement('textarea');
