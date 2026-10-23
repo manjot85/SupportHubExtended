@@ -4414,6 +4414,7 @@ function attemptAdminAutoLogin() {
 
     // More than one profile (for example Support + Admin): let the user choose.
     if (profiles.length > 1) {
+      if (pendingEmailDeepLink) { openDomainGuestDeepLink(); return; }
       showWorkspaceProfileChoice(res.authenticatedEmail, profiles, true);
       return;
     }
@@ -4423,6 +4424,7 @@ function attemptAdminAutoLogin() {
     // Admin still requires the Admin password, but the signed-in account is
     // detected automatically and the correct Admin profile is pre-selected.
     if (onlyProfile.category === 'Admin') {
+      if (pendingEmailDeepLink) { openDomainGuestDeepLink(); return; }
       showWorkspaceProfileChoice(res.authenticatedEmail, profiles, true);
       return;
     }
