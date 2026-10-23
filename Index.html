@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="support-hub-web-app-url" content="<?= supportHubWebAppUrl ?>">
 <title>Support Hub</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
@@ -1852,7 +1853,7 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 <!-- ANNOUNCEMENT DETAIL -->
 <div id="announcement-detail-modal" class="hidden fixed inset-0 z-[116] items-center justify-center bg-slate-950/55 p-4" onclick="if(event.target===this)closeAnnouncementDetail()">
   <div class="w-full max-w-3xl max-h-[88vh] flex flex-col rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden" role="dialog" aria-modal="true" aria-labelledby="announcement-detail-title">
-    <div class="px-5 py-4 border-b border-slate-200 flex items-start justify-between gap-4 shrink-0"><div class="min-w-0"><p class="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Team update</p><h2 id="announcement-detail-title" class="text-lg font-bold text-slate-900 mt-1"></h2><div class="hub-record-id"><span>Record ID</span><code id="announcement-detail-record-id"></code><button type="button" onclick="copySupportHubRecordId(activeAnnouncementDetailId)" aria-label="Copy update record ID">Copy ID</button></div><p id="announcement-detail-meta" class="text-xs text-slate-500 mt-1"></p><p id="announcement-detail-updated" class="text-[10px] text-slate-400 mt-1"></p></div><button type="button" onclick="closeAnnouncementDetail()" aria-label="Close announcement" class="text-xl text-slate-400 hover:text-slate-700">×</button></div>
+    <div class="px-5 py-4 border-b border-slate-200 flex items-start justify-between gap-4 shrink-0"><div class="min-w-0"><p class="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Team update</p><h2 id="announcement-detail-title" class="text-lg font-bold text-slate-900 mt-1"></h2><div class="hub-record-id"><span>Record ID</span><code id="announcement-detail-record-id"></code><button type="button" onclick="copySupportHubRecordId(activeAnnouncementDetailId)" aria-label="Copy update record ID">Copy ID</button><button type="button" onclick="copySupportHubDirectLink('update',activeAnnouncementDetailId)" aria-label="Copy update direct link">Copy Link</button></div><p id="announcement-detail-meta" class="text-xs text-slate-500 mt-1"></p><p id="announcement-detail-updated" class="text-[10px] text-slate-400 mt-1"></p></div><button type="button" onclick="closeAnnouncementDetail()" aria-label="Close announcement" class="text-xl text-slate-400 hover:text-slate-700">×</button></div>
     <div id="announcement-detail-content" class="announcement-detail-rich rich-editor-content p-5 overflow-y-auto text-sm leading-6 text-slate-700"></div>
     <div class="px-5 py-4 border-t border-slate-200 flex items-center justify-between gap-3 shrink-0"><span id="announcement-detail-expiry" class="text-[10px] text-slate-400"></span><div class="flex gap-2"><button id="announcement-detail-edit" type="button" onclick="openAnnouncementEdit(activeAnnouncementDetailId)" class="hidden px-4 py-2 rounded-lg border border-blue-200 text-blue-700 text-xs font-bold hover:bg-blue-50">Edit update</button><button id="announcement-detail-review" type="button" onclick="markAnnouncementReviewedUi(activeAnnouncementDetailId)" class="hidden px-4 py-2 rounded-lg border border-amber-300 text-amber-800 text-xs font-bold hover:bg-amber-50">Mark as reviewed</button><button type="button" onclick="closeAnnouncementDetail()" class="px-4 py-2 rounded-lg bg-slate-900 text-white text-xs font-bold">Close</button></div></div>
   </div>
@@ -1976,7 +1977,7 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 <!-- FEEDBACK DETAIL MODAL -->
 <div id="feedback-detail-modal" class="fixed inset-0 bg-slate-950/70 z-[58] hidden flex items-center justify-center p-4 backdrop-blur-sm" onclick="if(event.target===this)closeFeedbackDetail()">
   <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-xl max-h-[82vh] flex flex-col">
-    <div class="px-5 py-4 border-b border-slate-200 flex items-start justify-between gap-3"><div><span class="text-[10px] font-bold uppercase tracking-wider text-amber-700">Feedback</span><h3 id="feedback-detail-title" class="text-lg font-bold text-slate-900 mt-1">Feedback</h3><p id="feedback-detail-meta" class="text-[10px] text-slate-500 mt-1"></p></div><button type="button" onclick="closeFeedbackDetail()" class="text-slate-400 hover:text-slate-700 font-bold text-xl">&times;</button></div>
+    <div class="px-5 py-4 border-b border-slate-200 flex items-start justify-between gap-3"><div><span class="text-[10px] font-bold uppercase tracking-wider text-amber-700">Feedback</span><h3 id="feedback-detail-title" class="text-lg font-bold text-slate-900 mt-1">Feedback</h3><p id="feedback-detail-meta" class="text-[10px] text-slate-500 mt-1"></p><div class="hub-record-id"><span>Record ID</span><code id="feedback-detail-record-id"></code><button type="button" onclick="copySupportHubRecordId(activeFeedback &amp;&amp; activeFeedback.feedbackId)" aria-label="Copy feedback record ID">Copy ID</button><button type="button" onclick="copySupportHubDirectLink('feedback',activeFeedback &amp;&amp; activeFeedback.feedbackId)" aria-label="Copy feedback direct link">Copy Link</button></div></div><button type="button" onclick="closeFeedbackDetail()" class="text-slate-400 hover:text-slate-700 font-bold text-xl">&times;</button></div>
     <div id="feedback-detail-body" class="p-4 overflow-y-auto space-y-3"></div>
     <div class="px-4 py-3 border-t border-slate-200 flex items-center justify-between gap-2"><div id="feedback-detail-status" class="text-[11px] font-medium text-slate-600"></div><div class="flex shrink-0 gap-2"><button id="feedback-ack-btn" type="button" onclick="acknowledgeCurrentFeedback()" class="hidden px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-semibold">Acknowledge feedback</button><button type="button" onclick="closeFeedbackDetail()" class="px-3 py-1.5 rounded-lg bg-slate-900 text-white text-[11px] font-semibold">Close</button></div></div>
   </div>
@@ -2085,7 +2086,7 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 
         </div>
         <h3 id="task-modal-title" class="task-top-title font-bold text-slate-900 break-words">Task</h3>
-        <div class="hub-record-id"><span>Record ID</span><code id="task-modal-record-id"></code><button type="button" onclick="copySupportHubRecordId(activeTask &amp;&amp; activeTask.taskId)" aria-label="Copy task record ID">Copy ID</button></div>
+        <div class="hub-record-id"><span>Record ID</span><code id="task-modal-record-id"></code><button type="button" onclick="copySupportHubRecordId(activeTask &amp;&amp; activeTask.taskId)" aria-label="Copy task record ID">Copy ID</button><button type="button" onclick="copySupportHubDirectLink('task',activeTask &amp;&amp; activeTask.taskId)" aria-label="Copy task direct link">Copy Link</button></div>
         <button id="task-modal-related-ticket-top" type="button" onclick="openRelatedTicketFromTask()" class="hidden mt-1.5 text-left text-[10px] font-semibold text-blue-700 hover:text-blue-900 hover:underline">From Related Question: <span id="task-modal-related-ticket-top-title">Open question</span> <span aria-hidden="true">↗</span></button>
       </div>
       <div class="app-modal-tools" aria-label="Task window controls">
@@ -2291,7 +2292,7 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
     <div data-window-drag-handle="answer-modal-panel" class="min-w-0 flex-1 cursor-grab active:cursor-grabbing select-none">
       <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200/60">Resolve Question</span>
       <h3 id="amodal-event" class="text-base font-bold text-slate-900 mt-1 break-words">Event Name</h3>
-      <div class="hub-record-id"><span>Record ID</span><code id="amodal-record-id"></code><button type="button" onclick="copySupportHubRecordId(activeModalTicketId)" aria-label="Copy question record ID">Copy ID</button></div>
+      <div class="hub-record-id"><span>Record ID</span><code id="amodal-record-id"></code><button type="button" onclick="copySupportHubRecordId(activeModalTicketId)" aria-label="Copy question record ID">Copy ID</button><button type="button" onclick="copySupportHubDirectLink('ticket',activeModalTicketId)" aria-label="Copy question direct link">Copy Link</button></div>
     </div>
     <div class="app-modal-tools" aria-label="Question window controls">
       <button type="button" onclick="minimizeWorkModal('answer-modal')" class="app-modal-tool" title="Minimize" aria-label="Minimize question window">—</button>
@@ -2449,7 +2450,7 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 <div class="min-w-0 flex-1">
 <div class="flex flex-wrap items-center gap-1.5"><span class="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-emerald-700 text-white">Answered Question</span><span id="vmodal-read-badge" class="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-rose-500 text-white">UNREAD</span></div>
 <h3 id="vmodal-event" class="text-lg font-bold text-slate-900 mt-1 break-all">Event Name</h3>
-<div class="hub-record-id"><span>Record ID</span><code id="vmodal-record-id"></code><button type="button" onclick="copySupportHubRecordId(activeViewQuestion &amp;&amp; activeViewQuestion.ticketId)" aria-label="Copy answered question record ID">Copy ID</button></div>
+<div class="hub-record-id"><span>Record ID</span><code id="vmodal-record-id"></code><button type="button" onclick="copySupportHubRecordId(activeViewQuestion &amp;&amp; activeViewQuestion.ticketId)" aria-label="Copy answered question record ID">Copy ID</button><button type="button" onclick="copySupportHubDirectLink('ticket',activeViewQuestion &amp;&amp; activeViewQuestion.ticketId)" aria-label="Copy question direct link">Copy Link</button></div>
 <div class="resolve-review-grid mt-2">
 <div class="resolve-review-item"><span class="resolve-review-label">Asked by</span><span id="vmodal-asked" class="resolve-review-value"></span></div>
 <div class="resolve-review-item"><span class="resolve-review-label">Asked at</span><span id="vmodal-created" class="resolve-review-value"></span></div>
@@ -2604,7 +2605,7 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 <div class="min-w-0 flex-1">
 <div class="flex flex-wrap items-center gap-1.5"><span class="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-slate-900 text-white">Question</span><span id="tdmodal-status-badge" class="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200/60">Open</span></div>
 <h3 id="tdmodal-event" class="text-lg font-bold text-slate-900 mt-1 break-all">Event Name</h3>
-<div class="hub-record-id"><span>Record ID</span><code id="tdmodal-record-id"></code><button type="button" onclick="copySupportHubRecordId(activeTicketDetailQuestion &amp;&amp; activeTicketDetailQuestion.ticketId)" aria-label="Copy question record ID">Copy ID</button></div>
+<div class="hub-record-id"><span>Record ID</span><code id="tdmodal-record-id"></code><button type="button" onclick="copySupportHubRecordId(activeTicketDetailQuestion &amp;&amp; activeTicketDetailQuestion.ticketId)" aria-label="Copy question direct link">Copy Link</button></div>
 <div class="resolve-review-grid mt-2">
 <div class="resolve-review-item"><span class="resolve-review-label">Asked by</span><span id="tdmodal-asked" class="resolve-review-value"></span></div>
 <div class="resolve-review-item"><span class="resolve-review-label">Asked at</span><span id="tdmodal-created" class="resolve-review-value"></span></div>
@@ -2682,7 +2683,7 @@ This question has not been answered yet.
 </div>
 <div id="peer-detail-modal" class="fixed inset-0 bg-slate-950/70 z-[80] hidden flex items-center justify-center p-4 backdrop-blur-sm overflow-y-auto" onclick="if(event.target===this)closePeerDetailModal()">
   <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden my-6">
-    <div class="p-5 border-b border-slate-200 flex justify-between"><div><p id="peer-detail-status" class="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Peer Question</p><h3 id="peer-detail-title" class="text-base font-bold text-slate-900"></h3><div class="hub-record-id"><span>Record ID</span><code id="peer-detail-record-id"></code><button type="button" onclick="copySupportHubRecordId(activePeerQuestion &amp;&amp; activePeerQuestion.id)" aria-label="Copy peer question record ID">Copy ID</button></div><p id="peer-detail-meta" class="text-[11px] text-slate-500 mt-1"></p></div><button onclick="closePeerDetailModal()" class="text-slate-400 text-xl">×</button></div>
+    <div class="p-5 border-b border-slate-200 flex justify-between"><div><p id="peer-detail-status" class="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Peer Question</p><h3 id="peer-detail-title" class="text-base font-bold text-slate-900"></h3><div class="hub-record-id"><span>Record ID</span><code id="peer-detail-record-id"></code><button type="button" onclick="copySupportHubRecordId(activePeerQuestion &amp;&amp; activePeerQuestion.id)" aria-label="Copy peer question record ID">Copy ID</button><button type="button" onclick="copySupportHubDirectLink('peer',activePeerQuestion &amp;&amp; activePeerQuestion.id)" aria-label="Copy peer question direct link">Copy Link</button></div><p id="peer-detail-meta" class="text-[11px] text-slate-500 mt-1"></p></div><button onclick="closePeerDetailModal()" class="text-slate-400 text-xl">×</button></div>
     <div class="p-5"><div id="peer-thread" class="space-y-3 max-h-[45vh] overflow-y-auto pr-1"></div>
       <div id="peer-reply-area" class="mt-5 pt-4 border-t border-slate-200"><div class="border border-slate-300 rounded-t-xl bg-slate-50 p-1.5 flex items-center gap-1 border-b-0 text-xs text-slate-600"><button type="button" onclick="execEditorCmd('bold')" class="px-2 py-0.5 rounded hover:bg-slate-200 font-bold">B</button><button type="button" onclick="execEditorCmd('italic')" class="px-2 py-0.5 rounded hover:bg-slate-200 italic">I</button><button type="button" onclick="promptInsertLink()" class="px-2 py-0.5 rounded hover:bg-slate-200 underline">🔗 Link</button><label class="px-2 py-0.5 rounded hover:bg-slate-200 cursor-pointer">📷 Image<input type="file" accept="image/png,image/jpeg,image/gif,image/webp" class="hidden" onchange="handleImageInsert(event,'peer-reply-text')"></label></div><div id="peer-reply-text" contenteditable="true" onpaste="handleEditorPasteImage(event,'peer-reply-text')" class="rich-editor-content w-full min-h-[95px] border border-slate-300 p-3 rounded-b-xl text-xs focus:ring-2 focus:ring-emerald-500 outline-none bg-white leading-relaxed" data-placeholder="Write a quick reply..."></div><div class="mt-3 flex flex-wrap justify-between gap-2"><div class="flex gap-2"><button onclick="openPeerReassign()" class="px-3 py-2 rounded-lg border border-slate-300 text-xs font-semibold">Reassign</button><button onclick="openPeerEscalate()" class="px-3 py-2 rounded-lg border border-amber-300 bg-amber-50 text-amber-700 text-xs font-semibold">Escalate to Support</button><button onclick="closeActivePeer()" class="px-3 py-2 rounded-lg border border-slate-300 text-xs font-semibold">Close</button></div><button id="peer-reply-submit-btn" onclick="sendPeerReply()" class="bg-emerald-600 text-white px-5 py-2 rounded-lg text-xs font-bold">Reply</button></div></div>
       <div id="peer-closed-note" class="hidden mt-4 text-xs text-slate-500 bg-slate-50 rounded-xl p-3">This Peer Question is closed.</div>
@@ -4198,6 +4199,7 @@ function readSupportHubDeepLink() {
     if(kind==='question'||kind==='ticket') return 'ticket';
     if(kind==='peer'||kind==='peer-question') return 'peer';
     if(kind==='update'||kind==='announcement') return 'update';
+    if(kind==='feedback') return 'feedback';
     return 'item';
   };
   const rawHash = String(window.location.hash || '').replace(/^#/, '');
@@ -4228,6 +4230,114 @@ function clearOpenedSupportHubDeepLink(link) {
   } catch (e) {}
   if (pendingEmailDeepLink && String(pendingEmailDeepLink.id)===String(link.id)) pendingEmailDeepLink=null;
 }
+function openDomainGuestDeepLink() {
+  if (emailDeepLinkOpenInFlight) return;
+  pendingEmailDeepLink = pendingEmailDeepLink || readSupportHubDeepLink();
+  if (!pendingEmailDeepLink) return;
+  const link = pendingEmailDeepLink;
+  emailDeepLinkOpenInFlight = true;
+  google.script.run.withSuccessHandler(result => {
+    emailDeepLinkOpenInFlight = false;
+    if (!result || !result.record) {
+      showToast('The linked Support Hub record could not be loaded.');
+      return;
+    }
+    renderDomainGuestRecord(result);
+    clearOpenedSupportHubDeepLink(link);
+  }).withFailureHandler(err => {
+    emailDeepLinkOpenInFlight = false;
+    showToast(err && err.message ? err.message : 'This link requires an active Orion Photo Group Google session.');
+  }).getSupportHubRecordForDomainLink(link.id, link.kind === 'item' ? '' : link.kind);
+}
+function domainGuestPlainText(value) {
+  return esc(stripHtml(String(value == null ? '' : value)).replace(/&nbsp;/gi, ' ').trim());
+}
+function domainGuestSafeLink(value,label) {
+  try {
+    const url=new URL(String(value||'').trim());
+    if(url.protocol!=='http:'&&url.protocol!=='https:')return '';
+    return '<a class="text-xs font-semibold text-blue-700 underline break-all" target="_blank" rel="noopener noreferrer" href="'+esc(url.href)+'">'+esc(label||'Open related link ↗')+'</a>';
+  } catch(e) { return ''; }
+}
+function renderDomainGuestRecord(result) {
+  const record = result && result.record || {}, kind = String(result && result.kind || '');
+  const field = (label, value) => value ? '<div><dt class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">'+esc(label)+'</dt><dd class="mt-0.5 text-xs text-slate-700 whitespace-pre-wrap break-words">'+domainGuestPlainText(value)+'</dd></div>' : '';
+  const section = (label, value) => value ? '<section class="border-t border-slate-100 pt-4"><h2 class="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">'+esc(label)+'</h2><div class="text-sm leading-6 text-slate-700 whitespace-pre-wrap break-words">'+domainGuestPlainText(value)+'</div></section>' : '';
+  let title = '', badge = '', meta = '', fields = '', body = '', related = '';
+  if (kind === 'task') {
+    title = record.title || 'Task'; badge = 'Task · '+(record.status || 'Open');
+    meta = [record.assignedToName || record.assignedTo || '', record.dueDate ? 'Due '+record.dueDate : '', record.createdBy || ''].filter(Boolean).join(' · ');
+    fields = field('Assigned to',record.assignedToName || record.assignedTo)+field('Created by',record.createdBy)+field('Category',record.category)+field('Due date',record.dueDate)+field('Event / client / talent',record.relatedClientTalent || record.relatedEvent);
+    body = section('Instructions',record.instructions || record.description);
+    related = domainGuestSafeLink(record.relatedLink);
+  } else if (kind === 'ticket') {
+    title = record.eventName || 'Question'; badge = 'Question · '+(record.status || 'Open');
+    meta = [record.askedBy || '', record.created ? formatCSTDateTime(record.created) : ''].filter(Boolean).join(' · ');
+    fields = field('Asked by',record.askedBy)+field('Asked at',formatCSTDateTime(record.created))+field('Category',record.category);
+    body = section('Question',record.question)+section('Answer',record.answer);
+    related = domainGuestSafeLink(record.caseLink);
+  } else if (kind === 'peer') {
+    title = record.eventName || 'Peer question'; badge = 'Peer question · '+(record.status || 'Open');
+    meta = [record.askedBy || '', record.assignedTo ? 'Assigned to '+record.assignedTo : '', record.updated ? formatCSTDateTime(record.updated) : ''].filter(Boolean).join(' · ');
+    fields = field('Asked by',record.askedBy)+field('Assigned to',record.assignedTo)+field('Related type',record.relatedEntityType);
+    body = section('Question',record.question)+(record.thread||[]).map(item=>section((item.by||'Reply')+(item.at?' · '+formatCSTDateTime(item.at):''),item.text)).join('');
+    related = record.caseLink ? '<a class="text-xs font-semibold text-blue-700 underline break-all" target="_blank" rel="noopener noreferrer" href="'+esc(record.caseLink)+'">Open related link ↗</a>' : '';
+  } else if (kind === 'update') {
+    title = record.title || 'Team update'; badge = 'Team update';
+    meta = [record.createdBy ? 'From '+record.createdBy : '', record.publishedAt ? 'Published '+formatCSTDateTime(record.publishedAt) : ''].filter(Boolean).join(' · ');
+    body = section('Update',record.message);
+  } else if (kind === 'feedback') {
+    title = record.category || 'Feedback'; badge = 'Feedback · '+(record.status || 'Submitted');
+    meta = [record.feedbackId || '', record.createdAt ? formatCSTDateTime(record.createdAt) : ''].filter(Boolean).join(' · ');
+    fields = field('Feedback type',record.feedbackType)+field('For',record.feedbackFor)+field('Submitted by',record.submittedBy)+field('Category',record.category)+field('Reason',record.reason)+field('Status',record.status);
+    body = section('Feedback details',record.details)+section('Expected process / behavior',record.expectedProcess)+section('Impact',record.impact)+section('Suggested action',record.suggestedAction);
+    related = record.relatedId ? '<div class="text-xs text-slate-600">'+esc(record.relatedType||'Related')+': '+esc(record.relatedId)+'</div>'+domainGuestSafeLink(record.relatedLink) : '';
+  } else {
+    showToast('This kind of Support Hub record link is not supported.');
+    return;
+  }
+  let panel=document.getElementById('domain-link-record-view');
+  if(!panel){
+    panel=document.createElement('div');
+    panel.id='domain-link-record-view';
+    panel.className='fixed inset-0 z-[300] bg-slate-950/60 backdrop-blur-sm overflow-y-auto p-4 sm:p-8';
+    document.body.appendChild(panel);
+  }
+  document.getElementById('login-overlay').classList.add('hidden');
+  document.getElementById('app-container').classList.add('hidden');
+  panel.innerHTML='<div class="mx-auto my-4 w-full max-w-3xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"><header class="border-b border-slate-200 bg-white px-5 py-4"><div class="flex items-start justify-between gap-4"><div class="min-w-0"><p class="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Shared Support Hub record · Orion Photo Group</p><span class="mt-2 inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold uppercase text-slate-600">'+esc(badge)+'</span><h1 class="mt-2 text-lg font-bold text-slate-900 break-words">'+domainGuestPlainText(title)+'</h1><p class="mt-1 text-xs text-slate-500">'+domainGuestPlainText(meta)+'</p></div><button type="button" onclick="closeDomainGuestRecord()" class="rounded-lg px-3 py-2 text-xs font-semibold text-slate-500 hover:bg-slate-100">Close</button></div></header><main class="space-y-4 p-5"><dl class="grid grid-cols-1 gap-3 sm:grid-cols-2">'+fields+'</dl>'+body+(related?'<section class="border-t border-slate-100 pt-4">'+related+'</section>':'')+'</main></div>';
+}
+function closeDomainGuestRecord() {
+  const panel=document.getElementById('domain-link-record-view');
+  if(panel)panel.remove();
+  const base=document.querySelector('meta[name="support-hub-web-app-url"]');
+  window.location.href=base&&base.content?base.content:window.location.pathname;
+}
+function supportHubDirectUrl(kind,id) {
+  const value=String(id||'').trim();
+  if(!value)return '';
+  const meta=document.querySelector('meta[name="support-hub-web-app-url"]');
+  const base=meta&&meta.content?meta.content:window.location.origin+window.location.pathname;
+  const url=new URL(base);
+  url.searchParams.set('item',value);
+  url.searchParams.set('type',String(kind||'').toLowerCase());
+  return url.toString();
+}
+function copySupportHubDirectLink(kind,id) {
+  const url=supportHubDirectUrl(kind,id);
+  if(!url){showToast('This record link is not available.');return;}
+  const copied=()=>showToast('Direct record link copied.');
+  const fallback=()=>{
+    const field=document.createElement('textarea');
+    field.value=url;field.setAttribute('readonly','');field.style.position='fixed';field.style.opacity='0';
+    document.body.appendChild(field);field.select();
+    let ok=false;try{ok=document.execCommand('copy');}catch(e){}
+    field.remove();
+    if(ok)copied();else showToast('Could not copy the link.');
+  };
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(url).then(copied).catch(fallback);
+  else fallback();
+}
 function openPendingEmailDeepLink() {
   if (!currentUser || emailDeepLinkOpenInFlight) return;
   pendingEmailDeepLink = pendingEmailDeepLink || readSupportHubDeepLink();
@@ -4243,7 +4353,10 @@ function openPendingEmailDeepLink() {
       return;
     }
     try {
-      if (result.kind === 'task') {
+      if (result.kind === 'feedback') {
+        if (result.viewerCanUseHubDetail) openFeedbackDetail(result.record.feedbackId || link.id);
+        else renderDomainGuestRecord(result);
+      } else if (result.kind === 'task') {
         mergeNavigationTasks([result.record]);
         openTaskDetail(result.record.taskId || link.id);
       } else if (result.kind === 'peer') {
@@ -4285,7 +4398,10 @@ function attemptAdminAutoLogin() {
   }).withSuccessHandler(res => {
     if (status) status.classList.add('hidden');
     const profiles = (res && res.profiles) || [];
-    if (!profiles.length) return;
+    if (!profiles.length) {
+      if (pendingEmailDeepLink) openDomainGuestDeepLink();
+      return;
+    }
 
     workspaceBootstrap = {
       profiles: profiles,
@@ -14420,7 +14536,7 @@ function openFeedbackDetail(feedbackId){
   google.script.run.withFailureHandler(err=>{if(currentUser!==user)return;document.getElementById('feedback-detail-body').innerHTML='<div class="p-5 text-xs text-rose-600">'+esc(err&&err.message?err.message:err)+'</div>';}).withSuccessHandler(res=>{
     if(currentUser!==user)return; activeFeedback=res&&res.feedback?res.feedback:null; if(!activeFeedback)return;
     document.getElementById('feedback-detail-title').innerText=activeFeedback.category||'Feedback';
-    document.getElementById('feedback-detail-meta').innerText=(activeFeedback.feedbackId||'')+' · '+formatCSTDateTime(activeFeedback.createdAt);
+    document.getElementById('feedback-detail-meta').innerText=(activeFeedback.feedbackId||'')+' · '+formatCSTDateTime(activeFeedback.createdAt); document.getElementById('feedback-detail-record-id').innerText=activeFeedback.feedbackId||'';
     const recipient=String(activeFeedback.feedbackFor||'').trim(), submitted=String(activeFeedback.submittedBy||'').trim();
     const isRecipient=normalizeFeedbackEmail(activeFeedback.feedbackForEmail)===normalizeFeedbackEmail(currentUser.email);
     const isManager=isFeedbackManagementUser();
