@@ -1198,7 +1198,9 @@ const CONFIG_KEY_CUSTOM_TITLES = 'CUSTOM_TITLES_LIST';
 
 function doGet() {
   ensureSheetsExist();
-  return HtmlService.createTemplateFromFile('Index')
+  const template = HtmlService.createTemplateFromFile('Index');
+  template.supportHubWebAppUrl = ScriptApp.getService().getUrl();
+  return template
     .evaluate()
     .setTitle('Support Hub')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
@@ -4766,6 +4768,19 @@ function getSupportHubRecordForNavigation(itemId, requestingEmail, recordType) {
     if (!item) throw new Error('This update could not be found or is no longer available.');
     return { kind:'update', record:item };
   }
+  if (type === 'feedback') {
+    const sheet = ensureFeedbackSheet(SpreadsheetApp.getActiveSpreadsheet());
+    const lastRow = sheet.getLastRow();
+    if (lastRow > 1) {
+      const rows = sheet.getRange(2, 1, lastRow - 1, F_WIDTH).getValues();
+      for (let i = 0; i < rows.length; i++) {
+        const record = feedbackRowToObject_(rows[i]);
+        if (record.feedbackId !== id) continue;
+        return { kind:'feedback', record:record, viewerCanUseHubDetail:feedbackUserCanView_(record, member) };
+      }
+    }
+    throw new Error('This feedback record could not be found.');
+  }
   if (type) throw new Error('This Support Hub record type is not supported.');
   try {
     const target = requireTaskRow(id);
@@ -4798,6 +4813,101 @@ function getSupportHubRecordForNavigation(itemId, requestingEmail, recordType) {
     if (item) return { kind:'update', record:item };
   } catch (updateError) {}
   throw new Error('The linked Support Hub item could not be found or is not available to this account.');
+}
+
+// Resolve one explicitly typed record for a signed-in Orion Photo Group user
+// who does not have a Support Hub Team Setup profile. This is a read-only
+// direct-link path: it never accepts an email from the browser and never
+// returns a list of records.
+function getSupportHubRecordForDomainLink(itemId, recordType) {
+  const email = getAuthenticatedEmail();
+  if (String(email).split('@')[1] !== 'orionphotogroup.com') {
+    throw new Error('Shared record links are available only to Orion Photo Group Google accounts.');
+  }
+  const id = String(itemId || '').trim();
+  const type = String(recordType || '').trim().toLowerCase();
+  if (!id) throw new Error('The linked Support Hub item ID is missing.');
+
+  if (type === 'task') {
+    const target = requireTaskRow(id);
+    return { kind:'task', record:taskRowToObject(target.sheet.getRange(target.rowIndex, 1, 1, T_WIDTH).getValues()[0]) };
+  }
+  if (type === 'ticket' || type === 'question') {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const questionSheet = ss.getSheetByName(SHEET_QUESTIONS);
+    if (questionSheet) {
+      const rowIndex = findRowIndexByTicketId(questionSheet, id, Q_COL.TICKET_ID);
+      if (rowIndex !== -1) return { kind:'ticket', record:navigationQuestionFromRow(questionSheet.getRange(rowIndex, 1, 1, Q_WIDTH).getValues()[0], SHEET_QUESTIONS, email) };
+    }
+    const answeredSheet = ss.getSheetByName(SHEET_ANSWERED);
+    if (answeredSheet) {
+      const rowIndex = findRowIndexByTicketId(answeredSheet, id, A_COL.TICKET_ID);
+      if (rowIndex !== -1) return { kind:'ticket', record:navigationQuestionFromRow(answeredSheet.getRange(rowIndex, 1, 1, A_WIDTH).getValues()[0], SHEET_ANSWERED, email) };
+    }
+    throw new Error('This question could not be found.');
+  }
+  if (type === 'peer' || type === 'peer-question') {
+    const sheet = ensurePeerQuestionsSheet();
+    const lastRow = sheet.getLastRow();
+    if (lastRow > 1) {
+      const rows = sheet.getRange(2, 1, lastRow - 1, P_WIDTH).getValues();
+      for (let i = 0; i < rows.length; i++) {
+        const record = peerRowToObject(rows[i]);
+        if (record.id === id) return { kind:'peer', record:record };
+      }
+    }
+    throw new Error('This peer question could not be found.');
+  }
+  if (type === 'update' || type === 'announcement') {
+    const sheets = ensureAnnouncementsSheets_();
+    const sheet = sheets.announcements;
+    const lastRow = sheet.getLastRow();
+    if (lastRow > 1) {
+      const rows = sheet.getRange(2, 1, lastRow - 1, 12).getValues();
+      const now = Date.now();
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i], publishedAt = row[5] instanceof Date ? row[5] : new Date(row[5]);
+        const expiresAt = row[6] instanceof Date ? row[6] : new Date(row[6]);
+        if (String(row[0] || '').trim() !== id || isNaN(publishedAt.getTime()) || isNaN(expiresAt.getTime())) continue;
+        return { kind:'update', record:{
+          id:id, title:String(row[1] || ''), message:String(row[2] || ''),
+          createdBy:String(row[3] || ''), publishedAt:announcementDateIso_(publishedAt),
+          expiresAt:announcementDateIso_(expiresAt),
+          reviewRequired:row[7] === true || String(row[7]).toLowerCase() === 'true',
+          revision:Number(row[8]) || 1, updatedAt:announcementDateIso_(row[9]),
+          updatedBy:String(row[10] || ''), isExpired:expiresAt.getTime() <= now
+        }};
+      }
+    }
+    throw new Error('This update could not be found.');
+  }
+  if (type === 'feedback') {
+    const sheet = ensureFeedbackSheet(SpreadsheetApp.getActiveSpreadsheet());
+    const lastRow = sheet.getLastRow();
+    if (lastRow > 1) {
+      const rows = sheet.getRange(2, 1, lastRow - 1, F_WIDTH).getValues();
+      for (let i = 0; i < rows.length; i++) {
+        const record = feedbackRowToObject_(rows[i]);
+        if (record.feedbackId === id) return { kind:'feedback', record:record };
+      }
+    }
+    throw new Error('This feedback record could not be found.');
+  }
+  if (!type || type === 'item') {
+    const possibleTypes = ['task','ticket','peer','update','feedback'];
+    for (let i = 0; i < possibleTypes.length; i++) {
+      try { return getSupportHubRecordForDomainLink(id, possibleTypes[i]); } catch (ignored) {}
+    }
+    throw new Error('The linked Support Hub item could not be found.');
+  }
+  if (!type || type === 'item') {
+    const possibleTypes = ['task','ticket','peer','update','feedback'];
+    for (let i = 0; i < possibleTypes.length; i++) {
+      try { return getSupportHubRecordForDomainLink(id, possibleTypes[i]); } catch (ignored) {}
+    }
+    throw new Error('The linked Support Hub item could not be found.');
+  }
+  throw new Error('This direct-link record type is not supported.');
 }
 
 // ==========================================
