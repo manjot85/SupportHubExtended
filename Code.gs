@@ -825,10 +825,12 @@ function getWorkspaceProfileBootstrap() {
   ensureSheetsExist();
   const authenticatedEmail = getAuthenticatedEmail();
   const profiles = getWorkspaceIdentityProfiles(authenticatedEmail);
+  const activeProfile = getStoredWorkspaceProfile(authenticatedEmail);
   return {
     success: true,
     authenticatedEmail: authenticatedEmail,
     profiles: profiles,
+    activeProfileKey: activeProfile ? activeProfile.profileKey : '',
     team: profiles.length ? _getTeamMembersInternal() : []
   };
 }
