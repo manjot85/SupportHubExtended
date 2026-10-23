@@ -4428,9 +4428,23 @@ function attemptAdminAutoLogin() {
     teamMembers = normalizeTeamMembers(res.team || []);
     lastTeamFetch = Date.now();
 
-    // More than one profile (for example Support + Admin): let the user choose.
+    // A direct link opened in another tab can reuse the active operational
+    // profile already saved for this Google Workspace identity. UserProperties
+    // is shared across tabs for this account. Keep Admin password verification:
+    // if Admin was the selected profile, use the read-only domain link view.
     if (profiles.length > 1) {
-      if (pendingEmailDeepLink) { openDomainGuestDeepLink(); return; }
+      if (pendingEmailDeepLink) {
+        const activeProfile = profiles.find(profile => profile.profileKey === String(res.activeProfileKey || ''));
+        if (activeProfile && !isAdminMember(activeProfile)) {
+          authenticatedAdminUser = null;
+          teamMembers = normalizeTeamMembers(res.team || []);
+          lastTeamFetch = Date.now();
+          finishLogin(activeProfile);
+        } else {
+          openDomainGuestDeepLink();
+        }
+        return;
+      }
       showWorkspaceProfileChoice(res.authenticatedEmail, profiles, true);
       return;
     }
