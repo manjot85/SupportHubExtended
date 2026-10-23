@@ -4340,7 +4340,7 @@ function supportHubDirectUrl(kind,id) {
 }
 function copySupportHubDirectLink(kind,id) {
   const url=supportHubDirectUrl(kind,id);
-  if(!url){showToast('Share links are available from the deployed /exec app, not the /dev test page.');return;}
+  if(!url){showToast('No shareable /exec URL is configured. Open the deployed app, or set SUPPORT_HUB_EXEC_URL to its versioned /exec URL.');return;}
   const copied=()=>showToast('Direct record link copied.');
   const fallback=()=>{
     const field=document.createElement('textarea');
