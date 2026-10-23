@@ -4769,6 +4769,9 @@ function getSupportHubRecordForNavigation(itemId, requestingEmail, recordType) {
     return { kind:'update', record:item };
   }
   if (type === 'feedback') {
+    if (String(getAuthenticatedEmail()).split('@')[1] !== 'orionphotogroup.com') {
+      throw new Error('Shared feedback links are available only to Orion Photo Group Google accounts.');
+    }
     const sheet = ensureFeedbackSheet(SpreadsheetApp.getActiveSpreadsheet());
     const lastRow = sheet.getLastRow();
     if (lastRow > 1) {
